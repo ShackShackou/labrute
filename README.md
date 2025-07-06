@@ -2,6 +2,7 @@
 
 <img src="https://github.com/user-attachments/assets/57440ad3-2328-42ea-a840-c24edcdee36f" width="500" />
 
+[Guide d'installation en français](docs/setup_guide_fr.md)
 ## Backend
 
 > Made with [Node.js](https://nodejs.org/en/), [Express](https://expressjs.com/), [Prisma](https://www.prisma.io/), written in [Typescript](https://www.typescriptlang.org/).
