@@ -3,6 +3,13 @@ echo Starting La Brute development servers...
 
 cd /d %~dp0
 
+REM Sauvegarde automatique au démarrage
+if exist backups\nul (
+    echo Sauvegarde automatique...
+    call quick-backup.cmd
+    echo.
+)
+
 echo Compiling TypeScript...
 call npx tsc -b tsconfig.build.json
 
