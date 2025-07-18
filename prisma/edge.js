@@ -807,7 +807,7 @@ const config = {
       "value": "prisma-client-js"
     },
     "output": {
-      "value": "C:\\Users\\perso\\Documents\\GitHub\\labrute\\prisma",
+      "value": "C:\\Users\\User\\labrute\\prisma",
       "fromEnvVar": null
     },
     "config": {
@@ -832,7 +832,7 @@ const config = {
       "nativeDistinct",
       "relationJoins"
     ],
-    "sourceFilePath": "C:\\Users\\perso\\Documents\\GitHub\\labrute\\server\\prisma\\schema.prisma",
+    "sourceFilePath": "C:\\Users\\User\\labrute\\server\\prisma\\schema.prisma",
     "isCustomOutput": true
   },
   "relativeEnvPaths": {

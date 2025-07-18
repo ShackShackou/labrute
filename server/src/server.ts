@@ -1,4 +1,5 @@
 import express = require('express');
+import path from 'path';
 
 import { Version } from '@labrute/core';
 import bodyParser from 'body-parser';
@@ -72,6 +73,17 @@ export function main(cx: ServerContext) {
   });
 
   initRoutes(app, cx.config, cx.prisma);
+
+  // Serve static files from React build
+  const buildPath = path.join(process.cwd(), '..', 'client', 'build');
+  app.use(express.static(buildPath));
+
+  // Handle React Router - send all non-API requests to index.html
+  app.get('*', (req, res) => {
+    if (!req.path.startsWith('/api')) {
+      res.sendFile(path.join(buildPath, 'index.html'));
+    }
+  });
 }
 
 /**

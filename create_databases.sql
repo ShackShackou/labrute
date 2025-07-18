@@ -1,0 +1,2 @@
+CREATE DATABASE labrute;
+CREATE DATABASE etwin;

@@ -140,7 +140,7 @@ export interface Config {
 export const emptyConfig: Config = {
   isProduction: false,
   port: 50380,
-  selfUrl: new URL('http://localhost:3000/'),
+  selfUrl: new URL('http://localhost:9000/'),
   corsRegex: /.*/,
   cookieSecret: 'dev',
   csrfSecret: 'dev2',
