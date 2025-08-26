@@ -23,6 +23,7 @@
     "db:seed": "cd ./server && yarn db:seed",
     "db:reset": "cd ./server && yarn db:reset",
     "postinstall": "bash ./scripts/postInstall.sh",
+    "lint": "eslint .",
     "studio": "cd ./server && yarn studio",
     "audit": "yarn npm audit --recursive --all --environment production",
     "add:client": "yarn workspace @labrute/client add",
