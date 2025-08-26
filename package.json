@@ -34,7 +34,10 @@
     "run:retrieveFirstBonus": "cd server && yarn run:retrieveFirstBonus",
     "run:fixErroredBonuses": "cd server && yarn run:fixErroredBonuses",
     "sitemap:generate": "npx ts-node ./scripts/genereateSitemap.ts",
-    "core:export": "npx ts-node ./scripts/generateCoreExports.ts"
+    "core:export": "npx ts-node ./scripts/generateCoreExports.ts",
+    "export-meta": "tsx scripts/export-meta.ts",
+    "build-sheets": "tsx scripts/build-sheets.ts",
+    "prebuild": "npm run export-meta && npm run build-sheets"
   },
   "devDependencies": {
     "@eternaltwin/cli": "^0.16.0",
@@ -43,7 +46,14 @@
     "concurrently": "^7.6.0",
     "rimraf": "^3.0.2",
     "ts-node": "^10.9.1",
-    "typescript": "^5.3.2"
+    "typescript": "^5.3.2",
+    "fast-csv": "^4.3.6",
+    "sharp": "^0.33.1",
+    "spritesmith": "^1.0.2",
+    "tsx": "^4.7.0",
+    "jest": "^29.7.0",
+    "ts-jest": "^29.1.1",
+    "@types/jest": "^29.5.6"
   },
   "workspaces": {
     "packages": [

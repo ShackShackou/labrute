@@ -18,6 +18,8 @@ import { Users } from './controllers/Users.js';
 import { ServerState } from './utils/ServerState.js';
 import { Configs } from './controllers/Configs.js';
 import { UserLogs } from './controllers/UserLogs.js';
+import fs from 'fs';
+import path from 'path';
 
 export const initRoutes = (app: Express, config: Config, prisma: PrismaClient) => {
   app.get('/api', (_req: Request, res: Response) => res.status(200).send({
@@ -181,4 +183,26 @@ export const initRoutes = (app: Express, config: Config, prisma: PrismaClient) =
 
   // User logs
   app.post('/api/user-log/list', UserLogs.list(prisma));
+
+  // Parts metadata
+  app.get('/api/parts', (_req: Request, res: Response) => {
+    try {
+      const csv = fs.readFileSync(path.join(__dirname, '../../meta/parts.csv'), 'utf8');
+      const lines = csv.split('\n');
+      const headers = lines.shift()?.split(',') ?? [];
+      const data = lines.filter(Boolean).map((l) => {
+        const values = l.split(',');
+        return Object.fromEntries(headers.map((h, i) => [h, values[i]]));
+      });
+      res.json(data);
+    } catch {
+      res.status(500).send('parts unavailable');
+    }
+  });
+
+  // Seed storage (demo implementation)
+  app.post('/api/seed', (req: Request, res: Response) => {
+    const seed = req.body?.seed;
+    res.json({ seed });
+  });
 };

@@ -16,6 +16,7 @@ import ClanPostView from './views/clan/ClanPostView';
 import ClanRankingView from './views/clan/ClanRankingView';
 import ClanThreadView from './views/clan/ClanThreadView';
 import ClanView from './views/clan/ClanView';
+import CreatorView from './views/CreatorView';
 import ClanWarFightView from './views/clan/ClanWarFightView';
 import { ClanWarHistoryView } from './views/clan/ClanWarHistoryView';
 import { ClanWarView } from './views/clan/ClanWarView';
@@ -65,6 +66,7 @@ const routes: RouteObject[] = [
       { path: 'hall', element: <HallView /> },
       { path: 'patch-notes', element: <PatchNotesView /> },
       { path: 'wiki', element: <WikiView /> },
+      { path: 'creator', element: <CreatorView /> },
       {
         path: 'user/:userId',
         children: [
