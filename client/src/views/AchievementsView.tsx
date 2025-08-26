@@ -164,7 +164,7 @@ const AchievementsView = () => {
                         let translation = t(`${achievement.name}.title.${i + 1}`);
 
                         if (!translation || translation === `${achievement.name}.title.${i + 1}`) {
-                          translation = 'TODO';
+                          translation = 'Unknown title';
                         }
 
                         return (
