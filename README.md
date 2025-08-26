@@ -26,6 +26,8 @@
 
 - Install dependencies: `yarn install` (This should also setup your database from the `schema.prisma` file and the migrations). After installation, run `yarn lint` to ensure code quality
 
+- Run `yarn lint` after `yarn install` for code quality checks
+
 - Make sure to initialize your etwin database by running `yarn eternaltwin db sync`
 
 - Start the server, client and etwin local server with `yarn dev`
