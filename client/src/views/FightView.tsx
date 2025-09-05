@@ -4,6 +4,8 @@ import React, { useEffect, useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useNavigate, useParams } from 'react-router';
 import FightComponent from '../components/Arena/FightComponent';
+import PhaserFight from '../components/Arena/PhaserFight';
+import PixiFight from '../components/Arena/PixiFight';
 import BoxBg from '../components/BoxBg';
 import Page from '../components/Page';
 import Text from '../components/Text';
@@ -15,6 +17,7 @@ import Server from '../utils/Server';
 import FightMobileView from './mobile/FightMobileView';
 
 const FightView = () => {
+  const renderParam = new URLSearchParams(window.location.search).get('renderer');
   const { t } = useTranslation();
   const { bruteName, fightId } = useParams();
   const Alert = useAlert();
@@ -90,7 +93,13 @@ const FightView = () => {
           </Box>
           {/* FIGHT */}
           <Box sx={{ ml: 5, alignSelf: 'center' }}>
-            <FightComponent fight={fight} />
+            {renderParam === 'phaser' ? (
+              <PhaserFight fight={fight} />
+            ) : renderParam === 'pixi' ? (
+              <PixiFight fight={fight} />
+            ) : (
+              <FightComponent fight={fight} />
+            )}
           </Box>
         </Box>
       </BoxBg>
