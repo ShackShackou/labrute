@@ -666,7 +666,7 @@ const PixiFight: React.FC<Props> = ({
             if (Math.abs(targetX - start.x) < minDiagX) ty = start.y;
             const dist = Math.hypot(targetX - start.x, ty - start.y);
             addVector(start.x, start.y, targetX, ty, 0x00cc66);
-            const dur = durationMoveMs(dist) / Math.max(0.001, speed);
+            const dur = (durationMoveMs(dist) * ((actorSide === 'R') ? (Number(new URLSearchParams(window.location.search).get('pixiMulR')) || Number(localStorage.getItem('compare.pixiMulR')) || 1.66 : (Number(new URLSearchParams(window.location.search).get('pixiMulL')) || Number(localStorage.getItem('compare.pixiMulL')) || 1.0))) / Math.max(0.001, speed);
             await tweenTo(src.node, targetX, ty, dur);
             playAnim(src, 'idle', true);
             break; }
@@ -684,14 +684,14 @@ const PixiFight: React.FC<Props> = ({
                 if (Math.abs(idealX - cur.x) < minDiagX) ty = cur.y;
                 const d2 = Math.hypot(idealX - cur.x, ty - cur.y);
                 addVector(cur.x, cur.y, idealX, ty, 0xff66cc);
-                const durPre = 100 / Math.max(0.001, speed);
+                const durPre = (100 * ((actorSide === 'R') ? (Number(new URLSearchParams(window.location.search).get('pixiMulR')) || Number(localStorage.getItem('compare.pixiMulR')) || 1.66 : (Number(new URLSearchParams(window.location.search).get('pixiMulL')) || Number(localStorage.getItem('compare.pixiMulL')) || 1.0))) / Math.max(0.001, speed);
                 await tweenTo(src.node, idealX, ty, durPre);
               }
             } catch {}
             playAnim(src, 'shoot', false);
             const lungeDist = 18;
-            const durFwd = 100 / Math.max(0.001, speed);
-            const durBack = 80 / Math.max(0.001, speed);
+            const durFwd = (100 * ((actorSide === 'R') ? (Number(new URLSearchParams(window.location.search).get('pixiMulR')) || Number(localStorage.getItem('compare.pixiMulR')) || 1.66 : (Number(new URLSearchParams(window.location.search).get('pixiMulL')) || Number(localStorage.getItem('compare.pixiMulL')) || 1.0))) / Math.max(0.001, speed);
+            const durBack = (80 * ((actorSide === 'R') ? (Number(new URLSearchParams(window.location.search).get('pixiMulR')) || Number(localStorage.getItem('compare.pixiMulR')) || 1.66 : (Number(new URLSearchParams(window.location.search).get('pixiMulL')) || Number(localStorage.getItem('compare.pixiMulL')) || 1.0))) / Math.max(0.001, speed);
             await tweenTo(src.node, src.baseX + (src===left? +lungeDist : -lungeDist), src.baseY - 4, durFwd);
             await tweenTo(src.node, src.baseX, src.baseY, durBack);
             playAnim(src, 'idle', true);
@@ -737,7 +737,7 @@ const PixiFight: React.FC<Props> = ({
             const start = getPos(src.node);
             const dist = Math.hypot(pos.x - start.x, pos.y - start.y);
             addVector(start.x, start.y, pos.x, pos.y, 0x66ccff);
-            const dur = durationMoveBackMs(dist) / Math.max(0.001, speed);
+            const dur = (durationMoveBackMs(dist) * ((actorSide === 'R') ? (Number(new URLSearchParams(window.location.search).get('pixiMulR')) || Number(localStorage.getItem('compare.pixiMulR')) || 1.66 : (Number(new URLSearchParams(window.location.search).get('pixiMulL')) || Number(localStorage.getItem('compare.pixiMulL')) || 1.0))) / Math.max(0.001, speed);
             await tweenTo(src.node, pos.x, pos.y, dur);
             playAnim(src, 'idle', true);
             break; }
@@ -824,6 +824,7 @@ const PixiFight: React.FC<Props> = ({
 };
 
 export default PixiFight;
+
 
 
 
