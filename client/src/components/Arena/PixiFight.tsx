@@ -746,7 +746,14 @@ const PixiFight: React.FC<Props> = ({
             if (diedIdx === rightMainIdx){ right.node.alpha = 0.2; hpR = 0; barR.set(0); playAnim(right, 'death', false); }
             break; }
           // End
-          case 26: { return; }
+          case 26: {
+            try {
+              const qp = new URLSearchParams(window.location.search);
+              const auto = (qp.get('pixiTraceAuto') === '1' || localStorage.getItem('compare.pixiTraceAuto') === '1');
+              const enabled = (qp.get('pixiTrace') === '1' || localStorage.getItem('compare.pixiTrace') === '1');
+              if (auto && enabled) { try { (window as any).pixiTraceDownload?.(); } catch {} }
+            } catch {}
+            return; }
         }
         await delay(Math.max(60, Math.min(260, s.dt ?? 120)) / Math.max(0.001, speed));
         if (disposed) return;

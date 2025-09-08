@@ -97,6 +97,14 @@ const CompareFight: React.FC<Props> = ({ fight }) => {
     setApproachOffset(0); setPreferVideo(false);
   };
 
+  // Trace/Diag toggles stored in localStorage, consumed by PixiFight
+  const [traceOn, setTraceOn] = useState(localStorage.getItem('compare.pixiTrace') === '1');
+  const [autoTrace, setAutoTrace] = useState(localStorage.getItem('compare.pixiTraceAuto') === '1');
+  const [diagOn, setDiagOn] = useState(localStorage.getItem('compare.pixiDiag') === '1');
+  useEffect(() => { try { localStorage.setItem('compare.pixiTrace', traceOn ? '1' : '0'); } catch {} }, [traceOn]);
+  useEffect(() => { try { localStorage.setItem('compare.pixiTraceAuto', autoTrace ? '1' : '0'); } catch {} }, [autoTrace]);
+  useEffect(() => { try { localStorage.setItem('compare.pixiDiag', diagOn ? '1' : '0'); } catch {} }, [diagOn]);
+
   const onPixiStep = (index: number, _step: any, elapsedMs: number) => {
     setCurrent({ index, elapsed: elapsedMs });
   };
@@ -118,6 +126,21 @@ const CompareFight: React.FC<Props> = ({ fight }) => {
         <Slider size="small" min={1.0} max={3.0} step={0.05} value={pixiBoost} onChangeCommitted={(_, v) => setPixiBoost(v as number)} sx={{ width: 140 }} />
         <Text color="text.primary" typo="GameFont" upperCase sx={{ fontSize: 10 }}>{pixiBoost.toFixed(2)}x</Text>
         <Button size="small" variant="outlined" onClick={resetAll} sx={{ ml: 2 }}>Reset</Button>
+        {/* Trace controls */}
+        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, ml: 3 }}>
+          <Text color="text.primary" typo="GameFont" upperCase sx={{ fontSize: 10 }}>Trace</Text>
+          <Switch size="small" checked={traceOn} onChange={(_, v) => setTraceOn(v)} />
+        </Box>
+        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+          <Text color="text.primary" typo="GameFont" upperCase sx={{ fontSize: 10 }}>Auto</Text>
+          <Switch size="small" checked={autoTrace} onChange={(_, v) => setAutoTrace(v)} />
+        </Box>
+        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+          <Text color="text.primary" typo="GameFont" upperCase sx={{ fontSize: 10 }}>Diag</Text>
+          <Switch size="small" checked={diagOn} onChange={(_, v) => setDiagOn(v)} />
+        </Box>
+        <Button size="small" variant="outlined" onClick={() => { try { (window as any).pixiTraceStart?.(); } catch {} }} sx={{ ml: 1 }}>Start Trace</Button>
+        <Button size="small" variant="outlined" onClick={() => { try { (window as any).pixiTraceDownload?.(); } catch {} }}>Download CSV</Button>
         {/* Basique: identique à l'ancienne version */}
         {!advanced && (
           <>
