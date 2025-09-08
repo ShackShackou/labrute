@@ -666,7 +666,7 @@ const PixiFight: React.FC<Props> = ({
             let ty = clampY(tpos.y); // follow official by default
             // Avoid pure vertical moves: if horizontal delta is tiny, keep Y
             const minDiagX = 28;
-            if (Math.abs(targetX - start.x) < minDiagX) ty = start.y;
+            if (Math.abs(targetX - start.x) < (Number(new URLSearchParams(window.location.search).get('pixiMinDiagX')) || Number(localStorage.getItem('compare.pixiMinDiagX')) || 60)) { break; }
             const dist = Math.hypot(targetX - start.x, ty - start.y);
             addVector(start.x, start.y, targetX, ty, 0x00cc66);
             const dur = (durationMoveMs(dist) * (actorSide === 'R' ? mulR : mulL)) / Math.max(0.001, speed);
@@ -684,14 +684,11 @@ const PixiFight: React.FC<Props> = ({
               if ((src === left && idealX > cur.x) || (src === right && idealX < cur.x)) {
                 let ty = clampY(tpos.y);
                 const minDiagX = 28;
-                if (Math.abs(idealX - cur.x) < minDiagX) ty = cur.y;
+                if (Math.abs(idealX - cur.x) < (Number(new URLSearchParams(window.location.search).get('pixiMinDiagX')) || Number(localStorage.getItem('compare.pixiMinDiagX')) || 60)) { /* skip pre-move */ } else { let ty = clampY(tpos.y);
                 const d2 = Math.hypot(idealX - cur.x, ty - cur.y);
                 addVector(cur.x, cur.y, idealX, ty, 0xff66cc);
                 const durPre = (100 * (actorSide === 'R' ? mulR : mulL)) / Math.max(0.001, speed);
-                await tweenTo(src.node, idealX, ty, durPre);
-              }
-            } catch {}
-            playAnim(src, 'shoot', false);
+                await tweenTo(src.node, idealX, ty, durPre); } } catch {} playAnim(src, 'shoot', false);
             const lungeDist = 18;
             const durFwd = (100 * (actorSide === 'R' ? mulR : mulL)) / Math.max(0.001, speed);
             const durBack = (80 * (actorSide === 'R' ? mulR : mulL)) / Math.max(0.001, speed);
@@ -827,6 +824,7 @@ const PixiFight: React.FC<Props> = ({
 };
 
 export default PixiFight;
+
 
 
 
