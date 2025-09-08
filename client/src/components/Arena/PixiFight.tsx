@@ -409,7 +409,7 @@ const PixiFight: React.FC<Props> = ({
         const y = chooseLaneY(side);
         const minX = side === 'L' ? minLX : minRX;
         const maxX = side === 'L' ? maxLX : maxRX;
-        const minShift = 30; // ensure visible diagonal, avoid pure vertical
+        const minShift = Math.max(60, (maxX - minX) * 0.6); // ensure strong diagonal
         let x = minX + Math.random() * (maxX - minX);
         let tries = 0;
         while (typeof currX === 'number' && Math.abs(x - currX) < minShift && tries < 5) {
