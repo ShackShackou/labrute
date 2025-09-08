@@ -276,9 +276,42 @@ const PixiFight: React.FC<Props> = ({
         applyScale(L, 'L');
         applyScale(R, 'R');
         spinesRef.current.L = L; spinesRef.current.R = R; charPxRef.current = TARGET_W;
-        spinesRef.current.L = L; spinesRef.current.R = R; charPxRef.current = TARGET_W;
         try { L.state.setAnimation(0, 'idle', true); } catch {}
         try { R.state.setAnimation(0, 'idle', true); } catch {}
+        // Instrumentation: tracing root motion (optional)
+        if (traceEnabled) {
+          try { (L as any).autoUpdate = false; } catch {}
+          try { (R as any).autoUpdate = false; } catch {}
+          const sL = (L as any).state || (L as any).animationState; if (sL) { try { sL.timeScale = 1; } catch {} }
+          const sR = (R as any).state || (R as any).animationState; if (sR) { try { sR.timeScale = 1; } catch {} }
+          traceOnRef.current = false; traceT0Ref.current = null; traceRowsRef.current = [];
+          // expose helpers
+          // @ts-ignore
+          (window as any).pixiTraceStart = () => { traceOnRef.current = true; traceT0Ref.current = performance.now() / 1000; };
+          // @ts-ignore
+          (window as any).pixiTraceDownload = () => {
+            const header = 't,who,rootX,rootY,anim,trackTime\n';
+            const body = traceRowsRef.current.map(r => `${r.t.toFixed(4)},${r.who},${r.rootX.toFixed(2)},${r.rootY.toFixed(2)},${r.anim},${r.trackTime.toFixed(3)}`).join('\n');
+            const a = document.createElement('a');
+            a.href = URL.createObjectURL(new Blob([header + body], { type: 'text/csv' }));
+            a.download = 'trace.csv'; a.click();
+          };
+          const tickTrace = (tk:any) => {
+            try {
+              const dt = (typeof tk?.deltaMS === 'number' ? tk.deltaMS : 16.7) / 1000;
+              sL?.update?.(dt); (L as any)?.update?.(dt);
+              sR?.update?.(dt); (R as any)?.update?.(dt);
+              if (!traceOnRef.current || !traceT0Ref.current) return;
+              const t = performance.now() / 1000 - (traceT0Ref.current || 0);
+              const rootL = (L as any)?.skeleton?.findBone?.('root');
+              const rootR = (R as any)?.skeleton?.findBone?.('root');
+              const curL = sL?.getCurrent?.(0); const curR = sR?.getCurrent?.(0);
+              if (rootL) traceRowsRef.current.push({ t, who:'L', rootX: rootL.worldX ?? 0, rootY: rootL.worldY ?? 0, anim: curL?.animation?.name || '', trackTime: curL?.trackTime || 0 });
+              if (rootR) traceRowsRef.current.push({ t, who:'R', rootX: rootR.worldX ?? 0, rootY: rootR.worldY ?? 0, anim: curR?.animation?.name || '', trackTime: curR?.trackTime || 0 });
+            } catch {}
+          };
+          addTick(tickTrace);
+        }
         const scaledWidth = (sp:any)=>{
           try { return Math.max(30, ((sp as any).bounds?.width ?? 40) * Math.max(Math.abs((sp as any).scale?.x ?? 1), 0.001)); } catch { return 40; }
         };
@@ -618,6 +651,7 @@ const PixiFight: React.FC<Props> = ({
             break; }
           // AttemptHit
           case 19: {
+            if (traceEnabled && !traceOnRef.current) { traceOnRef.current = true; traceT0Ref.current = performance.now()/1000; }
             try {
               const tpos = getPos(tgt.node);
               const distX = getHitDistance(src, tgt, s, false);
