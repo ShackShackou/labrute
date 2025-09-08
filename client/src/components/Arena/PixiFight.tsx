@@ -642,6 +642,8 @@ const PixiFight: React.FC<Props> = ({
             break; }
           // Move
           case 15: {
+            // Autoriser uniquement les déplacements de mêlée explicites (r=1)
+            try { if ((s as any)?.r !== 1) { break; } } catch {}
             // Skip "loose" moves that don't quickly lead to an AttemptHit for the same actor
             try {
               const curIdx = steps.indexOf(s);
@@ -685,8 +687,8 @@ const PixiFight: React.FC<Props> = ({
                 const minDiag = (Number(new URLSearchParams(window.location.search).get('pixiMinDiagX'))
                   || Number(localStorage.getItem('compare.pixiMinDiagX')) || 60);
                 if (Math.abs(idealX - cur.x) >= minDiag) {
-                  const ty2 = clampY(tpos.y);
-                  const d2 = Math.hypot(idealX - cur.x, ty2 - cur.y);
+                  // Pré-move en X uniquement (pas de Y)
+                  const ty2 = cur.y;
                   addVector(cur.x, cur.y, idealX, ty2, 0xff66cc);
                   const durPre = (100 * (actorSide === 'R' ? mulR : mulL)) / Math.max(0.001, speed);
                   await tweenTo(src.node, idealX, ty2, durPre);
@@ -697,7 +699,8 @@ const PixiFight: React.FC<Props> = ({
             const lungeDist = 18;
             const durFwd = (100 * (actorSide === 'R' ? mulR : mulL)) / Math.max(0.001, speed);
             const durBack = (80 * (actorSide === 'R' ? mulR : mulL)) / Math.max(0.001, speed);
-            await tweenTo(src.node, src.baseX + (src===left? +lungeDist : -lungeDist), src.baseY - 4, durFwd);
+            // Lunge strictement horizontal (Y inchangé)
+            await tweenTo(src.node, src.baseX + (src===left? +lungeDist : -lungeDist), src.baseY, durFwd);
             await tweenTo(src.node, src.baseX, src.baseY, durBack);
             playAnim(src, 'idle', true);
             break; }
@@ -710,10 +713,7 @@ const PixiFight: React.FC<Props> = ({
             const tpos = getPos(tgt.node);
             floatText(tpos.x, tpos.y, `-${dmg}`, 0xff5555);
             await shake(2, 100);
-            const backDist = 18;
-            const actorSpeed2 = (actor?.speed ?? 35) as number;
-            const durBack2 = 90 / Math.max(0.001, speed);
-            await tweenTo(src.node, src.baseX, src.baseY, durBack2);
+            // Pas de retour base ici (évite micro-déplacements). Le retour se fait au Step MoveBack.
             playAnim(src, 'idle', true);
             // Track last weapon used if provided
             try {
