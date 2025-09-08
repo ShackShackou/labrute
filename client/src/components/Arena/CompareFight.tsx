@@ -132,11 +132,11 @@ const CompareFight: React.FC<Props> = ({ fight }) => {
         </Box>
       </Box>
       <Box sx={{ display: 'flex', gap: 2, overflowX: 'auto' }}>
-        <Box sx={{ width: 500, height: 300, position: 'relative', flexShrink: 0 }}>
+        <Box sx={{ width: 500, height: 300, position: 'relative', flexShrink: 0, overflow: 'hidden' }}>
           <Text color="text.primary" center typo="GameFont" upperCase sx={{ fontSize: 10, mb: 0.5 }}>Official</Text>
           <FightComponent fight={fight} />
         </Box>
-        <Box sx={{ width: 500, height: 300, position: 'relative', flexShrink: 0 }}>
+        <Box sx={{ width: 500, height: 300, position: 'relative', flexShrink: 0, overflow: 'hidden' }}>
           <Text color="text.primary" center typo="GameFont" upperCase sx={{ fontSize: 10, mb: 0.5 }}>Pixi</Text>
           <PixiFight
             fight={fight}

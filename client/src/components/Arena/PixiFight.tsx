@@ -38,8 +38,8 @@ const PixiFight: React.FC<Props> = ({
   speedBoost,
   stageOffsetX = 0,
   stageOffsetY = 0,
-  clampYMinRatio = 0.62,
-  clampYMaxRatio = 0.88,
+  clampYMinRatio = 175/300,
+  clampYMaxRatio = 281/300,
   leftOffsetX = 0,
   leftOffsetY = 0,
   rightOffsetX = 0,
@@ -451,8 +451,21 @@ const PixiFight: React.FC<Props> = ({
           if (onStep) { try { onStep(steps.indexOf(s), s, performance.now() - t0); } catch {} }
 
           switch (a) {
-          // Arrive
-          case 2: { break; }
+          // Arrive: randomize initial lane like official
+          case 2: {
+            try {
+              const minY = 175, maxY = 281;
+              const y = clampY(minY + Math.random() * (maxY - minY));
+              const minLX = 40, maxLX = 125, minRX = W - maxLX, maxRX = W - minLX;
+              if (actorSide === 'L') {
+                const x = minLX + Math.random() * (maxLX - minLX);
+                setPos(src.node, x, y); src.baseX = x; src.baseY = y;
+              } else {
+                const x = minRX + Math.random() * (maxRX - minRX);
+                setPos(src.node, x, y); src.baseX = x; src.baseY = y;
+              }
+            } catch {}
+            break; }
           // Move
           case 15: {
             playAnim(src, 'walk', true);
