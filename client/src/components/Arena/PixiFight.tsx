@@ -59,6 +59,7 @@ const PixiFight: React.FC<Props> = ({
   const traceOnRef = useRef<boolean>(false);
   const traceRowsRef = useRef<{ t:number, who:'L'|'R', rootX:number, rootY:number, anim:string, trackTime:number }[]>([]);
   const traceT0Ref = useRef<number | null>(null);
+  const debugVectorsRef = useRef<{ g: Graphics, life: number }[]>([]);
 
   useEffect(() => {
     if (!containerRef.current || !fight) return undefined;
@@ -129,14 +130,28 @@ const PixiFight: React.FC<Props> = ({
           g.moveTo(x2,y2);
           g.lineTo(x2 - Math.cos(ang+0.3)*ah, y2 - Math.sin(ang+0.3)*ah);
           debugLayerRef.current?.addChild(g);
-          const id = window.setTimeout(()=>{ 
-            timeouts.delete(id);
-            if (disposed) { try { g.destroy(true); } catch {} return; }
-            try{ debugLayerRef.current?.removeChild(g); g.destroy(true); } catch{}
-          }, 2000);
-          timeouts.add(id);
+          debugVectorsRef.current.push({ g, life: 2000 });
         } catch {}
       };
+
+      // Tick-managed vector cleanup to avoid destroying during render build
+      const vectorTick = (tk:any) => {
+        if (!debugDiag) return; // no-op if disabled
+        try {
+          const dm = typeof tk?.deltaMS === 'number' ? tk.deltaMS : 16.7;
+          for (let i = debugVectorsRef.current.length - 1; i >= 0; i--) {
+            const v = debugVectorsRef.current[i]!;
+            v.life -= dm;
+            if (v.life <= 0) {
+              try { v.g.renderable = false; v.g.alpha = 0; } catch {}
+              try { debugLayerRef.current?.removeChild(v.g); } catch {}
+              try { v.g.destroy(true); } catch {}
+              debugVectorsRef.current.splice(i, 1);
+            }
+          }
+        } catch {}
+      };
+      addTick(vectorTick);
 
       // Background from /backgrounds (synced from repo root \backgrounds)
       try {
