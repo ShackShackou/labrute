@@ -11,7 +11,11 @@ type Props = { fight: FightGetResponse | null };
 const clampDt = (s: any) => Math.max(60, Math.min(260, s?.dt ?? 120));
 
 const CompareFight: React.FC<Props> = ({ fight }) => {
-  const [speed, setSpeed] = useState(1);
+  const [speed, setSpeed] = useState(() => {
+    const s = Number(localStorage.getItem('fightSpeed'));
+    if (s === 1 || s === 2) return s;
+    return 2; // l'officiel démarre souvent en x2
+  });
   // Pixi tunables for quick matching
   const [pixiScale, setPixiScale] = useState(0.22);
   const [pixiBoost, setPixiBoost] = useState(1.6);

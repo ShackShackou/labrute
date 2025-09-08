@@ -96,9 +96,9 @@ const PixiFight: React.FC<Props> = ({
       // Resolve tunables and helpers
       const params = new URLSearchParams(window.location.search);
       const SCALE = Number(params.get('pixiScale') ?? (scale ?? 0.22));
-      const BOOST = Number(params.get('pixiBoost') ?? (speedBoost ?? 1.6));
+      const BOOST = Number(params.get('pixiBoost') ?? (speedBoost ?? 1));
       const scaleFallback = isNaN(SCALE) ? 0.22 : SCALE;
-      const boostFallback = isNaN(BOOST) ? 1.6 : BOOST;
+      const boostFallback = isNaN(BOOST) ? 1 : BOOST;
       const clampMin = Number(params.get('pixiClampMin') ?? `${clampYMinRatio}`);
       const clampMax = Number(params.get('pixiClampMax') ?? `${clampYMaxRatio}`);
       const clampY = (y:number) => Math.max(H * clampMin, Math.min(H * clampMax, y));
@@ -364,6 +364,16 @@ const PixiFight: React.FC<Props> = ({
       const durationMoveMs = (px:number) => Math.max(160, (px / 430) * 1000);
       const durationMoveBackMs = (px:number) => Math.max(150, (px / 480) * 1000);
 
+      const minY = 175, maxY = 281;
+      const minLX = 40, maxLX = 125, minRX = W - maxLX, maxRX = W - minLX;
+      const getRandomBaseForSide = (side:'L'|'R') => {
+        const y = clampY(minY + Math.random() * (maxY - minY));
+        const x = side === 'L'
+          ? (minLX + Math.random() * (maxLX - minLX))
+          : (minRX + Math.random() * (maxRX - minRX));
+        return { x, y };
+      };
+
       const getHitDistance = (srcObj:any, tgtObj:any, step:any, useCounter=false) => {
         // Same space
         if (step?.s === 1) return 20;
@@ -476,7 +486,7 @@ const PixiFight: React.FC<Props> = ({
             const start = getPos(src.node);
             const ty = clampY(tpos.y); // follow official: move to target Y
             const dist = Math.hypot(targetX - start.x, ty - start.y);
-            const dur = durationMoveMs(dist) / Math.max(0.001, (speed * boostFallback));
+            const dur = durationMoveMs(dist) / Math.max(0.001, speed);
             await tweenTo(src.node, targetX, ty, dur);
             playAnim(src, 'idle', true);
             break; }
@@ -490,14 +500,14 @@ const PixiFight: React.FC<Props> = ({
               if ((src === left && idealX > cur.x) || (src === right && idealX < cur.x)) {
                 const ty = clampY(tpos.y);
                 const d2 = Math.hypot(idealX - cur.x, ty - cur.y);
-                const durPre = Math.max(100, d2 / 4) / Math.max(0.001, (speed * boostFallback));
+                const durPre = 100 / Math.max(0.001, speed);
                 await tweenTo(src.node, idealX, ty, durPre);
               }
             } catch {}
             playAnim(src, 'shoot', false);
             const lungeDist = 18;
-            const durFwd = Math.max(60, 100) / Math.max(0.001, (speed * boostFallback));
-            const durBack = Math.max(60, 80) / Math.max(0.001, (speed * boostFallback));
+            const durFwd = 100 / Math.max(0.001, speed);
+            const durBack = 80 / Math.max(0.001, speed);
             await tweenTo(src.node, src.baseX + (src===left? +lungeDist : -lungeDist), src.baseY - 4, durFwd);
             await tweenTo(src.node, src.baseX, src.baseY, durBack);
             playAnim(src, 'idle', true);
@@ -513,7 +523,7 @@ const PixiFight: React.FC<Props> = ({
             await shake(2, 100);
             const backDist = 18;
             const actorSpeed2 = (actor?.speed ?? 35) as number;
-            const durBack2 = Math.max(60, 90) / Math.max(0.001, (speed * boostFallback));
+            const durBack2 = 90 / Math.max(0.001, speed);
             await tweenTo(src.node, src.baseX, src.baseY, durBack2);
             playAnim(src, 'idle', true);
             // Track last weapon used if provided
@@ -534,12 +544,13 @@ const PixiFight: React.FC<Props> = ({
             break; }
           // MoveBack
           case 17: {
+            // Reposition to a new lane like official
+            const pos = getRandomBaseForSide(actorSide);
+            src.baseX = pos.x; src.baseY = pos.y;
             const start = getPos(src.node);
-            const dist = Math.hypot(src.baseX - start.x, src.baseY - start.y);
-            const returnFactorParam = Number(new URLSearchParams(window.location.search).get('pixiReturnFactor') ?? '1.25');
-            const returnFactor = isNaN(returnFactorParam) ? 1.25 : returnFactorParam;
-            const dur = (durationMoveBackMs(dist) * returnFactor) / Math.max(0.001, (speed * boostFallback));
-            await tweenTo(src.node, src.baseX, src.baseY, dur);
+            const dist = Math.hypot(pos.x - start.x, pos.y - start.y);
+            const dur = durationMoveBackMs(dist) / Math.max(0.001, speed);
+            await tweenTo(src.node, pos.x, pos.y, dur);
             playAnim(src, 'idle', true);
             break; }
           // Death
@@ -551,7 +562,7 @@ const PixiFight: React.FC<Props> = ({
           // End
           case 26: { return; }
         }
-        await delay(Math.max(60, Math.min(260, s.dt ?? 120)) / Math.max(0.001, (speed * boostFallback)));
+        await delay(Math.max(60, Math.min(260, s.dt ?? 120)) / Math.max(0.001, speed));
         if (disposed) return;
         }
       };
