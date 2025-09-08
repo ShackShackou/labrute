@@ -123,7 +123,12 @@ const PixiFight: React.FC<Props> = ({
           g.moveTo(x2,y2);
           g.lineTo(x2 - Math.cos(ang+0.3)*ah, y2 - Math.sin(ang+0.3)*ah);
           debugLayer.addChild(g);
-          setTimeout(()=>{ try{ debugLayer.removeChild(g); g.destroy(true); } catch{} }, 2000);
+          const id = window.setTimeout(()=>{ 
+            timeouts.delete(id);
+            if (disposed) { try { g.destroy(true); } catch {} return; }
+            try{ debugLayer.removeChild(g); g.destroy(true); } catch{}
+          }, 2000);
+          timeouts.add(id);
         } catch {}
       };
 
@@ -686,11 +691,14 @@ const PixiFight: React.FC<Props> = ({
           const v = (spr.texture as any)?.baseTexture?.resource?.source as HTMLVideoElement | undefined;
           try { v?.pause?.(); } catch {}
           try { v?.removeAttribute?.('src'); v?.load?.(); } catch {}
+          try { spr.parent?.removeChild?.(spr); } catch {}
+          try { spr.destroy?.({ texture: true, baseTexture: true }); } catch {}
         }
       } catch {}
       try { (app as any).ticker?.stop?.(); } catch {}
       try { removeAllTicks(); } catch {}
       try { clearAllTimeouts(); } catch {}
+      try { debugLayer?.removeChildren?.(); } catch {}
       try { app.stage?.removeChildren?.(); } catch {}
       try { const canvas = (app as any).canvas as HTMLCanvasElement | undefined; if (canvas && canvas.parentNode) { canvas.parentNode.removeChild(canvas); } } catch {}
       const toDestroy = app;
