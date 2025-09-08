@@ -146,9 +146,9 @@ const PixiFight: React.FC<Props> = ({
             const v = debugVectorsRef.current[i]!;
             v.life -= dm;
             if (v.life <= 0) {
-              try { v.g.renderable = false; v.g.alpha = 0; } catch {}
+              try { v.g.renderable = false; v.g.visible = false; v.g.alpha = 0; } catch {}
               try { debugLayerRef.current?.removeChild(v.g); } catch {}
-              try { v.g.destroy(true); } catch {}
+              // Important: ne pas détruire pendant le cycle de rendu; on détruit seulement au cleanup
               debugVectorsRef.current.splice(i, 1);
             }
           }
@@ -682,13 +682,18 @@ const PixiFight: React.FC<Props> = ({
               const idealX = (targetSide === 'R') ? (tpos.x - distX) : (tpos.x + distX);
               const cur = getPos(src.node);
               if ((src === left && idealX > cur.x) || (src === right && idealX < cur.x)) {
-                let ty = clampY(tpos.y);
-                const minDiagX = 28;
-                if (Math.abs(idealX - cur.x) < (Number(new URLSearchParams(window.location.search).get('pixiMinDiagX')) || Number(localStorage.getItem('compare.pixiMinDiagX')) || 60)) { /* skip pre-move */ } else { let ty = clampY(tpos.y);
-                const d2 = Math.hypot(idealX - cur.x, ty - cur.y);
-                addVector(cur.x, cur.y, idealX, ty, 0xff66cc);
-                const durPre = (100 * (actorSide === 'R' ? mulR : mulL)) / Math.max(0.001, speed);
-                await tweenTo(src.node, idealX, ty, durPre); } } catch {} playAnim(src, 'shoot', false);
+                const minDiag = (Number(new URLSearchParams(window.location.search).get('pixiMinDiagX'))
+                  || Number(localStorage.getItem('compare.pixiMinDiagX')) || 60);
+                if (Math.abs(idealX - cur.x) >= minDiag) {
+                  const ty2 = clampY(tpos.y);
+                  const d2 = Math.hypot(idealX - cur.x, ty2 - cur.y);
+                  addVector(cur.x, cur.y, idealX, ty2, 0xff66cc);
+                  const durPre = (100 * (actorSide === 'R' ? mulR : mulL)) / Math.max(0.001, speed);
+                  await tweenTo(src.node, idealX, ty2, durPre);
+                }
+              }
+            } catch {}
+            playAnim(src, 'shoot', false);
             const lungeDist = 18;
             const durFwd = (100 * (actorSide === 'R' ? mulR : mulL)) / Math.max(0.001, speed);
             const durBack = (80 * (actorSide === 'R' ? mulR : mulL)) / Math.max(0.001, speed);
@@ -782,6 +787,14 @@ const PixiFight: React.FC<Props> = ({
       try { (app as any).ticker?.stop?.(); } catch {}
       try { removeAllTicks(); } catch {}
       try { clearAllTimeouts(); } catch {}
+      // Détruire en toute sécurité les vecteurs restants une fois le ticker arrêté
+      try {
+        for (const v of debugVectorsRef.current) {
+          try { debugLayerRef.current?.removeChild(v.g); } catch {}
+          try { v.g.destroy(true); } catch {}
+        }
+        debugVectorsRef.current.length = 0;
+      } catch {}
       try { debugLayerRef.current?.removeChildren?.(); } catch {}
       try { app.stage?.removeChildren?.(); } catch {}
       try { const canvas = (app as any).canvas as HTMLCanvasElement | undefined; if (canvas && canvas.parentNode) { canvas.parentNode.removeChild(canvas); } } catch {}
@@ -824,6 +837,8 @@ const PixiFight: React.FC<Props> = ({
 };
 
 export default PixiFight;
+
+
 
 
 
