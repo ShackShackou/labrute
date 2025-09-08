@@ -78,12 +78,6 @@ const PixiFight: React.FC<Props> = ({
       // Enable zIndex sorting so overlay stays on top
       // @ts-ignore
       (app.stage as any).sortableChildren = true;
-      const label = new Text("Pixi Renderer (v8 + Spine)", { fill: "#ccc", fontSize: 12 } as any);
-      label.position.set(W / 2, 10);
-      label.anchor.set(0.5, 0);
-      // @ts-ignore
-      (label as any).zIndex = 1000;
-      app.stage.addChild(label);
 
       // Fixed UI overlay for non-scene elements (e.g., HP bars)
       const ui = new Container();
@@ -263,23 +257,40 @@ const PixiFight: React.FC<Props> = ({
         // keep circles fallback if assets/runtimes unavailable
       }
 
-      const mkBar = (_obj:any, side:'L'|'R') => {
+      const mkHud = (side:'L'|'R', name:string|undefined) => {
         const barW = 180, barH=10; const isL = side==='L';
-        const bg = new Graphics(); bg.beginFill(0x333333).drawRect(0, 0, barW, barH).endFill();
-        const fg = new Graphics(); fg.beginFill(0x3ad66f).drawRect(0, 0, barW, barH).endFill();
-        const cont = new Container(); cont.addChild(bg, fg);
-        const anchorX = isL ? (W * 0.28) : (W * 0.72);
-        cont.position.set(anchorX - barW/2, 30);
+        const anchorX = isL ? (W * 0.26) : (W * 0.74);
+        const y0 = 10;
+        // Name
+        const nameText = new Text(String(name ?? ''), {
+          fill: '#ffffff',
+          stroke: '#000000',
+          strokeThickness: 4,
+          fontSize: 18,
+        } as any);
+        nameText.anchor.set(isL ? 0 : 1, 0);
+        nameText.position.set(anchorX + (isL ? -barW/2 : barW/2), y0);
+        // Bar
+        const cont = new Container();
+        const bg = new Graphics();
+        const border = new Graphics();
+        const fg = new Graphics();
+        bg.beginFill(0x3a2a1a).drawRoundedRect(0, 0, barW, barH, 3).endFill();
+        border.lineStyle(1, 0x000000, 0.9).drawRoundedRect(0, 0, barW, barH, 3);
+        fg.beginFill(0xf1a81b).drawRoundedRect(0, 0, barW, barH, 3).endFill();
+        cont.addChild(bg, fg, border);
+        cont.position.set(anchorX - barW/2, y0 + 22);
+        ui.addChild(nameText);
         ui.addChild(cont);
         const set = (ratio:number) => {
           const r = Math.max(0, Math.min(1, ratio));
-          const w = barW * r;
-          const col = r < 0.3 ? 0xd64545 : 0x3ad66f;
-          fg.clear(); fg.beginFill(col).drawRect(0, 0, w, barH).endFill();
+          const w = Math.max(0, barW * r);
+          const col = r < 0.3 ? 0xd64545 : 0xf1a81b;
+          fg.clear(); fg.beginFill(col).drawRoundedRect(0, 0, w, barH, 3).endFill();
           fg.x = isL ? 0 : (barW - w);
         };
-        const follow = () => { /* fixed overlay: no-op */ };
-        return { set, follow };
+        const follow = () => {};
+        return { set, follow, nameText };
       };
 
       const parseArr = (x: any) => { try { return Array.isArray(x) ? x : JSON.parse(x); } catch { return []; } };
@@ -297,7 +308,9 @@ const PixiFight: React.FC<Props> = ({
       const maxL = leftMain?.maxHp ?? leftMain?.hp ?? 100;
       const maxR = rightMain?.maxHp ?? rightMain?.hp ?? 100;
       let hpL = maxL, hpR = maxR;
-      const barL = mkBar(left,'L'); const barR = mkBar(right,'R'); barL.set(1); barR.set(1);
+      const hudL = mkHud('L', leftMain?.name); const hudR = mkHud('R', rightMain?.name);
+      const barL = { set: hudL.set, follow: hudL.follow }; const barR = { set: hudR.set, follow: hudR.follow };
+      barL.set(1); barR.set(1);
 
       // Small helpers
       const playAnim = (obj:any, name:string, loop=true) => {
@@ -350,6 +363,29 @@ const PixiFight: React.FC<Props> = ({
       // Duration from distance constants close to legacy v6 renderer
       const durationMoveMs = (px:number) => Math.max(160, (px / 430) * 1000);
       const durationMoveBackMs = (px:number) => Math.max(150, (px / 480) * 1000);
+
+      const getHitDistance = (srcObj:any, tgtObj:any, step:any, useCounter=false) => {
+        // Same space
+        if (step?.s === 1) return 20;
+        const srcW = (srcObj?.width ?? Math.max(40, Math.abs(srcObj?.node?.width ?? 40)));
+        const tgtW = (tgtObj?.width ?? Math.max(40, Math.abs(tgtObj?.node?.width ?? 40)));
+        let dist = (srcW * 0.5) + (tgtW * 0.5);
+        // reach from known weapon
+        let reach = 0;
+        try {
+          const actorIdx = (typeof step.f === 'number') ? step.f : undefined;
+          const targetIdx = (typeof step.t === 'number') ? step.t : undefined;
+          if (useCounter && targetIdx !== undefined) {
+            const wname = lastWeaponByActor.get(targetIdx);
+            reach = (weapons.find((ww)=> ww.name === wname)?.reach ?? 0);
+          } else if (!useCounter && actorIdx !== undefined) {
+            const wname = lastWeaponByActor.get(actorIdx);
+            reach = (weapons.find((ww)=> ww.name === wname)?.reach ?? 0);
+          }
+        } catch {}
+        dist += reach * 16;
+        return dist;
+      };
 
       const tweenTo = (obj: any, x:number, y:number, duration=200) => new Promise<void>((resolve) => {
         if (disposed) { resolve(); return; }
@@ -421,96 +457,28 @@ const PixiFight: React.FC<Props> = ({
           case 15: {
             playAnim(src, 'walk', true);
             const tpos = getPos(tgt.node);
-            // Compute target X based on melee distance (official-like)
-            let meleeDist = 0;
-            const sameSpace = s?.s === 1;
-            if (sameSpace) {
-              meleeDist = 20;
-            } else {
-              // base widths approximation (half + half)
-              const srcW = (src?.width ?? 40);
-              const tgtW = (tgt?.width ?? 40);
-              meleeDist = (srcW * 0.5) + (tgtW * 0.5);
-              // Prefer last known weapon used by this actor
-              try {
-                if (actorIdx !== null) {
-                  const wnameKnown = lastWeaponByActor.get(actorIdx);
-                  if (wnameKnown) {
-                    const wobj = weapons.find((ww) => ww.name === wnameKnown);
-                    meleeDist += ((wobj?.reach ?? 0) * 16);
-                  } else {
-                    // Fallback: infer weapon reach from the next hit by same actor
-                    for (let k = steps.indexOf(s) + 1; k < steps.length; k++) {
-                      const nx = steps[k];
-                      if (nx?.f === actorIdx && (nx.a === 9 || nx.a === 10 || nx.a === 11 || nx.a === 12)) {
-                        if (typeof nx.w !== 'undefined') {
-                          const wname = WeaponById[nx.w as WeaponId];
-                          const wobj = weapons.find((ww) => ww.name === wname);
-                          meleeDist += ((wobj?.reach ?? 0) * 16);
-                        }
-                        break;
-                      }
-                      if (nx?.a === 15 || nx?.a === 17) break;
-                    }
-                  }
-                }
-              } catch {}
-            }
-              // Allow slightly closer contact than pure widths + reach
-              const cbUrl = Number(new URLSearchParams(window.location.search).get('pixiContactBias') ?? '');
-              const cb = !isNaN(cbUrl) ? cbUrl : (typeof contactBias === 'number' ? contactBias : 8);
-              meleeDist = Math.max(0, meleeDist - Math.max(0, cb));
-              const targetX = (targetSide === 'R') ? (tpos.x - meleeDist - Math.max(0, approachOffset)) : (tpos.x + meleeDist + Math.max(0, approachOffset));
-              // Free movement: allow Y-axis roaming (with diagonal drift if Y delta is too small)
-              const start = getPos(src.node);
-              const ty0 = clampY(tpos.y);
-              let ty = ty0;
-              if (Math.abs(ty0 - start.y) < 12) {
-                const driftUrl2 = Number(new URLSearchParams(window.location.search).get('pixiDrift') ?? '');
-                const driftVal = !isNaN(driftUrl2) ? driftUrl2 : (typeof drift === 'number' ? drift : 20);
-                const targetBaseY = (tgt?.baseY ?? ty0);
-                const sign = (targetBaseY - start.y) !== 0 ? Math.sign(targetBaseY - start.y) : (start.y > H * 0.75 ? -1 : 1);
-                ty = clampY(start.y + sign * driftVal);
-              }
-              const dist = Math.hypot(targetX - start.x, ty - start.y);
-              const dur = durationMoveMs(dist) / Math.max(0.001, (speed * boostFallback));
-              await tweenTo(src.node, targetX, ty, dur);
-              // Persist Y to simulate depth
-              src.baseY = ty;
+            const countered = s?.c === 1;
+            const meleeDist = getHitDistance(src, tgt, s, countered);
+            const targetX = (targetSide === 'R') ? (tpos.x - meleeDist) : (tpos.x + meleeDist);
+            const start = getPos(src.node);
+            const ty = clampY(tpos.y); // follow official: move to target Y
+            const dist = Math.hypot(targetX - start.x, ty - start.y);
+            const dur = durationMoveMs(dist) / Math.max(0.001, (speed * boostFallback));
+            await tweenTo(src.node, targetX, ty, dur);
             playAnim(src, 'idle', true);
             break; }
           // AttemptHit
           case 19: {
-            // Pre-move to ideal position if too far (fixes staying-on-spot on chained hits)
             try {
               const tpos = getPos(tgt.node);
-              let meleeDist = 20;
-              const srcW = (src?.width ?? 40);
-              const tgtW = (tgt?.width ?? 40);
-              meleeDist = (srcW * 0.5) + (tgtW * 0.5);
-              try {
-                for (let k = steps.indexOf(s) + 1; k < steps.length; k++) {
-                  const nx = steps[k];
-                  if (nx?.f === actorIdx && (nx.a === 9 || nx.a === 10 || nx.a === 11 || nx.a === 12)) {
-                    if (typeof nx.w !== 'undefined') {
-                      const wname = WeaponById[nx.w as WeaponId];
-                      const wobj = weapons.find((ww) => ww.name === wname);
-                      meleeDist += ((wobj?.reach ?? 0) * 16);
-                    }
-                    break;
-                  }
-                  if (nx?.a === 15 || nx?.a === 17) break;
-                }
-              } catch {}
-              const lateral = Math.max(0, approachOffset);
-              const idealX = (targetSide === 'R') ? (tpos.x - meleeDist - lateral) : (tpos.x + meleeDist + lateral);
+              const distX = getHitDistance(src, tgt, s, false);
+              const idealX = (targetSide === 'R') ? (tpos.x - distX) : (tpos.x + distX);
               const cur = getPos(src.node);
-              const ty = clampY(tpos.y);
-              const d2 = Math.hypot(idealX - cur.x, ty - cur.y);
-              if (d2 > 14) {
-                const durPre = Math.max(60, Math.min(220, d2)) / Math.max(0.001, (speed * boostFallback));
+              if ((src === left && idealX > cur.x) || (src === right && idealX < cur.x)) {
+                const ty = clampY(tpos.y);
+                const d2 = Math.hypot(idealX - cur.x, ty - cur.y);
+                const durPre = Math.max(100, d2 / 4) / Math.max(0.001, (speed * boostFallback));
                 await tweenTo(src.node, idealX, ty, durPre);
-                src.baseX = idealX; src.baseY = ty;
               }
             } catch {}
             playAnim(src, 'shoot', false);
@@ -611,6 +579,14 @@ const PixiFight: React.FC<Props> = ({
       } catch {}
     };
     apply(L, 'L'); apply(R, 'R');
+    // Update cached widths for distance calc
+    try {
+      const scaledWidth = (sp:any)=>{
+        try { return Math.max(30, ((sp as any).bounds?.width ?? 40) * Math.max(Math.abs((sp as any).scale?.x ?? 1), 0.001)); } catch { return 40; }
+      };
+      if (spinesRef.current.L) (spinesRef.current as any).LWidth = scaledWidth(spinesRef.current.L);
+      if (spinesRef.current.R) (spinesRef.current as any).RWidth = scaledWidth(spinesRef.current.R);
+    } catch {}
     charPxRef.current = target;
   }, [charPx]);
 
