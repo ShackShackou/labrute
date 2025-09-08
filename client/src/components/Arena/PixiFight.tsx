@@ -433,7 +433,7 @@ const PixiFight: React.FC<Props> = ({
           a += dm; const p = Math.min(1, a / duration);
           t.alpha = Math.max(0, 1 - p);
           t.y = (y - 60) - 20 * p;
-          if (p >= 1) { app.ticker.remove(tick); scene.removeChild(t); recycleText(t); }
+          if (p >= 1) { app.ticker.remove(tick); t.visible=false; t.renderable=false; recycleText(t); }
         };
         addTick(tick);
       };
@@ -837,6 +837,7 @@ const PixiFight: React.FC<Props> = ({
 };
 
 export default PixiFight;
+
 
 
 
