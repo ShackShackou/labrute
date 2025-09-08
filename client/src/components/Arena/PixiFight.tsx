@@ -379,7 +379,14 @@ const PixiFight: React.FC<Props> = ({
           if (gap > comfort*2) comfortable.push(segment);
           if (gap > largestGap){ largestGap = gap; largest = segment; }
         }
-        const pick = (comfortable.length ? comfortable[Math.floor(Math.random()*comfortable.length)] : (largest || {start:minY, end:maxY}));
+        let pick: {start:number,end:number};
+        if (comfortable.length > 0) {
+          pick = comfortable[Math.floor(Math.random()*comfortable.length)]!;
+        } else if (largest) {
+          pick = largest;
+        } else {
+          pick = { start: minY, end: maxY };
+        }
         const space = pick.end - pick.start - comfort*2;
         let y: number;
         if (space <= 0) y = (pick.start + pick.end)/2; else {
