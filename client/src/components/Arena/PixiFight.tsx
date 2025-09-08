@@ -366,8 +366,31 @@ const PixiFight: React.FC<Props> = ({
 
       const minY = 175, maxY = 281;
       const minLX = 40, maxLX = 125, minRX = W - maxLX, maxRX = W - minLX;
+      const occY: Record<'L'|'R', number[]> = { L: [], R: [] };
+      const chooseLaneY = (side:'L'|'R') => {
+        const comfort = 15;
+        const ys = [...occY[side]].filter((y)=> y >= minY && y <= maxY).sort((a,b)=>a-b);
+        const positions = [minY, ...ys, maxY];
+        let largestGap = 0; let largest:{start:number,end:number}|null=null;
+        const comfortable: {start:number,end:number}[] = [];
+        for (let i=1;i<positions.length;i++){
+          const gap = positions[i]! - positions[i-1]!;
+          const segment = { start: positions[i-1]!, end: positions[i]! };
+          if (gap > comfort*2) comfortable.push(segment);
+          if (gap > largestGap){ largestGap = gap; largest = segment; }
+        }
+        const pick = (comfortable.length ? comfortable[Math.floor(Math.random()*comfortable.length)] : (largest || {start:minY, end:maxY}));
+        const space = pick.end - pick.start - comfort*2;
+        let y: number;
+        if (space <= 0) y = (pick.start + pick.end)/2; else {
+          y = pick.start + comfort + space*0.15 + Math.random()*(space*0.8);
+        }
+        if (y <= minY + comfort && pick.start === minY) y = minY + 1;
+        if (y >= maxY - comfort && pick.end === maxY) y = maxY - 1;
+        return clampY(y);
+      };
       const getRandomBaseForSide = (side:'L'|'R') => {
-        const y = clampY(minY + Math.random() * (maxY - minY));
+        const y = chooseLaneY(side);
         const x = side === 'L'
           ? (minLX + Math.random() * (maxLX - minLX))
           : (minRX + Math.random() * (maxRX - minRX));
@@ -461,17 +484,16 @@ const PixiFight: React.FC<Props> = ({
           if (onStep) { try { onStep(steps.indexOf(s), s, performance.now() - t0); } catch {} }
 
           switch (a) {
-          // Arrive: randomize initial lane like official
+          // Arrive: pick lane using largest-gap strategy (official-like)
           case 2: {
             try {
-              const minY = 175, maxY = 281;
-              const y = clampY(minY + Math.random() * (maxY - minY));
-              const minLX = 40, maxLX = 125, minRX = W - maxLX, maxRX = W - minLX;
               if (actorSide === 'L') {
                 const x = minLX + Math.random() * (maxLX - minLX);
+                const y = chooseLaneY('L'); occY.L.push(y);
                 setPos(src.node, x, y); src.baseX = x; src.baseY = y;
               } else {
                 const x = minRX + Math.random() * (maxRX - minRX);
+                const y = chooseLaneY('R'); occY.R.push(y);
                 setPos(src.node, x, y); src.baseX = x; src.baseY = y;
               }
             } catch {}
@@ -546,6 +568,8 @@ const PixiFight: React.FC<Props> = ({
           case 17: {
             // Reposition to a new lane like official
             const pos = getRandomBaseForSide(actorSide);
+            // update occupancy with new lane
+            if (actorSide === 'L') occY.L.push(pos.y); else occY.R.push(pos.y);
             src.baseX = pos.x; src.baseY = pos.y;
             const start = getPos(src.node);
             const dist = Math.hypot(pos.x - start.x, pos.y - start.y);

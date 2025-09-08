@@ -1,12 +1,18 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
-import React, { useMemo, useState } from 'react';
-import { Box, Slider, Switch } from '@mui/material';
+import React, { useEffect, useMemo, useState } from 'react';
+import { Box, Button, Slider, Switch } from '@mui/material';
 import Text from '../Text';
 import FightComponent from './FightComponent';
 import PixiFight from './PixiFight';
 import { FightGetResponse } from '@labrute/core';
 
 type Props = { fight: FightGetResponse | null };
+
+const readNum = (k: string, def: number) => {
+  const v = Number(localStorage.getItem(k));
+  return Number.isFinite(v) ? v : def;
+};
+const writeNum = (k: string, v: number) => { try { localStorage.setItem(k, String(v)); } catch {} };
 
 const clampDt = (s: any) => Math.max(60, Math.min(260, s?.dt ?? 120));
 
@@ -17,25 +23,25 @@ const CompareFight: React.FC<Props> = ({ fight }) => {
     return 2; // l'officiel démarre souvent en x2
   });
   // Pixi tunables for quick matching
-  const [pixiScale, setPixiScale] = useState(0.22);
-  const [pixiBoost, setPixiBoost] = useState(1.6);
-  const [charPx, setCharPx] = useState(50);
+  const [pixiScale, setPixiScale] = useState(readNum('compare.pixiScale', 0.22));
+  const [pixiBoost, setPixiBoost] = useState(readNum('compare.pixiBoost', 1.6));
+  const [charPx, setCharPx] = useState(readNum('compare.charPx', 50));
   // Mode outils avancés (cache/affiche les sliders supplémentaires)
-  const [advanced, setAdvanced] = useState(false);
+  const [advanced, setAdvanced] = useState(localStorage.getItem('compare.advanced') === '1');
   // Movement tuning
-  const [drift, setDrift] = useState(20); // diagonal drift when ΔY small
-  const [contactBias, setContactBias] = useState(8); // reduce melee distance to allow closer contact
-  const [returnFactor, setReturnFactor] = useState(1.25); // slow down MoveBack
-  const [stageX, setStageX] = useState(0);
-  const [stageY, setStageY] = useState(0);
-  const [leftX, setLeftX] = useState(0);
-  const [leftY, setLeftY] = useState(0);
-  const [rightX, setRightX] = useState(0);
-  const [rightY, setRightY] = useState(0);
-  const [clampMin, setClampMin] = useState(0.62);
-  const [clampMax, setClampMax] = useState(0.88);
-  const [approachOffset, setApproachOffset] = useState(0);
-  const [preferVideo, setPreferVideo] = useState(false);
+  const [drift, setDrift] = useState(readNum('compare.drift', 20)); // diagonal drift when ΔY small
+  const [contactBias, setContactBias] = useState(readNum('compare.contactBias', 8)); // reduce melee distance to allow closer contact
+  const [returnFactor, setReturnFactor] = useState(readNum('compare.returnFactor', 1.25)); // slow down MoveBack
+  const [stageX, setStageX] = useState(readNum('compare.stageX', 0));
+  const [stageY, setStageY] = useState(readNum('compare.stageY', 0));
+  const [leftX, setLeftX] = useState(readNum('compare.leftX', 0));
+  const [leftY, setLeftY] = useState(readNum('compare.leftY', 0));
+  const [rightX, setRightX] = useState(readNum('compare.rightX', 0));
+  const [rightY, setRightY] = useState(readNum('compare.rightY', 0));
+  const [clampMin, setClampMin] = useState(readNum('compare.clampMin', 175/300));
+  const [clampMax, setClampMax] = useState(readNum('compare.clampMax', 281/300));
+  const [approachOffset, setApproachOffset] = useState(readNum('compare.approachOffset', 0));
+  const [preferVideo, setPreferVideo] = useState(localStorage.getItem('compare.preferVideo') === '1');
   const steps = useMemo(() => {
     if (!fight) return [] as any[];
     try { return Array.isArray(fight.steps) ? (fight.steps as any[]) : JSON.parse(String(fight.steps)); } catch { return []; }
@@ -48,6 +54,48 @@ const CompareFight: React.FC<Props> = ({ fight }) => {
   }, [steps]);
 
   const [current, setCurrent] = useState({ index: 0, elapsed: 0 });
+
+  // Persist sliders
+  useEffect(() => { writeNum('compare.pixiScale', pixiScale); }, [pixiScale]);
+  useEffect(() => { writeNum('compare.pixiBoost', pixiBoost); }, [pixiBoost]);
+  useEffect(() => { writeNum('compare.charPx', charPx); }, [charPx]);
+  useEffect(() => { try { localStorage.setItem('compare.advanced', advanced ? '1' : '0'); } catch {} }, [advanced]);
+  useEffect(() => { writeNum('compare.drift', drift); }, [drift]);
+  useEffect(() => { writeNum('compare.contactBias', contactBias); }, [contactBias]);
+  useEffect(() => { writeNum('compare.returnFactor', returnFactor); }, [returnFactor]);
+  useEffect(() => { writeNum('compare.stageX', stageX); }, [stageX]);
+  useEffect(() => { writeNum('compare.stageY', stageY); }, [stageY]);
+  useEffect(() => { writeNum('compare.leftX', leftX); }, [leftX]);
+  useEffect(() => { writeNum('compare.leftY', leftY); }, [leftY]);
+  useEffect(() => { writeNum('compare.rightX', rightX); }, [rightX]);
+  useEffect(() => { writeNum('compare.rightY', rightY); }, [rightY]);
+  useEffect(() => { writeNum('compare.clampMin', clampMin); }, [clampMin]);
+  useEffect(() => { writeNum('compare.clampMax', clampMax); }, [clampMax]);
+  useEffect(() => { writeNum('compare.approachOffset', approachOffset); }, [approachOffset]);
+  useEffect(() => { try { localStorage.setItem('compare.preferVideo', preferVideo ? '1' : '0'); } catch {} }, [preferVideo]);
+
+  // Follow official x1/x2
+  useEffect(() => {
+    const sync = () => {
+      const s = Number(localStorage.getItem('fightSpeed'));
+      if (s === 1 || s === 2) setSpeed(s);
+    };
+    const onStorage = (e: StorageEvent) => { if (e.key === 'fightSpeed') sync(); };
+    window.addEventListener('storage', onStorage);
+    window.addEventListener('focus', sync);
+    sync();
+    return () => { window.removeEventListener('storage', onStorage); window.removeEventListener('focus', sync); };
+  }, []);
+
+  const resetAll = () => {
+    setPixiScale(0.22); setPixiBoost(1.6); setCharPx(50);
+    setAdvanced(false);
+    setDrift(20); setContactBias(8); setReturnFactor(1.25);
+    setStageX(0); setStageY(0);
+    setLeftX(0); setLeftY(0); setRightX(0); setRightY(0);
+    setClampMin(175/300); setClampMax(281/300);
+    setApproachOffset(0); setPreferVideo(false);
+  };
 
   const onPixiStep = (index: number, _step: any, elapsedMs: number) => {
     setCurrent({ index, elapsed: elapsedMs });
@@ -69,6 +117,7 @@ const CompareFight: React.FC<Props> = ({ fight }) => {
         <Text color="text.primary" typo="GameFont" upperCase sx={{ fontSize: 10, ml: 2 }}>Pixi Boost</Text>
         <Slider size="small" min={1.0} max={3.0} step={0.05} value={pixiBoost} onChangeCommitted={(_, v) => setPixiBoost(v as number)} sx={{ width: 140 }} />
         <Text color="text.primary" typo="GameFont" upperCase sx={{ fontSize: 10 }}>{pixiBoost.toFixed(2)}x</Text>
+        <Button size="small" variant="outlined" onClick={resetAll} sx={{ ml: 2 }}>Reset</Button>
         {/* Basique: identique à l'ancienne version */}
         {!advanced && (
           <>
