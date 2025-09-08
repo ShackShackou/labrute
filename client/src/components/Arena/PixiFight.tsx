@@ -75,6 +75,8 @@ const PixiFight: React.FC<Props> = ({
       await app.init({ width: W, height: H, background: '#202428', antialias: true });
       if (disposed) return;
       containerRef.current?.appendChild(app.canvas as HTMLCanvasElement);
+      // Align global timing with official renderer
+      try { (app.ticker as any).speed = 0.5; } catch {}
 
       // Enable zIndex sorting so overlay stays on top
       // @ts-ignore
