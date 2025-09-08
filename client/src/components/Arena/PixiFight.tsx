@@ -55,6 +55,7 @@ const PixiFight: React.FC<Props> = ({
   const appRef = useRef<Application | null>(null);
   const spinesRef = useRef<{ L: any | null, R: any | null, scene: Container | null }>({ L: null, R: null, scene: null });
   const charPxRef = useRef<number | null>(null);
+  const debugLayerRef = useRef<Container | null>(null);
 
   useEffect(() => {
     if (!containerRef.current || !fight) return undefined;
@@ -92,6 +93,7 @@ const PixiFight: React.FC<Props> = ({
       // @ts-ignore
       (debugLayer as any).zIndex = 998;
       app.stage.addChild(debugLayer);
+      debugLayerRef.current = debugLayer;
 
       const scene = new Container();
       // Depth sort by Y
@@ -122,11 +124,11 @@ const PixiFight: React.FC<Props> = ({
           g.lineTo(x2 - Math.cos(ang-0.3)*ah, y2 - Math.sin(ang-0.3)*ah);
           g.moveTo(x2,y2);
           g.lineTo(x2 - Math.cos(ang+0.3)*ah, y2 - Math.sin(ang+0.3)*ah);
-          debugLayer.addChild(g);
+          debugLayerRef.current?.addChild(g);
           const id = window.setTimeout(()=>{ 
             timeouts.delete(id);
             if (disposed) { try { g.destroy(true); } catch {} return; }
-            try{ debugLayer.removeChild(g); g.destroy(true); } catch{}
+            try{ debugLayerRef.current?.removeChild(g); g.destroy(true); } catch{}
           }, 2000);
           timeouts.add(id);
         } catch {}
@@ -692,13 +694,13 @@ const PixiFight: React.FC<Props> = ({
           try { v?.pause?.(); } catch {}
           try { v?.removeAttribute?.('src'); v?.load?.(); } catch {}
           try { spr.parent?.removeChild?.(spr); } catch {}
-          try { spr.destroy?.({ texture: true, baseTexture: true }); } catch {}
+          try { spr.destroy?.({ texture: true }); } catch {}
         }
       } catch {}
       try { (app as any).ticker?.stop?.(); } catch {}
       try { removeAllTicks(); } catch {}
       try { clearAllTimeouts(); } catch {}
-      try { debugLayer?.removeChildren?.(); } catch {}
+      try { debugLayerRef.current?.removeChildren?.(); } catch {}
       try { app.stage?.removeChildren?.(); } catch {}
       try { const canvas = (app as any).canvas as HTMLCanvasElement | undefined; if (canvas && canvas.parentNode) { canvas.parentNode.removeChild(canvas); } } catch {}
       const toDestroy = app;
