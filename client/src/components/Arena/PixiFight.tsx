@@ -591,7 +591,10 @@ const PixiFight: React.FC<Props> = ({
             const meleeDist = getHitDistance(src, tgt, s, countered);
             const targetX = (targetSide === 'R') ? (tpos.x - meleeDist) : (tpos.x + meleeDist);
             const start = getPos(src.node);
-            const ty = clampY(tpos.y); // follow official: move to target Y
+            let ty = clampY(tpos.y); // follow official by default
+            // Avoid pure vertical moves: if horizontal delta is tiny, keep Y
+            const minDiagX = 28;
+            if (Math.abs(targetX - start.x) < minDiagX) ty = start.y;
             const dist = Math.hypot(targetX - start.x, ty - start.y);
             addVector(start.x, start.y, targetX, ty, 0x00cc66);
             const dur = durationMoveMs(dist) / Math.max(0.001, speed);
@@ -606,7 +609,9 @@ const PixiFight: React.FC<Props> = ({
               const idealX = (targetSide === 'R') ? (tpos.x - distX) : (tpos.x + distX);
               const cur = getPos(src.node);
               if ((src === left && idealX > cur.x) || (src === right && idealX < cur.x)) {
-                const ty = clampY(tpos.y);
+                let ty = clampY(tpos.y);
+                const minDiagX = 28;
+                if (Math.abs(idealX - cur.x) < minDiagX) ty = cur.y;
                 const d2 = Math.hypot(idealX - cur.x, ty - cur.y);
                 addVector(cur.x, cur.y, idealX, ty, 0xff66cc);
                 const durPre = 100 / Math.max(0.001, speed);
