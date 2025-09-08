@@ -405,11 +405,20 @@ const PixiFight: React.FC<Props> = ({
         if (y >= maxY - comfort && pick.end === maxY) y = maxY - 1;
         return clampY(y);
       };
-      const getRandomBaseForSide = (side:'L'|'R') => {
+      const getRandomBaseForSide = (side:'L'|'R', currX?: number) => {
         const y = chooseLaneY(side);
-        const x = side === 'L'
-          ? (minLX + Math.random() * (maxLX - minLX))
-          : (minRX + Math.random() * (maxRX - minRX));
+        const minX = side === 'L' ? minLX : minRX;
+        const maxX = side === 'L' ? maxLX : maxRX;
+        const minShift = 30; // ensure visible diagonal, avoid pure vertical
+        let x = minX + Math.random() * (maxX - minX);
+        let tries = 0;
+        while (typeof currX === 'number' && Math.abs(x - currX) < minShift && tries < 5) {
+          x = minX + Math.random() * (maxX - minX);
+          tries++;
+        }
+        if (typeof currX === 'number' && Math.abs(x - currX) < minShift) {
+          x = currX < (minX + maxX) / 2 ? maxX : minX;
+        }
         return { x, y };
       };
 
@@ -583,7 +592,8 @@ const PixiFight: React.FC<Props> = ({
           // MoveBack
           case 17: {
             // Reposition to a new lane like official
-            const pos = getRandomBaseForSide(actorSide);
+            const cur = getPos(src.node);
+            const pos = getRandomBaseForSide(actorSide, cur.x);
             // update occupancy with new lane
             if (actorSide === 'L') occY.L.push(pos.y); else occY.R.push(pos.y);
             src.baseX = pos.x; src.baseY = pos.y;
