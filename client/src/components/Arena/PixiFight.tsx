@@ -1,84 +1,284 @@
 /* eslint-disable unicode-bom, quotes, @typescript-eslint/ban-ts-comment, @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-member-access, @typescript-eslint/no-unsafe-call, max-len, lines-between-class-members, one-var, one-var-declaration-per-line, no-empty, comma-spacing, space-infix-ops, key-spacing, arrow-spacing, arrow-parens, object-curly-spacing, block-spacing, space-before-function-paren, default-case, no-promise-executor-return, @typescript-eslint/no-floating-promises */
 import React, { useEffect, useRef } from 'react';
-import { Application, Container, Graphics, Text, Assets } from 'pixi.js';
+import { Application, Container, Graphics, Text, Assets, Sprite } from 'pixi.js';
 // @ts-ignore - official Spine v8 runtime for Pixi v8
 import { Spine } from '@esotericsoftware/spine-pixi-v8';
-import { FightGetResponse } from '@labrute/core';
+import { FightGetResponse, WeaponById, WeaponId, weapons, StepType } from '@labrute/core';
 
-type Props = { fight: FightGetResponse | null };
+type Props = {
+  fight: FightGetResponse | null,
+  speed?: number,
+  onStep?: (index:number, step:any, elapsedMs:number)=>void,
+  // Tunables
+  scale?: number,
+  speedBoost?: number,
+  stageOffsetX?: number,
+  stageOffsetY?: number,
+  clampYMinRatio?: number,
+  clampYMaxRatio?: number,
+  leftOffsetX?: number,
+  leftOffsetY?: number,
+  rightOffsetX?: number,
+  rightOffsetY?: number,
+  approachOffset?: number,
+  preferVideoBackground?: boolean,
+  charPx?: number,
+  drift?: number,
+  contactBias?: number,
+  returnFactor?: number,
+};
 
 const W = 500; const H = 300;
 
-const PixiFight: React.FC<Props> = ({ fight }) => {
+const PixiFight: React.FC<Props> = ({
+  fight,
+  speed = 1,
+  onStep,
+  scale,
+  speedBoost,
+  stageOffsetX = 0,
+  stageOffsetY = 0,
+  clampYMinRatio = 0.62,
+  clampYMaxRatio = 0.88,
+  leftOffsetX = 0,
+  leftOffsetY = 0,
+  rightOffsetX = 0,
+  rightOffsetY = 0,
+  approachOffset = 0,
+  preferVideoBackground = false,
+  charPx,
+  drift,
+  contactBias,
+  returnFactor,
+}) => {
   const containerRef = useRef<HTMLDivElement | null>(null);
   const appRef = useRef<Application | null>(null);
+  const spinesRef = useRef<{ L: any | null, R: any | null, scene: Container | null }>({ L: null, R: null, scene: null });
+  const charPxRef = useRef<number | null>(null);
 
   useEffect(() => {
     if (!containerRef.current || !fight) return undefined;
 
-    if (appRef.current) { appRef.current.destroy(true); appRef.current = null; }
+    if (appRef.current) { try { (appRef.current as any).ticker?.stop?.(); } catch {} try { appRef.current.destroy(true); } catch {} appRef.current = null; }
 
     const app = new Application();
     appRef.current = app;
+    let disposed = false;
+    const ticks = new Set<(tk:any)=>void>();
+    const timeouts = new Set<number>();
+    const addTick = (fn:(tk:any)=>void) => { ticks.add(fn); app.ticker.add(fn); };
+    const removeAllTicks = () => { ticks.forEach((fn)=>{ try{ app.ticker.remove(fn); } catch{} }); ticks.clear(); };
+    const clearAllTimeouts = () => { timeouts.forEach((id)=>{ try{ clearTimeout(id); } catch{} }); timeouts.clear(); };
 
     const run = async () => {
       await app.init({ width: W, height: H, background: '#202428', antialias: true });
+      if (disposed) return;
       containerRef.current?.appendChild(app.canvas as HTMLCanvasElement);
 
-      const label = new Text('Pixi Renderer (v8 + Spine)', { fill: '#ccc', fontSize: 12 } as any);
+      // Enable zIndex sorting so overlay stays on top
+      // @ts-ignore
+      (app.stage as any).sortableChildren = true;
+      const label = new Text("Pixi Renderer (v8 + Spine)", { fill: "#ccc", fontSize: 12 } as any);
       label.position.set(W / 2, 10);
       label.anchor.set(0.5, 0);
+      // @ts-ignore
+      (label as any).zIndex = 1000;
       app.stage.addChild(label);
 
+      // Fixed UI overlay for non-scene elements (e.g., HP bars)
+      const ui = new Container();
+      // @ts-ignore
+      (ui as any).zIndex = 999;
+      app.stage.addChild(ui);
+
       const scene = new Container();
+      // Depth sort by Y
+      // @ts-ignore
+      (scene as any).sortableChildren = true;
+      scene.position.set(stageOffsetX, stageOffsetY);
       app.stage.addChild(scene);
+      spinesRef.current.scene = scene;
 
-      const makeCircle = (x:number, y:number, color:number) => {
-        const g = new Graphics();
-        g.beginFill(color).drawCircle(0, 0, 20).endFill();
-        g.position.set(x, y);
-        scene.addChild(g);
-        return g;
+      // Resolve tunables and helpers
+      const params = new URLSearchParams(window.location.search);
+      const SCALE = Number(params.get('pixiScale') ?? (scale ?? 0.22));
+      const BOOST = Number(params.get('pixiBoost') ?? (speedBoost ?? 1.6));
+      const scaleFallback = isNaN(SCALE) ? 0.22 : SCALE;
+      const boostFallback = isNaN(BOOST) ? 1.6 : BOOST;
+      const clampMin = Number(params.get('pixiClampMin') ?? `${clampYMinRatio}`);
+      const clampMax = Number(params.get('pixiClampMax') ?? `${clampYMaxRatio}`);
+      const clampY = (y:number) => Math.max(H * clampMin, Math.min(H * clampMax, y));
+      const preferVideo = (params.get('bgVideo') === '1' || params.get('bgVideo') === 'true') || !!preferVideoBackground;
+
+      // Background from /backgrounds (synced from repo root \backgrounds)
+      try {
+        const loadVideoSprite = async (baseName: string): Promise<Sprite|null> => {
+          const vids = ['.webm', '.mp4'];
+          for (const ext of vids) {
+            try {
+              const video = document.createElement('video');
+              video.src = `/backgrounds/${baseName}${ext}`;
+              video.crossOrigin = 'anonymous';
+              video.loop = true; video.muted = true; (video as any).playsInline = true; (video as any).autoplay = true;
+              const ready = await new Promise<boolean>((resolve) => {
+                const timer = window.setTimeout(() => resolve(false), 800);
+                const onReady = () => { try { video.removeEventListener('canplay', onReady); } catch {} try { clearTimeout(timer); } catch {} resolve(true); };
+                const onError = (ev: Event) => {
+                  try { (ev as any).stopImmediatePropagation?.(); } catch {}
+                  try { (ev as any).stopPropagation?.(); } catch {}
+                  try { (ev as any).preventDefault?.(); } catch {}
+                  try { video.removeEventListener('error', onError as any); } catch {}
+                  try { clearTimeout(timer); } catch {}
+                  resolve(false);
+                };
+                video.addEventListener('canplay', onReady, { once: true });
+                video.addEventListener('error', onError as any, { once: true });
+              });
+              if (!ready) continue;
+              try { await video.play().catch(() => {}); } catch {}
+              const spr = Sprite.from(video as any);
+              return spr;
+            } catch {}
+          }
+          return null;
+        };
+        // Background override via URL: ?bg=filename (with or without extension)
+        const exts = ['.png', '.jpg', '.jpeg', '.webp'];
+        let loaded: any = null;
+        const bgParam = params.get('bg');
+        if (bgParam) {
+          if (preferVideo) {
+            const baseP0 = bgParam.includes('.') ? bgParam.replace(/\.[^/.]+$/, '') : bgParam;
+            const spr0 = await loadVideoSprite(baseP0);
+            if (spr0) { loaded = spr0; }
+          }
+          if (!loaded && bgParam.includes('.')) {
+            try { loaded = await Assets.load(`/backgrounds/${encodeURIComponent(bgParam)}`); } catch {}
+          }
+          if (!loaded) {
+            const baseP = bgParam.replace(/\.[^/.]+$/, '');
+            for (const ext of exts) { try { loaded = await Assets.load(`/backgrounds/${encodeURIComponent(baseP)}${ext}`); break; } catch {} }
+          }
+          if (!loaded) {
+            // Fallback to official resources folder (numbered backgrounds)
+            const baseP = bgParam.replace(/\.[^/.]+$/, '');
+            const candidates = [baseP, `${parseInt(baseP, 10) || ''}`, '1'];
+            for (const c of candidates) {
+              if (!c) continue;
+              try { loaded = await Assets.load(`/images/game/resources/misc/background/${c}.jpg`); break; } catch {}
+              try { loaded = await Assets.load(`/images/game/resources/misc/background/${c}.png`); break; } catch {}
+            }
+          }
+        } else {
+          const base = String((fight as any).background ?? '').replace(/\.[^/.]+$/, '');
+          if (preferVideo && !loaded && base) {
+            const spr1 = await loadVideoSprite(base);
+            if (spr1) { loaded = spr1; }
+          }
+          // Avoid loading heavy animated GIF backgrounds by default for performance
+          if (!loaded && base) { for (const ext of exts) { try { loaded = await Assets.load(`/backgrounds/${base}${ext}`); break; } catch {} } }
+          if (!loaded) {
+            const candidates = [base, `${parseInt(base, 10) || ''}`, '1'];
+            for (const c of candidates) {
+              if (!c) continue;
+              try { loaded = await Assets.load(`/images/game/resources/misc/background/${c}.jpg`); break; } catch {}
+              try { loaded = await Assets.load(`/images/game/resources/misc/background/${c}.png`); break; } catch {}
+            }
+          }
+        }
+        if (loaded) {
+          if (loaded instanceof Sprite) {
+            const spr = loaded as Sprite; spr.zIndex = -10; spr.width = W; spr.height = H; scene.addChildAt(spr, 0);
+          } else {
+            const bg = new Sprite(loaded as any);
+            bg.zIndex = -10; bg.width = W; bg.height = H;
+            scene.addChildAt(bg, 0);
+          }
+        }
+      } catch {}
+
+      const baseLX = (W * 0.25) + leftOffsetX; const baseLY = (H * 0.75) + leftOffsetY;
+      const baseRX = (W * 0.75) + rightOffsetX; const baseRY = (H * 0.75) + rightOffsetY;
+      // Placeholders (not visible) to avoid debug circles
+      const leftPlaceholder = new Container(); leftPlaceholder.position.set(baseLX, baseLY); (leftPlaceholder as any).visible = false; scene.addChild(leftPlaceholder);
+      const rightPlaceholder = new Container(); rightPlaceholder.position.set(baseRX, baseRY); (rightPlaceholder as any).visible = false; scene.addChild(rightPlaceholder);
+      let left: any = { node: leftPlaceholder, baseX: baseLX, baseY: baseLY, type: 'placeholder' };
+      let right: any = { node: rightPlaceholder, baseX: baseRX, baseY: baseRY, type: 'placeholder' };
+      const addShadow = (obj:any) => {
+        const sh = new Graphics();
+        sh.beginFill(0x000000, 0.25).drawEllipse(0, 0, 26, 10).endFill();
+        scene.addChild(sh);
+        return {
+          follow: () => {
+            const p = 'position' in obj.node ? obj.node.position : obj.node;
+            sh.position.set(p.x, p.y + 2);
+            // Sort by Y (shadows below character)
+            // @ts-ignore
+            sh.zIndex = (p.y as number) - 1;
+          },
+          destroy: () => sh.destroy(),
+        };
       };
-
-      let left: any = { node: makeCircle(W * 0.25, H * 0.75, 0x66ccff), baseX: W * 0.25, baseY: H * 0.75, type: 'circle' };
-      let right: any = { node: makeCircle(W * 0.75, H * 0.75, 0xff6688), baseX: W * 0.75, baseY: H * 0.75, type: 'circle' };
+      let shadowL = addShadow(left);
+      let shadowR = addShadow(right);
 
       try {
+        // Spine v8 (4.2) assets: mono-page atlas
         Assets.add({ alias: 'spineboyData', src: '/assets/spine/spineboy-pro.json' });
-        Assets.add({ alias: 'spineboyAtlas', src: '/assets/spine/spineboy-pro.atlas' });
+        Assets.add({ alias: 'spineboyAtlas', src: '/assets/spine/spineboy.atlas' });
         await Assets.load(['spineboyData', 'spineboyAtlas']);
-        const L = Spine.from({ skeleton: 'spineboyData', atlas: 'spineboyAtlas', scale: 0.28 });
-        L.x = W * 0.25; L.y = H * 0.75; scene.addChild(L);
-        const R = Spine.from({ skeleton: 'spineboyData', atlas: 'spineboyAtlas', scale: 0.28 });
-        R.x = W * 0.75; R.y = H * 0.75; (R.scale as any).x = -0.28; scene.addChild(R);
+        // Crée sans échelle, puis calibre sur une largeur cible (pour matcher l'officiel)
+        const L = Spine.from({ skeleton: 'spineboyData', atlas: 'spineboyAtlas', scale: 1 });
+        L.x = baseLX; L.y = baseLY; scene.addChild(L);
+        const R = Spine.from({ skeleton: 'spineboyData', atlas: 'spineboyAtlas', scale: 1 });
+        R.x = baseRX; R.y = baseRY; scene.addChild(R);
+        const targetCharPxRaw = Number(params.get('charPx') ?? `${typeof charPx === 'number' ? charPx : 50}`);
+        const TARGET_W = isNaN(targetCharPxRaw) ? 50 : targetCharPxRaw;
+        const applyScale = (sp: any, side: 'L'|'R') => {
+          try {
+            const bw = Math.max(1, sp?.bounds?.width ?? 200);
+            const s = (TARGET_W / bw);
+            sp.scale.set(s, s);
+            if (side === 'R') sp.scale.x = -Math.abs(sp.scale.x);
+          } catch {
+            sp.scale.set(0.18, 0.18);
+            if (side === 'R') sp.scale.x = -Math.abs(sp.scale.x);
+          }
+        };
+        applyScale(L, 'L');
+        applyScale(R, 'R');
+        spinesRef.current.L = L; spinesRef.current.R = R; charPxRef.current = TARGET_W;
+        spinesRef.current.L = L; spinesRef.current.R = R; charPxRef.current = TARGET_W;
         try { L.state.setAnimation(0, 'idle', true); } catch {}
         try { R.state.setAnimation(0, 'idle', true); } catch {}
-        left = { node: L, baseX: L.x, baseY: L.y, type: 'spine' };
-        right = { node: R, baseX: R.x, baseY: R.y, type: 'spine' };
+        const scaledWidth = (sp:any)=>{
+          try { return Math.max(30, ((sp as any).bounds?.width ?? 40) * Math.max(Math.abs((sp as any).scale?.x ?? 1), 0.001)); } catch { return 40; }
+        };
+        left = { node: L, baseX: L.x, baseY: L.y, type: 'spine', width: scaledWidth(L) };
+        right = { node: R, baseX: R.x, baseY: R.y, type: 'spine', width: scaledWidth(R) };
+        shadowL?.destroy(); shadowR?.destroy();
+        shadowL = addShadow(left);
+        shadowR = addShadow(right);
       } catch {
         // keep circles fallback if assets/runtimes unavailable
       }
 
-      const mkBar = (obj:any, side:'L'|'R') => {
-        const barW = 160, barH=7; const isL = side==='L';
+      const mkBar = (_obj:any, side:'L'|'R') => {
+        const barW = 180, barH=10; const isL = side==='L';
         const bg = new Graphics(); bg.beginFill(0x333333).drawRect(0, 0, barW, barH).endFill();
         const fg = new Graphics(); fg.beginFill(0x3ad66f).drawRect(0, 0, barW, barH).endFill();
-        const cont = new Container();
-        cont.addChild(bg, fg);
-        const pos = 'position' in obj.node ? obj.node.position : obj.node;
-        cont.position.set(pos.x - (isL ? barW/2 : -barW/2), pos.y - 50);
-        scene.addChild(cont);
+        const cont = new Container(); cont.addChild(bg, fg);
+        const anchorX = isL ? (W * 0.28) : (W * 0.72);
+        cont.position.set(anchorX - barW/2, 30);
+        ui.addChild(cont);
         const set = (ratio:number) => {
           const r = Math.max(0, Math.min(1, ratio));
-          fg.clear();
-          fg.beginFill(r < 0.3 ? 0xd64545 : 0x3ad66f).drawRect(0, 0, barW * r, barH).endFill();
-          fg.position.set(0,0);
+          const w = barW * r;
+          const col = r < 0.3 ? 0xd64545 : 0x3ad66f;
+          fg.clear(); fg.beginFill(col).drawRect(0, 0, w, barH).endFill();
+          fg.x = isL ? 0 : (barW - w);
         };
-        const follow = () => {
-          const p = 'position' in obj.node ? obj.node.position : obj.node;
-          cont.position.set(p.x - (isL ? barW/2 : -barW/2), p.y - 50);
-        };
+        const follow = () => { /* fixed overlay: no-op */ };
         return { set, follow };
       };
 
@@ -88,6 +288,8 @@ const PixiFight: React.FC<Props> = ({ fight }) => {
 
       const byIndex = new Map<number, any>();
       for (const f of fighters) { if (typeof f?.index === 'number') byIndex.set(f.index, f); }
+      // Track last known weapon by actor (from Hit steps)
+      const lastWeaponByActor = new Map<number, string>();
       const leftMain = fighters.find((f:any) => !f?.master && f?.id === fight.brute1Id);
       const rightMain = fighters.find((f:any) => !f?.master && f?.id === fight.brute2Id);
       const leftMainIdx = leftMain?.index ?? 1;
@@ -100,20 +302,33 @@ const PixiFight: React.FC<Props> = ({ fight }) => {
       // Small helpers
       const playAnim = (obj:any, name:string, loop=true) => {
         if (obj?.type === 'spine') {
-          try { (obj.node as any).state.setAnimation(0, name, loop); } catch {}
+          // For spineboy, we only use 'idle' and 'death' for now
+          const mapped = name === 'death' ? 'death' : 'idle';
+          try { (obj.node as any).state.setAnimation(0, mapped, mapped === 'idle'); } catch {}
         }
       };
+      // Small pooled float text to reduce allocations
+      const textPool: Text[] = [];
+      const getText = () => {
+        const t = textPool.pop();
+        if (t) return t;
+        const nt = new Text('', { fill: 0xffffff as any, fontSize: 12 } as any);
+        nt.anchor.set(0.5);
+        return nt;
+      };
+      const recycleText = (t: Text) => { try { t.visible = false; t.alpha = 1; } catch {} textPool.push(t); };
       const floatText = (x:number, y:number, txt:string, color=0xffffff) => {
-        const t = new Text(txt, { fill: color as any, fontSize: 12 } as any);
-        t.anchor.set(0.5);
-        t.position.set(x, y - 60);
+        const t = getText();
+        t.text = txt; (t.style as any).fill = color; t.position.set(x, y - 60); t.visible = true;
         scene.addChild(t);
         let a = 0;
+        const duration = 650 / Math.max(0.001, speed);
         const tick = (tk:any) => {
           const dm = typeof tk?.deltaMS === 'number' ? tk.deltaMS : 16.7;
-          a += dm; t.alpha = Math.max(0, 1 - a / 650);
-          t.y = (y - 60) - (a / 32);
-          if (a >= 650) { app.ticker.remove(tick); t.destroy(); }
+          a += dm; const p = Math.min(1, a / duration);
+          t.alpha = Math.max(0, 1 - p);
+          t.y = (y - 60) - 20 * p;
+          if (p >= 1) { app.ticker.remove(tick); scene.removeChild(t); recycleText(t); }
         };
         app.ticker.add(tick);
       };
@@ -129,28 +344,56 @@ const PixiFight: React.FC<Props> = ({ fight }) => {
         app.ticker.add(tick);
       });
 
-      const getPos = (o:any) => ({ x: (o?.position?.x ?? o?.x) as number, y: (o?.position?.y ?? o?.y) as number });
+      const getPos = (o:any) => ({ x: (o?.position?.x ?? o?.x) as number, y: clampY((o?.position?.y ?? o?.y) as number) });
       const setPos = (o:any, x:number, y:number) => { if ('position' in o) { o.position.set(x,y); } else { o.x = x; o.y = y; } };
 
+      // Duration from distance constants close to legacy v6 renderer
+      const durationMoveMs = (px:number) => Math.max(160, (px / 430) * 1000);
+      const durationMoveBackMs = (px:number) => Math.max(150, (px / 480) * 1000);
+
       const tweenTo = (obj: any, x:number, y:number, duration=200) => new Promise<void>((resolve) => {
+        if (disposed) { resolve(); return; }
         const { x: startX, y: startY } = getPos(obj);
         const dx = x - startX; const dy = y - startY;
-        let t = 0; const total = Math.max(1, duration);
+        let t = 0; const total = Math.max(1, duration / Math.max(0.001, speed));
         const tick = (tk: any) => {
+          if (disposed) { app.ticker.remove(tick); resolve(); return; }
           const deltaMS = typeof tk?.deltaMS === 'number' ? tk.deltaMS : 16.7;
           t += deltaMS;
           const p = Math.min(1, t / total);
           setPos(obj, startX + dx * p, startY + dy * p);
+          // Depth by Y
+          const pos = getPos(obj);
+          // @ts-ignore
+          if ('zIndex' in obj) (obj as any).zIndex = pos.y;
           barL.follow(); barR.follow();
+          shadowL.follow(); shadowR.follow();
           if (p >= 1) { app.ticker.remove(tick); resolve(); }
         };
-        app.ticker.add(tick);
+        addTick(tick);
       });
 
-      const delay = (ms:number) => new Promise<void>((res)=>{ setTimeout(()=>res(), ms); });
+      const repositionIfNeeded = async (f: any, baseX: number, side: 'L'|'R') => {
+        const cur = getPos(f.node);
+        const centerMargin = 25;
+        if (side === 'L' && cur.x > (W/2 - centerMargin)) {
+          const dist = Math.abs((W/2 - centerMargin) - cur.x);
+          const dur = Math.max(120, dist * 2);
+          await tweenTo(f.node, baseX, f.baseY, dur);
+        }
+        if (side === 'R' && cur.x < (W/2 + centerMargin)) {
+          const dist = Math.abs((W/2 + centerMargin) - cur.x);
+          const dur = Math.max(120, dist * 2);
+          await tweenTo(f.node, baseX, f.baseY, dur);
+        }
+      };
+
+      const delay = (ms:number) => new Promise<void>((res)=>{ const id = window.setTimeout(()=>{ timeouts.delete(id); res(); }, ms); timeouts.add(id); });
 
       const play = async () => {
+        const t0 = performance.now();
         for (const s of steps) {
+          if (disposed) return;
           const a = s.a as number;
           const actorIdx: number | null = (typeof s.f === 'number') ? s.f : (typeof s.b === 'number' ? s.b : null);
           const targetIdx: number | null = (typeof s.t === 'number') ? s.t : null;
@@ -161,21 +404,121 @@ const PixiFight: React.FC<Props> = ({ fight }) => {
           const src = actorSide === 'L' ? left : right;
           const tgt = targetSide ? (targetSide === 'L' ? left : right) : (src === left ? right : left);
 
-        switch (a) {
+          // Track Equip to update known weapon (real data)
+          try {
+            if (typeof (StepType as any) !== 'undefined' && a === (StepType as any).Equip && actorIdx !== null && typeof (s as any).w !== 'undefined') {
+              const wname = WeaponById[(s as any).w as WeaponId];
+              lastWeaponByActor.set(actorIdx, wname);
+            }
+          } catch {}
+
+          if (onStep) { try { onStep(steps.indexOf(s), s, performance.now() - t0); } catch {} }
+
+          switch (a) {
           // Arrive
           case 2: { break; }
           // Move
           case 15: {
             playAnim(src, 'walk', true);
             const tpos = getPos(tgt.node);
-            await tweenTo(src.node, tpos.x + (src===left? +40 : -40), tpos.y, 220);
+            // Compute target X based on melee distance (official-like)
+            let meleeDist = 0;
+            const sameSpace = s?.s === 1;
+            if (sameSpace) {
+              meleeDist = 20;
+            } else {
+              // base widths approximation (half + half)
+              const srcW = (src?.width ?? 40);
+              const tgtW = (tgt?.width ?? 40);
+              meleeDist = (srcW * 0.5) + (tgtW * 0.5);
+              // Prefer last known weapon used by this actor
+              try {
+                if (actorIdx !== null) {
+                  const wnameKnown = lastWeaponByActor.get(actorIdx);
+                  if (wnameKnown) {
+                    const wobj = weapons.find((ww) => ww.name === wnameKnown);
+                    meleeDist += ((wobj?.reach ?? 0) * 16);
+                  } else {
+                    // Fallback: infer weapon reach from the next hit by same actor
+                    for (let k = steps.indexOf(s) + 1; k < steps.length; k++) {
+                      const nx = steps[k];
+                      if (nx?.f === actorIdx && (nx.a === 9 || nx.a === 10 || nx.a === 11 || nx.a === 12)) {
+                        if (typeof nx.w !== 'undefined') {
+                          const wname = WeaponById[nx.w as WeaponId];
+                          const wobj = weapons.find((ww) => ww.name === wname);
+                          meleeDist += ((wobj?.reach ?? 0) * 16);
+                        }
+                        break;
+                      }
+                      if (nx?.a === 15 || nx?.a === 17) break;
+                    }
+                  }
+                }
+              } catch {}
+            }
+              // Allow slightly closer contact than pure widths + reach
+              const cbUrl = Number(new URLSearchParams(window.location.search).get('pixiContactBias') ?? '');
+              const cb = !isNaN(cbUrl) ? cbUrl : (typeof contactBias === 'number' ? contactBias : 8);
+              meleeDist = Math.max(0, meleeDist - Math.max(0, cb));
+              const targetX = (targetSide === 'R') ? (tpos.x - meleeDist - Math.max(0, approachOffset)) : (tpos.x + meleeDist + Math.max(0, approachOffset));
+              // Free movement: allow Y-axis roaming (with diagonal drift if Y delta is too small)
+              const start = getPos(src.node);
+              const ty0 = clampY(tpos.y);
+              let ty = ty0;
+              if (Math.abs(ty0 - start.y) < 12) {
+                const driftUrl2 = Number(new URLSearchParams(window.location.search).get('pixiDrift') ?? '');
+                const driftVal = !isNaN(driftUrl2) ? driftUrl2 : (typeof drift === 'number' ? drift : 20);
+                const targetBaseY = (tgt?.baseY ?? ty0);
+                const sign = (targetBaseY - start.y) !== 0 ? Math.sign(targetBaseY - start.y) : (start.y > H * 0.75 ? -1 : 1);
+                ty = clampY(start.y + sign * driftVal);
+              }
+              const dist = Math.hypot(targetX - start.x, ty - start.y);
+              const dur = durationMoveMs(dist) / Math.max(0.001, (speed * boostFallback));
+              await tweenTo(src.node, targetX, ty, dur);
+              // Persist Y to simulate depth
+              src.baseY = ty;
             playAnim(src, 'idle', true);
             break; }
           // AttemptHit
           case 19: {
+            // Pre-move to ideal position if too far (fixes staying-on-spot on chained hits)
+            try {
+              const tpos = getPos(tgt.node);
+              let meleeDist = 20;
+              const srcW = (src?.width ?? 40);
+              const tgtW = (tgt?.width ?? 40);
+              meleeDist = (srcW * 0.5) + (tgtW * 0.5);
+              try {
+                for (let k = steps.indexOf(s) + 1; k < steps.length; k++) {
+                  const nx = steps[k];
+                  if (nx?.f === actorIdx && (nx.a === 9 || nx.a === 10 || nx.a === 11 || nx.a === 12)) {
+                    if (typeof nx.w !== 'undefined') {
+                      const wname = WeaponById[nx.w as WeaponId];
+                      const wobj = weapons.find((ww) => ww.name === wname);
+                      meleeDist += ((wobj?.reach ?? 0) * 16);
+                    }
+                    break;
+                  }
+                  if (nx?.a === 15 || nx?.a === 17) break;
+                }
+              } catch {}
+              const lateral = Math.max(0, approachOffset);
+              const idealX = (targetSide === 'R') ? (tpos.x - meleeDist - lateral) : (tpos.x + meleeDist + lateral);
+              const cur = getPos(src.node);
+              const ty = clampY(tpos.y);
+              const d2 = Math.hypot(idealX - cur.x, ty - cur.y);
+              if (d2 > 14) {
+                const durPre = Math.max(60, Math.min(220, d2)) / Math.max(0.001, (speed * boostFallback));
+                await tweenTo(src.node, idealX, ty, durPre);
+                src.baseX = idealX; src.baseY = ty;
+              }
+            } catch {}
             playAnim(src, 'shoot', false);
-            await tweenTo(src.node, src.baseX + (src===left? +18 : -18), src.baseY - 4, 120);
-            await tweenTo(src.node, src.baseX, src.baseY, 80);
+            const lungeDist = 18;
+            const durFwd = Math.max(60, 100) / Math.max(0.001, (speed * boostFallback));
+            const durBack = Math.max(60, 80) / Math.max(0.001, (speed * boostFallback));
+            await tweenTo(src.node, src.baseX + (src===left? +lungeDist : -lungeDist), src.baseY - 4, durFwd);
+            await tweenTo(src.node, src.baseX, src.baseY, durBack);
             playAnim(src, 'idle', true);
             break; }
           // Hit / variants
@@ -187,11 +530,37 @@ const PixiFight: React.FC<Props> = ({ fight }) => {
             const tpos = getPos(tgt.node);
             floatText(tpos.x, tpos.y, `-${dmg}`, 0xff5555);
             await shake(2, 100);
-            await tweenTo(src.node, src.baseX, src.baseY, 120);
+            const backDist = 18;
+            const actorSpeed2 = (actor?.speed ?? 35) as number;
+            const durBack2 = Math.max(60, 90) / Math.max(0.001, (speed * boostFallback));
+            await tweenTo(src.node, src.baseX, src.baseY, durBack2);
             playAnim(src, 'idle', true);
+            // Track last weapon used if provided
+            try {
+              if (typeof s.w !== 'undefined' && actorIdx !== null) {
+                const wname = WeaponById[s.w as WeaponId];
+                lastWeaponByActor.set(actorIdx, wname);
+              }
+            } catch {}
+            break; }
+          // Block
+          case 20: {
+            const tpos = getPos(tgt.node); floatText(tpos.x, tpos.y, 'BLOCK', 0xd6d645);
+            break; }
+          // Evade/Dodge
+          case 21: {
+            const tpos = getPos(tgt.node); floatText(tpos.x, tpos.y, 'DODGE', 0xd6d645);
             break; }
           // MoveBack
-          case 17: { await tweenTo(src.node, src.baseX, src.baseY, 180); playAnim(src, 'idle', true); break; }
+          case 17: {
+            const start = getPos(src.node);
+            const dist = Math.hypot(src.baseX - start.x, src.baseY - start.y);
+            const returnFactorParam = Number(new URLSearchParams(window.location.search).get('pixiReturnFactor') ?? '1.25');
+            const returnFactor = isNaN(returnFactorParam) ? 1.25 : returnFactorParam;
+            const dur = (durationMoveBackMs(dist) * returnFactor) / Math.max(0.001, (speed * boostFallback));
+            await tweenTo(src.node, src.baseX, src.baseY, dur);
+            playAnim(src, 'idle', true);
+            break; }
           // Death
           case 24: {
             const diedIdx = actorIdx;
@@ -201,7 +570,8 @@ const PixiFight: React.FC<Props> = ({ fight }) => {
           // End
           case 26: { return; }
         }
-        await delay(Math.max(60, Math.min(260, s.dt ?? 120)));
+        await delay(Math.max(60, Math.min(260, s.dt ?? 120)) / Math.max(0.001, (speed * boostFallback)));
+        if (disposed) return;
         }
       };
 
@@ -211,11 +581,61 @@ const PixiFight: React.FC<Props> = ({ fight }) => {
     run();
 
     return () => {
-      if (appRef.current) { appRef.current.destroy(true); appRef.current = null; }
+      disposed = true;
+      try { (app as any).ticker?.stop?.(); } catch {}
+      try { removeAllTicks(); } catch {}
+      try { clearAllTimeouts(); } catch {}
+      try { app.stage?.removeChildren?.(); } catch {}
+      try { const canvas = (app as any).canvas as HTMLCanvasElement | undefined; if (canvas && canvas.parentNode) { canvas.parentNode.removeChild(canvas); } } catch {}
+      const toDestroy = app;
+      setTimeout(() => { try { toDestroy.destroy(true); } catch {} }, 0);
+      if (appRef.current === toDestroy) appRef.current = null;
     };
-  }, [fight]);
+  }, [fight, scale, speedBoost, /* stageOffsetX, stageOffsetY, */ clampYMinRatio, clampYMaxRatio, leftOffsetX, leftOffsetY, rightOffsetX, rightOffsetY, approachOffset, preferVideoBackground]);
+
+  // Live updates without tearing down the Pixi app
+  useEffect(() => {
+    try { spinesRef.current.scene?.position.set(stageOffsetX, stageOffsetY); } catch {}
+  }, [stageOffsetX, stageOffsetY]);
+
+  useEffect(() => {
+    const L = spinesRef.current.L; const R = spinesRef.current.R;
+    const target = (typeof charPx === 'number' && !isNaN(charPx)) ? charPx : (charPxRef.current ?? 50);
+    const apply = (sp: any, side: 'L'|'R') => {
+      if (!sp) return;
+      try {
+        const bw = Math.max(1, sp?.bounds?.width ?? 200);
+        const s = target / bw;
+        sp.scale.set(s, s);
+        if (side === 'R') sp.scale.x = -Math.abs(sp.scale.x);
+      } catch {}
+    };
+    apply(L, 'L'); apply(R, 'R');
+    charPxRef.current = target;
+  }, [charPx]);
 
   return <div ref={containerRef} />;
 };
 
 export default PixiFight;
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
