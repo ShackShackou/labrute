@@ -56,6 +56,9 @@ const PixiFight: React.FC<Props> = ({
   const spinesRef = useRef<{ L: any | null, R: any | null, scene: Container | null }>({ L: null, R: null, scene: null });
   const charPxRef = useRef<number | null>(null);
   const debugLayerRef = useRef<Container | null>(null);
+  const traceOnRef = useRef<boolean>(false);
+  const traceRowsRef = useRef<{ t:number, who:'L'|'R', rootX:number, rootY:number, anim:string, trackTime:number }[]>([]);
+  const traceT0Ref = useRef<number | null>(null);
 
   useEffect(() => {
     if (!containerRef.current || !fight) return undefined;
@@ -114,6 +117,7 @@ const PixiFight: React.FC<Props> = ({
       const clampY = (y:number) => Math.max(H * clampMin, Math.min(H * clampMax, y));
       const preferVideo = (params.get('bgVideo') === '1' || params.get('bgVideo') === 'true') || !!preferVideoBackground;
       const debugDiag = (params.get('pixiDiag') === '1' || localStorage.getItem('compare.pixiDiag') === '1');
+      const traceEnabled = (params.get('pixiTrace') === '1' || localStorage.getItem('compare.pixiTrace') === '1');
       const addVector = (x1:number,y1:number,x2:number,y2:number,color=0x00ff88) => {
         if (!debugDiag) return;
         try {
@@ -291,7 +295,7 @@ const PixiFight: React.FC<Props> = ({
           // @ts-ignore
           (window as any).pixiTraceDownload = () => {
             const header = 't,who,rootX,rootY,anim,trackTime\n';
-            const body = traceRowsRef.current.map(r => `${r.t.toFixed(4)},${r.who},${r.rootX.toFixed(2)},${r.rootY.toFixed(2)},${r.anim},${r.trackTime.toFixed(3)}`).join('\n');
+            const body = traceRowsRef.current.map((r: any) => `${r.t.toFixed(4)},${r.who},${r.rootX.toFixed(2)},${r.rootY.toFixed(2)},${r.anim},${r.trackTime.toFixed(3)}`).join('\n');
             const a = document.createElement('a');
             a.href = URL.createObjectURL(new Blob([header + body], { type: 'text/csv' }));
             a.download = 'trace.csv'; a.click();
@@ -796,6 +800,7 @@ const PixiFight: React.FC<Props> = ({
 };
 
 export default PixiFight;
+
 
 
 
