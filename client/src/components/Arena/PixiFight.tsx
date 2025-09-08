@@ -3,7 +3,7 @@ import React, { useEffect, useRef } from 'react';
 import { Application, Container, Graphics, Text, Assets, Sprite } from 'pixi.js';
 // @ts-ignore - official Spine v8 runtime for Pixi v8
 import { Spine } from '@esotericsoftware/spine-pixi-v8';
-import { FightGetResponse, WeaponById, WeaponId, weapons, StepType } from '@labrute/core';
+import { FightGetResponse, WeaponById, WeaponId, weapons, StepType, WeaponType, SkillId } from '@labrute/core';
 
 type Props = {
   fight: FightGetResponse | null,
@@ -87,6 +87,11 @@ const PixiFight: React.FC<Props> = ({
       // @ts-ignore
       (ui as any).zIndex = 999;
       app.stage.addChild(ui);
+      // Debug layer (optional)
+      const debugLayer = new Container();
+      // @ts-ignore
+      (debugLayer as any).zIndex = 998;
+      app.stage.addChild(debugLayer);
 
       const scene = new Container();
       // Depth sort by Y
@@ -106,6 +111,21 @@ const PixiFight: React.FC<Props> = ({
       const clampMax = Number(params.get('pixiClampMax') ?? `${clampYMaxRatio}`);
       const clampY = (y:number) => Math.max(H * clampMin, Math.min(H * clampMax, y));
       const preferVideo = (params.get('bgVideo') === '1' || params.get('bgVideo') === 'true') || !!preferVideoBackground;
+      const debugDiag = (params.get('pixiDiag') === '1' || localStorage.getItem('compare.pixiDiag') === '1');
+      const addVector = (x1:number,y1:number,x2:number,y2:number,color=0x00ff88) => {
+        if (!debugDiag) return;
+        try {
+          const g = new Graphics();
+          g.lineStyle(2, color, 0.9).moveTo(x1,y1).lineTo(x2,y2);
+          const ang = Math.atan2(y2-y1, x2-x1);
+          const ah = 6;
+          g.lineTo(x2 - Math.cos(ang-0.3)*ah, y2 - Math.sin(ang-0.3)*ah);
+          g.moveTo(x2,y2);
+          g.lineTo(x2 - Math.cos(ang+0.3)*ah, y2 - Math.sin(ang+0.3)*ah);
+          debugLayer.addChild(g);
+          setTimeout(()=>{ try{ debugLayer.removeChild(g); g.destroy(true); } catch{} }, 2000);
+        } catch {}
+      };
 
       // Background from /backgrounds (synced from repo root \backgrounds)
       try {
@@ -405,15 +425,48 @@ const PixiFight: React.FC<Props> = ({
         if (y >= maxY - comfort && pick.end === maxY) y = maxY - 1;
         return clampY(y);
       };
-      const getRandomBaseForSide = (side:'L'|'R', currX?: number) => {
+      const getRandomBaseForSide = (side:'L'|'R', currX?: number, actor?: any) => {
         const y = chooseLaneY(side);
         const minX = side === 'L' ? minLX : minRX;
         const maxX = side === 'L' ? maxLX : maxRX;
-        const minShift = Math.max(60, (maxX - minX) * 0.6); // ensure strong diagonal
-        let x = minX + Math.random() * (maxX - minX);
+        // Official-like X factor with weapon/skills influence
+        let factor = 0.4 + Math.random() * 0.6;
+        try {
+          let wname: string | undefined;
+          try { if (actor && typeof actor.index === 'number') wname = lastWeaponByActor.get(actor.index); } catch {}
+          const wobj = weapons.find((w) => w.name === wname);
+          if (wobj) {
+            if (wobj.types?.includes(WeaponType.LONG)) factor -= 0.25;
+            if (wobj.types?.includes(WeaponType.THROWN)) factor -= 0.5;
+            if (wobj.types?.includes(WeaponType.HEAVY) && Array.isArray(actor?.skills) && (actor.skills as number[]).includes(SkillId.bodybuilder)) factor += 0.15;
+            if (wobj.types?.includes(WeaponType.SHARP) && Array.isArray(actor?.skills) && (actor.skills as number[]).includes(SkillId.weaponsMaster)) factor += 0.15;
+          } else if (Array.isArray(actor?.skills) && (actor.skills as number[]).includes(SkillId.martialArts)) {
+            factor += 0.25;
+          }
+          const mods: Partial<Record<number, number>> = {
+            [SkillId.hideaway]: -0.25,
+            [SkillId.monk]: -0.25,
+            [SkillId.untouchable]: -0.25,
+            [SkillId.sixthSense]: -0.1,
+            [SkillId.balletShoes]: -0.05,
+            [SkillId.shield]: 0.05,
+            [SkillId.toughenedSkin]: 0.05,
+            [SkillId.leadSkeleton]: 0.1,
+            [SkillId.armor]: 0.1,
+            [SkillId.ironHead]: 0.15,
+          };
+          if (Array.isArray(actor?.skills)) {
+            for (const sId of actor.skills as number[]) factor += (mods[sId] ?? 0);
+          }
+        } catch {}
+        factor = Math.max(0, Math.min(1, factor));
+        let x = minX + factor * (maxX - minX);
+        // Enforce diagonal shift
+        const minShift = Math.max(60, (maxX - minX) * 0.6);
         let tries = 0;
         while (typeof currX === 'number' && Math.abs(x - currX) < minShift && tries < 5) {
-          x = minX + Math.random() * (maxX - minX);
+          factor = Math.random();
+          x = minX + factor * (maxX - minX);
           tries++;
         }
         if (typeof currX === 'number' && Math.abs(x - currX) < minShift) {
@@ -533,6 +586,7 @@ const PixiFight: React.FC<Props> = ({
             const start = getPos(src.node);
             const ty = clampY(tpos.y); // follow official: move to target Y
             const dist = Math.hypot(targetX - start.x, ty - start.y);
+            addVector(start.x, start.y, targetX, ty, 0x00cc66);
             const dur = durationMoveMs(dist) / Math.max(0.001, speed);
             await tweenTo(src.node, targetX, ty, dur);
             playAnim(src, 'idle', true);
@@ -547,6 +601,7 @@ const PixiFight: React.FC<Props> = ({
               if ((src === left && idealX > cur.x) || (src === right && idealX < cur.x)) {
                 const ty = clampY(tpos.y);
                 const d2 = Math.hypot(idealX - cur.x, ty - cur.y);
+                addVector(cur.x, cur.y, idealX, ty, 0xff66cc);
                 const durPre = 100 / Math.max(0.001, speed);
                 await tweenTo(src.node, idealX, ty, durPre);
               }
@@ -599,6 +654,7 @@ const PixiFight: React.FC<Props> = ({
             src.baseX = pos.x; src.baseY = pos.y;
             const start = getPos(src.node);
             const dist = Math.hypot(pos.x - start.x, pos.y - start.y);
+            addVector(start.x, start.y, pos.x, pos.y, 0x66ccff);
             const dur = durationMoveBackMs(dist) / Math.max(0.001, speed);
             await tweenTo(src.node, pos.x, pos.y, dur);
             playAnim(src, 'idle', true);
