@@ -70,6 +70,7 @@ const PixiFight: React.FC<Props> = ({
     const removeAllTicks = () => { ticks.forEach((fn)=>{ try{ app.ticker.remove(fn); } catch{} }); ticks.clear(); };
     const clearAllTimeouts = () => { timeouts.forEach((id)=>{ try{ clearTimeout(id); } catch{} }); timeouts.clear(); };
 
+    const mediaSprites: Sprite[] = [];
     const run = async () => {
       await app.init({ width: W, height: H, background: '#202428', antialias: true });
       if (disposed) return;
@@ -183,6 +184,10 @@ const PixiFight: React.FC<Props> = ({
         if (loaded) {
           if (loaded instanceof Sprite) {
             const spr = loaded as Sprite; spr.zIndex = -10; spr.width = W; spr.height = H; scene.addChildAt(spr, 0);
+            try {
+              const src = (spr.texture as any)?.baseTexture?.resource?.source as HTMLVideoElement | undefined;
+              if (src && typeof src.pause === 'function') { mediaSprites.push(spr); }
+            } catch {}
           } else {
             const bg = new Sprite(loaded as any);
             bg.zIndex = -10; bg.width = W; bg.height = H;
@@ -337,24 +342,26 @@ const PixiFight: React.FC<Props> = ({
         let a = 0;
         const duration = 650 / Math.max(0.001, speed);
         const tick = (tk:any) => {
+          if (disposed) { try { app.ticker.remove(tick); } catch {} try { scene.removeChild(t); } catch {} recycleText(t); return; }
           const dm = typeof tk?.deltaMS === 'number' ? tk.deltaMS : 16.7;
           a += dm; const p = Math.min(1, a / duration);
           t.alpha = Math.max(0, 1 - p);
           t.y = (y - 60) - 20 * p;
           if (p >= 1) { app.ticker.remove(tick); scene.removeChild(t); recycleText(t); }
         };
-        app.ticker.add(tick);
+        addTick(tick);
       };
       const shake = (mag=2, dur=120) => new Promise<void>((resolve) => {
         const baseX = scene.x; const baseY = scene.y; let t=0;
         const tick = (tk:any) => {
+          if (disposed) { try { app.ticker.remove(tick); } catch {} scene.x=baseX; scene.y=baseY; resolve(); return; }
           const dm = typeof tk?.deltaMS === 'number' ? tk.deltaMS : 16.7; t += dm;
           const p = Math.min(1, t / dur);
           scene.x = baseX + (Math.random()*2-1) * mag * (1-p);
           scene.y = baseY + (Math.random()*2-1) * mag * (1-p);
           if (p>=1){ app.ticker.remove(tick); scene.x=baseX; scene.y=baseY; resolve(); }
         };
-        app.ticker.add(tick);
+        addTick(tick);
       });
 
       const getPos = (o:any) => ({ x: (o?.position?.x ?? o?.x) as number, y: clampY((o?.position?.y ?? o?.y) as number) });
@@ -605,6 +612,14 @@ const PixiFight: React.FC<Props> = ({
 
     return () => {
       disposed = true;
+      // Pause any background videos to avoid renderer/batcher issues during teardown
+      try {
+        for (const spr of mediaSprites) {
+          const v = (spr.texture as any)?.baseTexture?.resource?.source as HTMLVideoElement | undefined;
+          try { v?.pause?.(); } catch {}
+          try { v?.removeAttribute?.('src'); v?.load?.(); } catch {}
+        }
+      } catch {}
       try { (app as any).ticker?.stop?.(); } catch {}
       try { removeAllTicks(); } catch {}
       try { clearAllTimeouts(); } catch {}
