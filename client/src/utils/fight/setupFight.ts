@@ -10,8 +10,8 @@ import { sound } from '@pixi/sound';
 import dayjs from 'dayjs';
 import { TFunction } from 'i18next';
 import { Easing, Tweener } from 'pixi-tweener';
-import * as PIXI from 'pixi.js';
-import { AnimatedSprite, BaseTexture, Texture } from 'pixi.js';
+import * as PIXI from 'pixi-legacy';
+import { AnimatedSprite, BaseTexture, Texture } from 'pixi-legacy';
 import { RendererContextInterface } from '../../hooks/useRenderer';
 import arrive from './arrive';
 import attemptHit from './attemptHit';
@@ -470,6 +470,44 @@ const setupFight: (
     Tweener.init(app.ticker);
   }
 
+  // ---------------------
+  // Official Trace (instrumentation)
+  // ---------------------
+  try {
+    const qp = new URLSearchParams(window.location.search);
+    const offTraceEnabled = (qp.get('offTrace') === '1' || localStorage.getItem('compare.offTrace') === '1');
+    const offTraceAuto = (qp.get('offTraceAuto') === '1' || localStorage.getItem('compare.offTraceAuto') === '1');
+    if (offTraceEnabled) {
+      let offTraceOn = false;
+      let offTraceT0: number | null = null;
+      const offRows: { t:number, who:'L'|'R', rootX:number, rootY:number, anim:string, trackTime:number }[] = [];
+      const leftAF = fighters.find((f) => !f.master && f.team === 'L');
+      const rightAF = fighters.find((f) => !f.master && f.team === 'R');
+      // Expose helpers
+      (window as any).offTraceStart = () => { offTraceOn = true; offTraceT0 = performance.now() / 1000; };
+      (window as any).offTraceDownload = () => {
+        const header = 't,who,rootX,rootY,anim,trackTime\n';
+        const body = offRows.map((r) => `${r.t.toFixed(4)},${r.who},${r.rootX.toFixed(2)},${r.rootY.toFixed(2)},${r.anim},${r.trackTime.toFixed(3)}`).join('\n');
+        const a = document.createElement('a');
+        a.href = URL.createObjectURL(new Blob([header + body], { type: 'text/csv' }));
+        a.download = 'trace_official.csv'; a.click();
+      };
+      const tickTrace = () => {
+        try {
+          if (!offTraceOn || offTraceT0 === null) return;
+          const t = performance.now() / 1000 - (offTraceT0 || 0);
+          if (leftAF) offRows.push({ t, who: 'L', rootX: leftAF.animation.container.x, rootY: leftAF.animation.container.y, anim: leftAF.animation.animation, trackTime: 0 });
+          if (rightAF) offRows.push({ t, who: 'R', rootX: rightAF.animation.container.x, rootY: rightAF.animation.container.y, anim: rightAF.animation.animation, trackTime: 0 });
+        } catch {}
+      };
+      app.ticker.add(tickTrace);
+      if (offTraceAuto) {
+        (window as any).__offTraceAuto__ = () => { if (!offTraceOn) { offTraceOn = true; offTraceT0 = performance.now()/1000; } };
+        (window as any).__offTraceAutoDownload__ = () => { try { (window as any).offTraceDownload?.(); } catch {} };
+      }
+    }
+  } catch {}
+
   const isClanWar = !!fight.clanWarId;
 
   // Loop on steps
@@ -515,6 +553,7 @@ const setupFight: (
         break;
       }
       case StepType.AttemptHit: {
+        try { (window as any).__offTraceAuto__?.(); } catch {}
         await attemptHit(app, fighters, step, speed);
         break;
       }
@@ -589,6 +628,7 @@ const setupFight: (
       }
       case StepType.End: {
         end(app, fighters, step);
+        try { (window as any).__offTraceAutoDownload__?.(); } catch {}
         break;
       }
       case StepType.Hypnotise: {

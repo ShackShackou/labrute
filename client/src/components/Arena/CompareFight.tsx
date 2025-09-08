@@ -141,6 +141,15 @@ const CompareFight: React.FC<Props> = ({ fight }) => {
         </Box>
         <Button size="small" variant="outlined" onClick={() => { try { (window as any).pixiTraceStart?.(); } catch {} }} sx={{ ml: 1 }}>Start Trace</Button>
         <Button size="small" variant="outlined" onClick={() => { try { (window as any).pixiTraceDownload?.(); } catch {} }}>Download CSV</Button>
+        {/* Official trace */}
+        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, ml: 3 }}>
+          <Text color="text.primary" typo="GameFont" upperCase sx={{ fontSize: 10 }}>Official Trace</Text>
+          <Switch size="small" checked={localStorage.getItem('compare.offTrace') === '1'} onChange={(_, v) => { try { localStorage.setItem('compare.offTrace', v ? '1' : '0'); } catch {} }} />
+          <Text color="text.primary" typo="GameFont" upperCase sx={{ fontSize: 10, ml: 1 }}>Auto</Text>
+          <Switch size="small" checked={localStorage.getItem('compare.offTraceAuto') === '1'} onChange={(_, v) => { try { localStorage.setItem('compare.offTraceAuto', v ? '1' : '0'); } catch {} }} />
+          <Button size="small" variant="outlined" onClick={() => { try { (window as any).offTraceStart?.(); } catch {} }} sx={{ ml: 1 }}>Start Official Trace</Button>
+          <Button size="small" variant="outlined" onClick={() => { try { (window as any).offTraceDownload?.(); } catch {} }}>Download Official CSV</Button>
+        </Box>
         {/* Basique: identique à l'ancienne version */}
         {!advanced && (
           <>
