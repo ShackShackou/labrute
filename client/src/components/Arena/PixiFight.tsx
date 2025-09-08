@@ -322,11 +322,13 @@ const PixiFight: React.FC<Props> = ({
               sR?.update?.(dt); (R as any)?.update?.(dt);
               if (!traceOnRef.current || !traceT0Ref.current) return;
               const t = performance.now() / 1000 - (traceT0Ref.current || 0);
-              const rootL = (L as any)?.skeleton?.findBone?.('root');
-              const rootR = (R as any)?.skeleton?.findBone?.('root');
               const curL = sL?.getCurrent?.(0); const curR = sR?.getCurrent?.(0);
-              if (rootL) traceRowsRef.current.push({ t, who:'L', rootX: rootL.worldX ?? 0, rootY: rootL.worldY ?? 0, anim: curL?.animation?.name || '', trackTime: curL?.trackTime || 0 });
-              if (rootR) traceRowsRef.current.push({ t, who:'R', rootX: rootR.worldX ?? 0, rootY: rootR.worldY ?? 0, anim: curR?.animation?.name || '', trackTime: curR?.trackTime || 0 });
+              const pLx = (L as any)?.worldTransform?.tx ?? (L as any)?.x ?? 0;
+              const pLy = (L as any)?.worldTransform?.ty ?? (L as any)?.y ?? 0;
+              const pRx = (R as any)?.worldTransform?.tx ?? (R as any)?.x ?? 0;
+              const pRy = (R as any)?.worldTransform?.ty ?? (R as any)?.y ?? 0;
+              traceRowsRef.current.push({ t, who:'L', rootX: pLx, rootY: pLy, anim: curL?.animation?.name || '', trackTime: curL?.trackTime || 0 });
+              traceRowsRef.current.push({ t, who:'R', rootX: pRx, rootY: pRy, anim: curR?.animation?.name || '', trackTime: curR?.trackTime || 0 });
             } catch {}
           };
           addTick(tickTrace);
