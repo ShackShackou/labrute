@@ -585,6 +585,21 @@ const PixiFight: React.FC<Props> = ({
             break; }
           // Move
           case 15: {
+            // Skip "loose" moves that don't quickly lead to an AttemptHit for the same actor
+            try {
+              const curIdx = steps.indexOf(s);
+              let willHitSoon = false;
+              for (let k = curIdx + 1; k < steps.length && k <= curIdx + 5; k++) {
+                const nx = steps[k];
+                if (!nx) break;
+                if (nx.a === 26) break; // End
+                if (typeof nx.f === 'number' && nx.f === actorIdx && nx.a === 19) { willHitSoon = true; break; }
+                if (typeof nx.f === 'number' && nx.f === actorIdx && (nx.a === 15 || nx.a === 17)) continue; // neutral
+                // If another action by same actor that is not AttemptHit comes first, treat as not an approach for hit
+                if (typeof nx.f === 'number' && nx.f === actorIdx) break;
+              }
+              if (!willHitSoon) { break; }
+            } catch {}
             playAnim(src, 'walk', true);
             const tpos = getPos(tgt.node);
             const countered = s?.c === 1;
