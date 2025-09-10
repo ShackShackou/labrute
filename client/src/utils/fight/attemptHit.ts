@@ -2,7 +2,7 @@ import { AttemptHitStep, WeaponById, weapons } from '@labrute/core';
 
 import { BevelFilter } from '@pixi/filter-bevel';
 import { Easing, Tweener } from 'pixi-tweener';
-import { Application, Sprite } from 'pixi.js';
+import { Application, Sprite } from 'pixi-legacy';
 import findFighter, { AnimationFighter } from './utils/findFighter';
 import getHitDistance from './utils/getHitDistance';
 

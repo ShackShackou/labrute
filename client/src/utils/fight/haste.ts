@@ -1,6 +1,6 @@
 /* eslint-disable no-void */
 import { HasteStep, randomBetween } from '@labrute/core';
-import { Application, Sprite, Texture, BaseTexture, BufferResource, Filter, Extract } from 'pixi.js';
+import { Application, Sprite, Texture, BaseTexture, BufferResource, Filter, Extract } from 'pixi-legacy';
 
 import { sound } from '@pixi/sound';
 import { Easing, Tweener } from 'pixi-tweener';

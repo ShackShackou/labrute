@@ -1,0 +1,624 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Combat LaBrute - FINAL VERSION</title>
+    <!-- Phaser 3.60 (version stable pour Spine) -->
+    <script src="https://cdn.jsdelivr.net/npm/phaser@3.60.0/dist/phaser.min.js"></script>
+    <!-- SpinePlugin pour Phaser 3.60 -->
+    <script src="https://cdn.jsdelivr.net/gh/phaserjs/spine-phaser@main/dist/SpinePlugin.min.js"></script>
+    <style>
+        body { 
+            margin: 0; 
+            padding: 20px; 
+            background: #1a1a1a; 
+            color: white;
+            font-family: Arial;
+        }
+        h1 { text-align: center; color: #4CAF50; }
+        #game-container {
+            width: 800px;
+            height: 600px;
+            margin: 20px auto;
+            border: 3px solid #4CAF50;
+        }
+        .controls {
+            text-align: center;
+            margin: 20px;
+        }
+        button {
+            background: #4CAF50;
+            color: white;
+            border: none;
+            padding: 12px 24px;
+            margin: 5px;
+            cursor: pointer;
+            font-size: 16px;
+            border-radius: 4px;
+        }
+        button:hover {
+            background: #45a049;
+        }
+        #status {
+            background: #2a2a2a;
+            padding: 15px;
+            margin: 20px auto;
+            width: 760px;
+            border-radius: 8px;
+            font-family: monospace;
+        }
+        .success { color: #4CAF50; }
+        .error { color: #f44336; }
+        .info { color: #2196F3; }
+    </style>
+</head>
+<body>
+    <h1>⚔️ COMBAT LABRUTE - MÉCANIQUES OFFICIELLES</h1>
+    
+    <div class="controls">
+        <button onclick="generateNewCombat()">🎲 Nouveau Combat</button>
+        <button onclick="startCombat()">▶ Démarrer</button>
+        <button onclick="pauseCombat()">⏸ Pause</button>
+        <button onclick="resetCombat()">↺ Reset</button>
+    </div>
+    
+    <div id="game-container"></div>
+    
+    <div id="status"></div>
+    
+    <script>
+        let game = null;
+        let combatScene = null;
+        let isPlaying = false;
+        let currentStep = 0;
+        let steps = [];
+        
+        // MÉCANIQUES OFFICIELLES LABRUTE
+        const BARE_HANDS_DAMAGE = 5;
+        const BASE_STATS = {
+            evasion: 0.1,
+            block: -0.25,
+            criticalChance: 0.05,
+            criticalDamage: 1.5
+        };
+        
+        function addStatus(msg, type = 'info') {
+            const status = document.getElementById('status');
+            const time = new Date().toLocaleTimeString();
+            const color = type === 'success' ? '#4CAF50' : type === 'error' ? '#f44336' : '#2196F3';
+            status.innerHTML += `<div style="color: ${color}">[${time}] ${msg}</div>`;
+            status.scrollTop = status.scrollHeight;
+            console.log(`[${type}] ${msg}`);
+        }
+        
+        function clearStatus() {
+            document.getElementById('status').innerHTML = '';
+            addStatus('Status cleared', 'info');
+        }
+        
+        // Formule officielle de HP
+        function getHP(level, endurance) {
+            return Math.floor(50 + (Math.max(endurance, 0) + level * 0.25) * 6);
+        }
+        
+        // Formule officielle de dégâts
+        function calculateDamage(strength) {
+            let damage = BARE_HANDS_DAMAGE + strength * (0.2 + BARE_HANDS_DAMAGE * 0.05);
+            damage *= (0.8 + Math.random() * 0.4);
+            
+            // Critical hit chance
+            if (Math.random() < BASE_STATS.criticalChance) {
+                damage *= BASE_STATS.criticalDamage;
+                addStatus('CRITICAL HIT!', 'error');
+            }
+            
+            return Math.floor(damage);
+        }
+        
+        // Génération des steps de combat
+        function generateSteps() {
+            const newSteps = [];
+            
+            // Stats des combattants
+            const fighter1 = {
+                id: 1,
+                name: 'Fighter 1',
+                strength: 15,
+                agility: 12,
+                speed: 10,
+                endurance: 10,
+                level: 10
+            };
+            
+            const fighter2 = {
+                id: 2,
+                name: 'Fighter 2',
+                strength: 18,
+                agility: 8,
+                speed: 8,
+                endurance: 15,
+                level: 10
+            };
+            
+            fighter1.maxHp = getHP(fighter1.level, fighter1.endurance);
+            fighter2.maxHp = getHP(fighter2.level, fighter2.endurance);
+            fighter1.hp = fighter1.maxHp;
+            fighter2.hp = fighter2.maxHp;
+            
+            addStatus(`Fighter 1: HP=${fighter1.hp}, STR=${fighter1.strength}`, 'info');
+            addStatus(`Fighter 2: HP=${fighter2.hp}, STR=${fighter2.strength}`, 'info');
+            
+            // Combat simulation
+            for (let turn = 0; turn < 30; turn++) {
+                const attacker = turn % 2 === 0 ? fighter1 : fighter2;
+                const target = attacker.id === 1 ? fighter2 : fighter1;
+                
+                // Move step
+                newSteps.push({
+                    type: 'move',
+                    fighter: attacker.id
+                });
+                
+                // Calculate hit chance
+                const hitChance = 0.7 - (target.agility * 0.01);
+                
+                if (Math.random() < hitChance) {
+                    // Hit!
+                    const damage = calculateDamage(attacker.strength);
+                    target.hp -= damage;
+                    
+                    newSteps.push({
+                        type: 'hit',
+                        attacker: attacker.id,
+                        target: target.id,
+                        damage: damage
+                    });
+                    
+                    if (target.hp <= 0) {
+                        newSteps.push({
+                            type: 'death',
+                            fighter: target.id
+                        });
+                        
+                        newSteps.push({
+                            type: 'end',
+                            winner: attacker.id
+                        });
+                        break;
+                    }
+                } else {
+                    // Miss/Evade
+                    newSteps.push({
+                        type: 'evade',
+                        fighter: target.id
+                    });
+                }
+                
+                // Move back
+                newSteps.push({
+                    type: 'moveBack',
+                    fighter: attacker.id
+                });
+            }
+            
+            if (newSteps[newSteps.length - 1].type !== 'end') {
+                const winner = fighter1.hp > fighter2.hp ? 1 : 2;
+                newSteps.push({
+                    type: 'end',
+                    winner: winner
+                });
+            }
+            
+            return newSteps;
+        }
+        
+        // SCÈNE PHASER AVEC SPINE
+        class LaBruteCombatScene extends Phaser.Scene {
+            constructor() {
+                super({ key: 'LaBruteCombatScene' });
+            }
+            
+            preload() {
+                addStatus('Loading Spine assets...', 'info');
+                
+                this.load.setPath('assets/spine/');
+                this.load.spine('spineboy', 'spineboy-pro.json', 'spineboy.atlas', true);
+                
+                this.load.on('loaderror', (file) => {
+                    addStatus(`Failed to load: ${file.key}`, 'error');
+                });
+                
+                this.load.on('filecomplete', (key) => {
+                    addStatus(`Loaded: ${key}`, 'success');
+                });
+            }
+            
+            create() {
+                addStatus('Creating combat scene...', 'info');
+                
+                try {
+                    // Background
+                    this.add.rectangle(400, 300, 800, 600, 0x2d2419);
+                    
+                    // Title
+                    this.add.text(400, 50, 'LaBrute Combat Engine', {
+                        fontSize: '32px',
+                        color: '#ffffff'
+                    }).setOrigin(0.5);
+                    
+                    // Fighter 1 (left)
+                    this.fighter1 = this.add.spine(200, 450, 'spineboy', 'idle', true);
+                    this.fighter1.scale = 0.4;
+                    this.fighter1.scaleX = 0.4; // Face right
+                    
+                    // Fighter 2 (right)
+                    this.fighter2 = this.add.spine(600, 450, 'spineboy', 'idle', true);
+                    this.fighter2.scale = 0.4;
+                    this.fighter2.scaleX = -0.4; // Face left
+                    
+                    addStatus('Fighters created successfully!', 'success');
+                    
+                    // HP Bars
+                    this.hp1Bg = this.add.rectangle(200, 350, 100, 15, 0x333333);
+                    this.hp1Bar = this.add.rectangle(200, 350, 100, 15, 0x00ff00);
+                    this.hp1Text = this.add.text(200, 330, 'HP: 100/100', {
+                        fontSize: '12px',
+                        color: '#ffffff'
+                    }).setOrigin(0.5);
+                    
+                    this.hp2Bg = this.add.rectangle(600, 350, 100, 15, 0x333333);
+                    this.hp2Bar = this.add.rectangle(600, 350, 100, 15, 0x00ff00);
+                    this.hp2Text = this.add.text(600, 330, 'HP: 120/120', {
+                        fontSize: '12px',
+                        color: '#ffffff'
+                    }).setOrigin(0.5);
+                    
+                    this.hp1Max = 100;
+                    this.hp1Current = 100;
+                    this.hp2Max = 120;
+                    this.hp2Current = 120;
+                    
+                    // Get available animations
+                    const anims = this.fighter1.skeleton.data.animations.map(a => a.name);
+                    addStatus(`Available animations: ${anims.join(', ')}`, 'info');
+                    
+                } catch (error) {
+                    addStatus(`Error creating scene: ${error.message}`, 'error');
+                    
+                    // Fallback rectangles
+                    this.fighter1 = this.add.rectangle(200, 450, 80, 150, 0xff0000);
+                    this.fighter2 = this.add.rectangle(600, 450, 80, 150, 0x0000ff);
+                    
+                    this.hp1Bg = this.add.rectangle(200, 350, 100, 15, 0x333333);
+                    this.hp1Bar = this.add.rectangle(200, 350, 100, 15, 0x00ff00);
+                    
+                    this.hp2Bg = this.add.rectangle(600, 350, 100, 15, 0x333333);
+                    this.hp2Bar = this.add.rectangle(600, 350, 100, 15, 0x00ff00);
+                }
+            }
+            
+            playStep(step) {
+                addStatus(`Playing step: ${step.type}`, 'info');
+                
+                switch(step.type) {
+                    case 'move':
+                        const attacker = step.fighter === 1 ? this.fighter1 : this.fighter2;
+                        const targetX = step.fighter === 1 ? 350 : 450;
+                        
+                        if (attacker.play) {
+                            attacker.play('walk', true);
+                        }
+                        
+                        this.tweens.add({
+                            targets: attacker,
+                            x: targetX,
+                            duration: 500,
+                            onComplete: () => {
+                                if (attacker.play) {
+                                    attacker.play('idle', true);
+                                }
+                            }
+                        });
+                        break;
+                        
+                    case 'moveBack':
+                        const mover = step.fighter === 1 ? this.fighter1 : this.fighter2;
+                        const homeX = step.fighter === 1 ? 200 : 600;
+                        
+                        this.tweens.add({
+                            targets: mover,
+                            x: homeX,
+                            duration: 300
+                        });
+                        break;
+                        
+                    case 'hit':
+                        const victim = step.target === 1 ? this.fighter1 : this.fighter2;
+                        const attacker2 = step.attacker === 1 ? this.fighter1 : this.fighter2;
+                        
+                        // Attack animation
+                        if (attacker2.play) {
+                            attacker2.play('jump', false);
+                            this.time.delayedCall(500, () => {
+                                attacker2.play('idle', true);
+                            });
+                        }
+                        
+                        // Hit effect
+                        if (victim.play) {
+                            victim.play('hit', false);
+                            this.time.delayedCall(300, () => {
+                                victim.play('idle', true);
+                            });
+                        }
+                        
+                        // Shake
+                        this.cameras.main.shake(100, 0.01);
+                        
+                        // Update HP
+                        if (step.target === 1) {
+                            this.hp1Current = Math.max(0, this.hp1Current - step.damage);
+                            this.hp1Bar.scaleX = this.hp1Current / this.hp1Max;
+                            this.hp1Text.setText(`HP: ${this.hp1Current}/${this.hp1Max}`);
+                            
+                            if (this.hp1Current <= 0) {
+                                this.hp1Bar.setFillStyle(0xff0000);
+                            } else if (this.hp1Current < this.hp1Max * 0.3) {
+                                this.hp1Bar.setFillStyle(0xffaa00);
+                            }
+                        } else {
+                            this.hp2Current = Math.max(0, this.hp2Current - step.damage);
+                            this.hp2Bar.scaleX = this.hp2Current / this.hp2Max;
+                            this.hp2Text.setText(`HP: ${this.hp2Current}/${this.hp2Max}`);
+                            
+                            if (this.hp2Current <= 0) {
+                                this.hp2Bar.setFillStyle(0xff0000);
+                            } else if (this.hp2Current < this.hp2Max * 0.3) {
+                                this.hp2Bar.setFillStyle(0xffaa00);
+                            }
+                        }
+                        
+                        // Damage text
+                        const dmgText = this.add.text(victim.x, victim.y - 50, `-${step.damage}`, {
+                            fontSize: '24px',
+                            color: '#ff0000',
+                            stroke: '#000000',
+                            strokeThickness: 2
+                        }).setOrigin(0.5);
+                        
+                        this.tweens.add({
+                            targets: dmgText,
+                            y: dmgText.y - 30,
+                            alpha: 0,
+                            duration: 1000,
+                            onComplete: () => dmgText.destroy()
+                        });
+                        break;
+                        
+                    case 'evade':
+                        const evader = step.fighter === 1 ? this.fighter1 : this.fighter2;
+                        
+                        if (evader.play) {
+                            evader.play('walk', false);
+                            this.time.delayedCall(500, () => {
+                                evader.play('idle', true);
+                            });
+                        }
+                        
+                        // Dodge animation
+                        const dodgeX = step.fighter === 1 ? -30 : 30;
+                        this.tweens.add({
+                            targets: evader,
+                            x: evader.x + dodgeX,
+                            duration: 200,
+                            yoyo: true
+                        });
+                        
+                        // Dodge text
+                        const dodgeText = this.add.text(evader.x, evader.y - 50, 'DODGE!', {
+                            fontSize: '20px',
+                            color: '#00ffff',
+                            stroke: '#000000',
+                            strokeThickness: 2
+                        }).setOrigin(0.5);
+                        
+                        this.tweens.add({
+                            targets: dodgeText,
+                            y: dodgeText.y - 20,
+                            alpha: 0,
+                            duration: 800,
+                            onComplete: () => dodgeText.destroy()
+                        });
+                        break;
+                        
+                    case 'death':
+                        const dead = step.fighter === 1 ? this.fighter1 : this.fighter2;
+                        
+                        if (dead.play) {
+                            try {
+                                dead.play('death', false);
+                            } catch(e) {
+                                // Fallback death animation
+                                this.tweens.add({
+                                    targets: dead,
+                                    angle: 90,
+                                    y: dead.y + 50,
+                                    alpha: 0.5,
+                                    duration: 1000
+                                });
+                            }
+                        } else {
+                            this.tweens.add({
+                                targets: dead,
+                                angle: 90,
+                                y: dead.y + 50,
+                                alpha: 0.5,
+                                duration: 1000
+                            });
+                        }
+                        
+                        addStatus(`Fighter ${step.fighter} is K.O.!`, 'error');
+                        break;
+                        
+                    case 'end':
+                        const winText = this.add.text(400, 300, `Fighter ${step.winner} WINS!`, {
+                            fontSize: '48px',
+                            color: '#ffd700',
+                            stroke: '#000000',
+                            strokeThickness: 4
+                        }).setOrigin(0.5);
+                        
+                        this.tweens.add({
+                            targets: winText,
+                            scale: 1.2,
+                            duration: 500,
+                            yoyo: true,
+                            repeat: -1
+                        });
+                        
+                        addStatus(`Combat finished! Winner: Fighter ${step.winner}`, 'success');
+                        break;
+                }
+            }
+            
+            reset() {
+                // Reset positions
+                if (this.fighter1) {
+                    this.fighter1.x = 200;
+                    this.fighter1.angle = 0;
+                    this.fighter1.alpha = 1;
+                    if (this.fighter1.play) {
+                        this.fighter1.play('idle', true);
+                    }
+                }
+                
+                if (this.fighter2) {
+                    this.fighter2.x = 600;
+                    this.fighter2.angle = 0;
+                    this.fighter2.alpha = 1;
+                    if (this.fighter2.play) {
+                        this.fighter2.play('idle', true);
+                    }
+                }
+                
+                // Reset HP
+                this.hp1Current = this.hp1Max;
+                this.hp2Current = this.hp2Max;
+                
+                if (this.hp1Bar) {
+                    this.hp1Bar.scaleX = 1;
+                    this.hp1Bar.setFillStyle(0x00ff00);
+                    this.hp1Text.setText(`HP: ${this.hp1Max}/${this.hp1Max}`);
+                }
+                
+                if (this.hp2Bar) {
+                    this.hp2Bar.scaleX = 1;
+                    this.hp2Bar.setFillStyle(0x00ff00);
+                    this.hp2Text.setText(`HP: ${this.hp2Max}/${this.hp2Max}`);
+                }
+            }
+        }
+        
+        // Initialisation du jeu
+        function initGame() {
+            const config = {
+                type: Phaser.WEBGL,
+                width: 800,
+                height: 600,
+                parent: 'game-container',
+                plugins: {
+                    scene: [{
+                        key: 'SpinePlugin',
+                        plugin: window.SpinePlugin,
+                        mapping: 'spine'
+                    }]
+                },
+                scene: LaBruteCombatScene
+            };
+            
+            try {
+                game = new Phaser.Game(config);
+                addStatus('Game created', 'success');
+                
+                game.events.once('ready', () => {
+                    combatScene = game.scene.getScene('LaBruteCombatScene');
+                    addStatus('Scene ready', 'success');
+                    generateNewCombat();
+                });
+            } catch (error) {
+                addStatus(`Game creation error: ${error.message}`, 'error');
+            }
+        }
+        
+        // Contrôles
+        function generateNewCombat() {
+            clearStatus();
+            steps = generateSteps();
+            currentStep = 0;
+            isPlaying = false;
+            addStatus(`New combat generated with ${steps.length} steps`, 'success');
+            
+            if (combatScene) {
+                combatScene.reset();
+            }
+        }
+        
+        function startCombat() {
+            if (!combatScene || steps.length === 0) {
+                addStatus('No combat to play', 'error');
+                return;
+            }
+            
+            isPlaying = true;
+            processNextStep();
+        }
+        
+        function pauseCombat() {
+            isPlaying = false;
+            addStatus('Combat paused', 'info');
+        }
+        
+        function resetCombat() {
+            currentStep = 0;
+            isPlaying = false;
+            if (combatScene) {
+                combatScene.reset();
+            }
+            addStatus('Combat reset', 'info');
+        }
+        
+        function processNextStep() {
+            if (!isPlaying || currentStep >= steps.length) {
+                if (currentStep >= steps.length) {
+                    isPlaying = false;
+                    addStatus('Combat finished', 'success');
+                }
+                return;
+            }
+            
+            const step = steps[currentStep];
+            combatScene.playStep(step);
+            currentStep++;
+            
+            // Delay based on step type
+            let delay = 800;
+            if (step.type === 'hit') delay = 1000;
+            if (step.type === 'death') delay = 1500;
+            if (step.type === 'end') delay = 2000;
+            
+            setTimeout(() => processNextStep(), delay);
+        }
+        
+        // Initial status
+        clearStatus();
+        addStatus('Page loaded successfully', 'success');
+        addStatus('Phaser version: ' + (typeof Phaser !== 'undefined' ? Phaser.VERSION : 'NOT LOADED'), 'info');
+        addStatus('SpinePlugin: ' + (typeof window.SpinePlugin !== 'undefined' ? 'LOADED' : 'NOT LOADED'), 'info');
+        
+        // Start the game
+        window.addEventListener('load', () => {
+            addStatus('Window loaded, initializing game...', 'info');
+            initGame();
+        });
+    </script>
+</body>
+</html>

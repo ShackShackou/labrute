@@ -1,0 +1,26 @@
+
+GUIDE VISUEL POUR JPEXS
+=======================
+
+Quand vous ouvrez mini_perso.swf dans JPEXS, voici ce que vous verrez:
+
+📁 mini_perso.swf
+  📁 scripts/
+  📁 sprites/
+    📄 DefineSprite (460)  <-- HOMME COMPLET
+    📄 DefineSprite (752)  <-- FEMME COMPLETE
+    📄 DefineSprite (XXX)  <-- Autres sprites
+  📁 shapes/
+    📄 DefineShape (XXX)   <-- Formes individuelles
+  📁 images/
+  📁 frames/
+
+COMMENT LIRE LES SYMBOL IDs:
+- DefineSprite (460) → Symbol460
+- DefineShape (123) → Symbol123
+
+PRIORITÉ D'EXPLORATION:
+1. Symbol460 (homme) - Cliquez dessus pour voir p1-p8
+2. Symbol752 (femme) - Cliquez dessus pour voir p1-p8
+3. Chaque partie (p1-p8) référence d'autres symbols
+4. Notez chaque Symbol ID avec sa description

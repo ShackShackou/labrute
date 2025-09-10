@@ -1,0 +1,237 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>LaBrute - Moteur de Combat Phaser+Spine</title>
+    <style>
+        body {
+            margin: 0;
+            padding: 0;
+            background: transparent;
+            overflow: hidden;
+            font-family: Arial, sans-serif;
+        }
+        
+        #game-container {
+            width: 100%;
+            height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+        
+        #game-container canvas {
+            max-width: 100%;
+            max-height: 100%;
+            object-fit: contain;
+        }
+        
+        /* Interface LaBrute */
+        .labrute-ui {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            pointer-events: none;
+            z-index: 1000;
+        }
+        
+        .labrute-ui * {
+            pointer-events: auto;
+        }
+        
+        .combat-controls {
+            position: absolute;
+            bottom: 20px;
+            left: 20px;
+            background: rgba(255, 255, 255, 0.9);
+            border-radius: 8px;
+            padding: 10px;
+            display: flex;
+            gap: 10px;
+        }
+        
+        .combat-controls button {
+            background: #4a90e2;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            padding: 8px 12px;
+            cursor: pointer;
+            font-size: 14px;
+        }
+        
+        .combat-controls button:hover {
+            background: #357abd;
+        }
+        
+        .combat-info {
+            position: absolute;
+            top: 20px;
+            right: 20px;
+            background: rgba(0, 0, 0, 0.8);
+            color: white;
+            border-radius: 8px;
+            padding: 10px;
+            font-size: 14px;
+        }
+        
+        .combat-logs {
+            position: absolute;
+            top: 20px;
+            left: 20px;
+            background: rgba(0, 0, 0, 0.8);
+            color: white;
+            border-radius: 8px;
+            padding: 10px;
+            max-width: 300px;
+            max-height: 200px;
+            overflow-y: auto;
+            font-size: 12px;
+        }
+    </style>
+</head>
+<body>
+    <div id="game-container">
+        <!-- Le jeu Phaser sera injecté ici -->
+    </div>
+    
+    <!-- Interface LaBrute -->
+    <div class="labrute-ui">
+        <div class="combat-controls">
+            <button id="play-pause">⏸️ Pause</button>
+            <button id="speed-toggle">⚡ x1</button>
+            <button id="sound-toggle">🔊 Son</button>
+            <button id="music-toggle">🎵 Musique</button>
+        </div>
+        
+        <div class="combat-info">
+            <div>Combat LaBrute</div>
+            <div id="fight-id">ID: -</div>
+            <div id="fight-progress">Étapes: 0/0</div>
+        </div>
+        
+        <div class="combat-logs">
+            <div>Logs de Combat</div>
+            <div id="combat-log-content"></div>
+        </div>
+    </div>
+
+    <!-- Scripts -->
+    <script type="module" src="src/main.js"></script>
+    
+    <script>
+        // Interface LaBrute
+        let isPlaying = true;
+        let fightSpeed = 1;
+        let soundOn = true;
+        let musicOn = true;
+        
+        // Contrôles
+        document.getElementById('play-pause').addEventListener('click', () => {
+            isPlaying = !isPlaying;
+            const button = document.getElementById('play-pause');
+            button.textContent = isPlaying ? '⏸️ Pause' : '▶️ Play';
+            
+            // Envoyer message au jeu
+            window.postMessage({
+                type: isPlaying ? 'PLAY_FIGHT' : 'PAUSE_FIGHT'
+            }, '*');
+        });
+        
+        document.getElementById('speed-toggle').addEventListener('click', () => {
+            fightSpeed = fightSpeed === 1 ? 2 : 1;
+            const button = document.getElementById('speed-toggle');
+            button.textContent = `⚡ x${fightSpeed}`;
+            
+            // Envoyer message au jeu
+            window.postMessage({
+                type: 'SET_SPEED',
+                data: { speed: fightSpeed }
+            }, '*');
+        });
+        
+        document.getElementById('sound-toggle').addEventListener('click', () => {
+            soundOn = !soundOn;
+            const button = document.getElementById('sound-toggle');
+            button.textContent = soundOn ? '🔊 Son' : '🔇 Son';
+        });
+        
+        document.getElementById('music-toggle').addEventListener('click', () => {
+            musicOn = !musicOn;
+            const button = document.getElementById('music-toggle');
+            button.textContent = musicOn ? '🎵 Musique' : '🎵 Musique';
+        });
+        
+        // Écouter les messages du jeu
+        window.addEventListener('message', (event) => {
+            if (event.origin !== window.location.origin) return;
+            
+            const { type, data } = event.data;
+            
+            switch (type) {
+                case 'FIGHT_LOADED':
+                    updateCombatInfo(data);
+                    break;
+                    
+                case 'FIGHT_STEP':
+                    updateCombatProgress(data);
+                    break;
+                    
+                case 'FIGHT_ENDED':
+                    updateCombatEnd(data);
+                    break;
+                    
+                case 'COMBAT_LOG':
+                    appendCombatLog(data.message);
+                    break;
+            }
+        });
+        
+        function updateCombatInfo(data) {
+            document.getElementById('fight-id').textContent = `ID: ${data.fightId}`;
+            document.getElementById('fight-progress').textContent = `Étapes: 0/${data.totalSteps}`;
+        }
+        
+        function updateCombatProgress(data) {
+            document.getElementById('fight-progress').textContent = `Étapes: ${data.currentStep}/${data.totalSteps}`;
+        }
+        
+        function updateCombatEnd(data) {
+            appendCombatLog(`🏆 Combat terminé ! Vainqueur: ${data.winner}`);
+        }
+        
+        function appendCombatLog(message) {
+            const logContent = document.getElementById('combat-log-content');
+            const logEntry = document.createElement('div');
+            logEntry.textContent = `[${new Date().toLocaleTimeString()}] ${message}`;
+            logContent.appendChild(logEntry);
+            
+            // Garder seulement les 10 derniers logs
+            while (logContent.children.length > 10) {
+                logContent.removeChild(logContent.firstChild);
+            }
+            
+            // Auto-scroll vers le bas
+            logContent.scrollTop = logContent.scrollHeight;
+        }
+        
+        // Message initial
+        appendCombatLog('🎮 Moteur de combat LaBrute prêt');
+        
+        // Démarrer avec la scène LaBrute
+        window.addEventListener('load', () => {
+            // Attendre que Phaser soit prêt
+            setTimeout(() => {
+                // Démarrer directement avec LaBruteFightScene
+                if (window.game && window.game.scene) {
+                    window.game.scene.start('LaBruteFight');
+                    appendCombatLog('🚀 Scène LaBrute démarrée');
+                }
+            }, 1000);
+        });
+    </script>
+</body>
+</html>

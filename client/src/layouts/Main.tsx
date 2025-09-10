@@ -22,7 +22,7 @@ import Server from '../utils/Server';
 
 const Main = () => {
   const theme = useTheme();
-  const { authing, user, signout, modifiers, updateData, currentEvent } = useAuth();
+  const { authing, user, signout, modifiers, updateData, currentEvent, signin } = useAuth();
   const Alert = useAlert();
   const { t } = useTranslation();
   const colorMode = useContext(ColorModeContext);
@@ -40,6 +40,13 @@ const Main = () => {
   });
 
   const favoriteCount = user?.brutes.filter((b) => b.favorite).length || 0;
+
+  // Ensure session picks up if cookies were set elsewhere (e.g., after OAuth redirect)
+  useEffect(() => {
+    try {
+      if (!user && !authing) { signin(); }
+    } catch {}
+  }, [user, authing, signin]);
 
   // Sync settings with user
   useEffect(() => {

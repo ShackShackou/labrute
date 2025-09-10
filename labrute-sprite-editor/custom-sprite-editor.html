@@ -1,0 +1,697 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>🎨 LaBrute Custom Sprite Editor - Éditeur Avancé</title>
+    <link rel="stylesheet" href="styles.css">
+    <script src="https://pixijs.download/release/pixi.min.js"></script>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <style>
+        /* Styles spécifiques pour l'éditeur custom */
+        .upload-zone {
+            border: 3px dashed #667eea;
+            border-radius: 12px;
+            padding: 2rem;
+            text-align: center;
+            background: rgba(102, 126, 234, 0.05);
+            cursor: pointer;
+            transition: all 0.3s ease;
+            margin-bottom: 1rem;
+        }
+
+        .upload-zone:hover {
+            background: rgba(102, 126, 234, 0.1);
+            border-color: #764ba2;
+        }
+
+        .upload-zone.dragover {
+            background: rgba(102, 126, 234, 0.2);
+            transform: scale(1.02);
+        }
+
+        .custom-sprites-manager {
+            background: #f8fafc;
+            border-radius: 12px;
+            padding: 1.5rem;
+            margin-bottom: 1rem;
+        }
+
+        .sprite-slot {
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+            padding: 1rem;
+            background: white;
+            border-radius: 8px;
+            margin-bottom: 0.5rem;
+            border: 2px solid #e2e8f0;
+            transition: all 0.2s ease;
+        }
+
+        .sprite-slot:hover {
+            border-color: #667eea;
+            box-shadow: 0 4px 12px rgba(102, 126, 234, 0.1);
+        }
+
+        .sprite-preview {
+            width: 60px;
+            height: 60px;
+            border: 1px solid #e2e8f0;
+            border-radius: 8px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background: #f7fafc;
+            overflow: hidden;
+        }
+
+        .sprite-preview img {
+            max-width: 100%;
+            max-height: 100%;
+            object-fit: contain;
+        }
+
+        .sprite-controls {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            gap: 0.5rem;
+        }
+
+        .sprite-actions {
+            display: flex;
+            gap: 0.5rem;
+        }
+
+        .asset-explorer {
+            display: grid;
+            grid-template-columns: 250px 1fr;
+            gap: 1rem;
+            height: 600px;
+        }
+
+        .asset-tree {
+            background: #f8fafc;
+            border-radius: 8px;
+            padding: 1rem;
+            overflow-y: auto;
+        }
+
+        .asset-viewer {
+            background: white;
+            border-radius: 8px;
+            padding: 1rem;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .asset-category {
+            margin-bottom: 0.5rem;
+        }
+
+        .asset-category-header {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            padding: 0.5rem;
+            cursor: pointer;
+            border-radius: 6px;
+            transition: background 0.2s ease;
+        }
+
+        .asset-category-header:hover {
+            background: rgba(102, 126, 234, 0.1);
+        }
+
+        .asset-category-header.expanded {
+            font-weight: 600;
+            color: #667eea;
+        }
+
+        .asset-list {
+            margin-left: 1.5rem;
+            display: none;
+        }
+
+        .asset-list.expanded {
+            display: block;
+        }
+
+        .asset-item {
+            padding: 0.5rem;
+            cursor: pointer;
+            border-radius: 4px;
+            transition: all 0.2s ease;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .asset-item:hover {
+            background: rgba(102, 126, 234, 0.1);
+            transform: translateX(5px);
+        }
+
+        .asset-item.selected {
+            background: #667eea;
+            color: white;
+        }
+
+        .frame-viewer {
+            flex: 1;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background: #f7fafc;
+            border-radius: 8px;
+            position: relative;
+            min-height: 400px;
+        }
+
+        .frame-controls {
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+            padding: 1rem;
+            background: #f8fafc;
+            border-radius: 8px;
+            margin-top: 1rem;
+        }
+
+        .frame-slider {
+            flex: 1;
+        }
+
+        .sprite-metadata {
+            background: #f8fafc;
+            padding: 1rem;
+            border-radius: 8px;
+            margin-top: 1rem;
+            font-family: monospace;
+            font-size: 0.85rem;
+        }
+
+        .metadata-row {
+            display: flex;
+            justify-content: space-between;
+            padding: 0.25rem 0;
+        }
+
+        .metadata-label {
+            color: #718096;
+        }
+
+        .metadata-value {
+            font-weight: 600;
+            color: #2d3748;
+        }
+
+        .animation-player {
+            position: absolute;
+            top: 1rem;
+            right: 1rem;
+            display: flex;
+            gap: 0.5rem;
+        }
+
+        .custom-mapping-panel {
+            background: white;
+            border-radius: 12px;
+            padding: 1.5rem;
+            margin-top: 1rem;
+        }
+
+        .mapping-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+            gap: 1rem;
+            margin-top: 1rem;
+        }
+
+        .mapping-slot {
+            border: 2px dashed #cbd5e0;
+            border-radius: 8px;
+            padding: 1rem;
+            text-align: center;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            position: relative;
+        }
+
+        .mapping-slot:hover {
+            border-color: #667eea;
+            background: rgba(102, 126, 234, 0.05);
+        }
+
+        .mapping-slot.filled {
+            border-style: solid;
+            background: rgba(102, 126, 234, 0.1);
+        }
+
+        .mapping-slot img {
+            max-width: 100%;
+            max-height: 100px;
+            object-fit: contain;
+        }
+
+        .remove-mapping {
+            position: absolute;
+            top: 0.25rem;
+            right: 0.25rem;
+            background: #e53e3e;
+            color: white;
+            border: none;
+            border-radius: 50%;
+            width: 24px;
+            height: 24px;
+            cursor: pointer;
+            display: none;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .mapping-slot:hover .remove-mapping {
+            display: flex;
+        }
+
+        .export-panel {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 1.5rem;
+            border-radius: 12px;
+            margin-top: 1rem;
+        }
+
+        .export-options {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 1rem;
+            margin-top: 1rem;
+        }
+
+        .export-option {
+            background: rgba(255, 255, 255, 0.1);
+            padding: 1rem;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            text-align: center;
+        }
+
+        .export-option:hover {
+            background: rgba(255, 255, 255, 0.2);
+            transform: translateY(-2px);
+        }
+
+        .timeline-viewer {
+            background: #2d3748;
+            color: white;
+            padding: 1rem;
+            border-radius: 8px;
+            margin-top: 1rem;
+            overflow-x: auto;
+        }
+
+        .timeline-track {
+            display: flex;
+            gap: 2px;
+            margin-bottom: 0.5rem;
+            align-items: center;
+        }
+
+        .timeline-label {
+            width: 80px;
+            font-size: 0.85rem;
+            color: #a0aec0;
+        }
+
+        .timeline-frames {
+            display: flex;
+            gap: 2px;
+            flex: 1;
+        }
+
+        .timeline-frame {
+            width: 20px;
+            height: 20px;
+            background: #4a5568;
+            border-radius: 2px;
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+
+        .timeline-frame.active {
+            background: #667eea;
+        }
+
+        .timeline-frame:hover {
+            background: #718096;
+        }
+
+        .batch-upload {
+            background: #f8fafc;
+            padding: 1rem;
+            border-radius: 8px;
+            margin-top: 1rem;
+        }
+
+        .batch-list {
+            max-height: 200px;
+            overflow-y: auto;
+            margin-top: 0.5rem;
+        }
+
+        .batch-item {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            padding: 0.5rem;
+            background: white;
+            border-radius: 4px;
+            margin-bottom: 0.25rem;
+        }
+
+        .batch-item-status {
+            width: 20px;
+            height: 20px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 0.75rem;
+        }
+
+        .status-pending { background: #cbd5e0; }
+        .status-success { background: #48bb78; color: white; }
+        .status-error { background: #e53e3e; color: white; }
+    </style>
+</head>
+<body>
+    <div class="app-container">
+        <!-- Header -->
+        <header class="app-header">
+            <div class="header-left">
+                <h1><i class="fas fa-magic"></i> LaBrute Custom Sprite Editor</h1>
+                <span class="version">v2.0.0 - Édition Avancée</span>
+            </div>
+            <div class="header-right">
+                <button class="btn btn-primary" id="saveProjectBtn">
+                    <i class="fas fa-save"></i> Sauvegarder Projet
+                </button>
+                <button class="btn btn-secondary" id="loadProjectBtn">
+                    <i class="fas fa-folder-open"></i> Charger Projet
+                </button>
+                <button class="btn btn-action" id="exportBtn">
+                    <i class="fas fa-download"></i> Exporter
+                </button>
+            </div>
+        </header>
+
+        <!-- Main Content -->
+        <div class="main-content">
+            <!-- Enhanced Tabs -->
+            <div class="tabs">
+                <button class="tab-btn active" data-tab="editor">
+                    <i class="fas fa-edit"></i> Éditeur Custom
+                </button>
+                <button class="tab-btn" data-tab="explorer">
+                    <i class="fas fa-folder-tree"></i> Explorateur d'Assets
+                </button>
+                <button class="tab-btn" data-tab="animator">
+                    <i class="fas fa-film"></i> Animateur
+                </button>
+                <button class="tab-btn" data-tab="jpexs">
+                    <i class="fas fa-file-archive"></i> Import JPEXS
+                </button>
+            </div>
+
+            <div class="tab-content">
+                <!-- Custom Editor Tab -->
+                <div id="editor" class="tab-panel active">
+                    <div class="editor-layout">
+                        <div class="editor-sidebar">
+                            <h3><i class="fas fa-upload"></i> Upload de Sprites Custom</h3>
+                            
+                            <!-- Zone d'upload -->
+                            <div class="upload-zone" id="uploadZone">
+                                <i class="fas fa-cloud-upload-alt" style="font-size: 3rem; color: #667eea;"></i>
+                                <p style="margin: 1rem 0;">Glissez vos images ici ou cliquez pour parcourir</p>
+                                <p style="font-size: 0.85rem; color: #718096;">PNG, JPG, SVG • Max 5MB par fichier</p>
+                                <input type="file" id="fileInput" multiple accept="image/*" style="display: none;">
+                            </div>
+
+                            <!-- Gestionnaire de sprites custom -->
+                            <div class="custom-sprites-manager">
+                                <h4>Sprites Uploadés</h4>
+                                <div id="uploadedSprites">
+                                    <!-- Les sprites uploadés apparaîtront ici -->
+                                </div>
+                            </div>
+
+                            <!-- Mapping des parties -->
+                            <div class="custom-mapping-panel">
+                                <h4>Assigner aux Parties du Corps</h4>
+                                <div class="mapping-grid" id="mappingGrid">
+                                    <!-- Slots de mapping générés dynamiquement -->
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="editor-main">
+                            <h3>Prévisualisation avec Sprites Custom</h3>
+                            <div class="preview-container">
+                                <div id="customPreviewContainer" class="pixi-canvas"></div>
+                                <div class="preview-controls">
+                                    <button class="btn btn-sm" id="toggleOriginalBtn">
+                                        <i class="fas fa-exchange-alt"></i> Original/Custom
+                                    </button>
+                                    <button class="btn btn-sm" id="resetCustomBtn">
+                                        <i class="fas fa-undo"></i> Réinitialiser
+                                    </button>
+                                </div>
+                            </div>
+
+                            <!-- Options d'export -->
+                            <div class="export-panel">
+                                <h4><i class="fas fa-share-square"></i> Options d'Export</h4>
+                                <div class="export-options">
+                                    <div class="export-option" data-export="spritesheet">
+                                        <i class="fas fa-th" style="font-size: 2rem;"></i>
+                                        <p>Sprite Sheet</p>
+                                    </div>
+                                    <div class="export-option" data-export="frames">
+                                        <i class="fas fa-images" style="font-size: 2rem;"></i>
+                                        <p>Frames Séparées</p>
+                                    </div>
+                                    <div class="export-option" data-export="config">
+                                        <i class="fas fa-code" style="font-size: 2rem;"></i>
+                                        <p>Configuration JSON</p>
+                                    </div>
+                                    <div class="export-option" data-export="pack">
+                                        <i class="fas fa-box" style="font-size: 2rem;"></i>
+                                        <p>Pack Complet</p>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Asset Explorer Tab -->
+                <div id="explorer" class="tab-panel">
+                    <div class="asset-explorer">
+                        <div class="asset-tree">
+                            <h3>Assets du Jeu</h3>
+                            <div id="assetTree">
+                                <!-- Arbre des assets généré dynamiquement -->
+                            </div>
+                        </div>
+                        <div class="asset-viewer">
+                            <div class="frame-viewer" id="frameViewer">
+                                <div class="animation-player">
+                                    <button class="btn btn-sm" id="playAnimBtn">
+                                        <i class="fas fa-play"></i>
+                                    </button>
+                                    <button class="btn btn-sm" id="pauseAnimBtn" style="display: none;">
+                                        <i class="fas fa-pause"></i>
+                                    </button>
+                                </div>
+                                <canvas id="assetCanvas"></canvas>
+                            </div>
+                            <div class="frame-controls">
+                                <button class="btn btn-sm" id="prevFrameBtn">
+                                    <i class="fas fa-chevron-left"></i>
+                                </button>
+                                <input type="range" id="frameSlider" class="frame-slider" min="0" max="0" value="0">
+                                <button class="btn btn-sm" id="nextFrameBtn">
+                                    <i class="fas fa-chevron-right"></i>
+                                </button>
+                                <span id="frameInfo">Frame 0/0</span>
+                            </div>
+                            <div class="sprite-metadata" id="spriteMetadata">
+                                <!-- Métadonnées du sprite -->
+                            </div>
+                            <div class="frame-actions">
+                                <button class="btn btn-sm" id="extractFrameBtn">
+                                    <i class="fas fa-cut"></i> Extraire Frame
+                                </button>
+                                <button class="btn btn-sm" id="extractAllBtn">
+                                    <i class="fas fa-download"></i> Extraire Tout
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Animator Tab -->
+                <div id="animator" class="tab-panel">
+                    <div class="animator-layout">
+                        <div class="animator-sidebar">
+                            <h3>Timeline</h3>
+                            <div class="timeline-viewer" id="timelineViewer">
+                                <!-- Timeline des animations -->
+                            </div>
+                            
+                            <h4>Propriétés d'Animation</h4>
+                            <div class="animation-properties">
+                                <div class="control-group">
+                                    <label>Durée (ms):</label>
+                                    <input type="number" id="animDuration" value="1000" min="100" max="5000">
+                                </div>
+                                <div class="control-group">
+                                    <label>FPS:</label>
+                                    <input type="number" id="animFPS" value="30" min="1" max="60">
+                                </div>
+                                <div class="control-group">
+                                    <label>Boucle:</label>
+                                    <input type="checkbox" id="animLoop" checked>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="animator-main">
+                            <h3>Prévisualisation Animation</h3>
+                            <div id="animationPreview" class="preview-container">
+                                <!-- Canvas d'animation -->
+                            </div>
+                            
+                            <div class="animation-controls">
+                                <button class="btn" id="addKeyframeBtn">
+                                    <i class="fas fa-plus"></i> Ajouter Keyframe
+                                </button>
+                                <button class="btn" id="deleteKeyframeBtn">
+                                    <i class="fas fa-trash"></i> Supprimer Keyframe
+                                </button>
+                                <button class="btn btn-primary" id="previewAnimBtn">
+                                    <i class="fas fa-play"></i> Prévisualiser
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- JPEXS Import Tab -->
+                <div id="jpexs" class="tab-panel">
+                    <div class="jpexs-layout">
+                        <h3><i class="fas fa-file-import"></i> Import depuis JPEXS</h3>
+                        
+                        <div class="jpexs-instructions">
+                            <div class="alert alert-info">
+                                <i class="fas fa-info-circle"></i>
+                                <p>Utilisez JPEXS Free Flash Decompiler pour extraire les sprites des fichiers SWF originaux de LaBrute.</p>
+                                <p>Chemin : <code>C:\ProgramData\Microsoft\Windows\Start Menu\Programs\JPEXS Free Flash Decompiler</code></p>
+                            </div>
+                            
+                            <h4>Instructions d'Import</h4>
+                            <ol>
+                                <li>Ouvrez le fichier SWF dans JPEXS</li>
+                                <li>Naviguez vers Symbol460 (homme) ou Symbol752 (femme)</li>
+                                <li>Exportez en séquence PNG</li>
+                                <li>Importez les fichiers ici</li>
+                            </ol>
+                        </div>
+                        
+                        <div class="batch-upload">
+                            <h4>Import en Lot</h4>
+                            <div class="upload-zone" id="jpexsUploadZone">
+                                <i class="fas fa-file-archive" style="font-size: 3rem; color: #667eea;"></i>
+                                <p>Glissez le dossier d'export JPEXS ici</p>
+                                <input type="file" id="jpexsFileInput" webkitdirectory directory multiple style="display: none;">
+                            </div>
+                            
+                            <div class="batch-list" id="batchList">
+                                <!-- Liste des fichiers importés -->
+                            </div>
+                            
+                            <button class="btn btn-primary" id="processJpexsBtn" disabled>
+                                <i class="fas fa-cogs"></i> Traiter et Organiser
+                            </button>
+                        </div>
+                        
+                        <div class="jpexs-mapping">
+                            <h4>Mapping Automatique</h4>
+                            <p>L'outil détectera automatiquement les animations et les mappera aux bonnes parties du corps.</p>
+                            <div id="jpexsMappingResult">
+                                <!-- Résultat du mapping -->
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modals -->
+    <div id="exportModal" class="modal">
+        <div class="modal-content">
+            <span class="close">&times;</span>
+            <h2><i class="fas fa-download"></i> Export des Sprites Custom</h2>
+            
+            <div class="export-preview" id="exportPreview">
+                <!-- Prévisualisation de l'export -->
+            </div>
+            
+            <div class="export-settings">
+                <h4>Paramètres d'Export</h4>
+                <div class="control-group">
+                    <label>Format:</label>
+                    <select id="exportFormat">
+                        <option value="png">PNG</option>
+                        <option value="svg">SVG</option>
+                        <option value="json">JSON + Images</option>
+                    </select>
+                </div>
+                <div class="control-group">
+                    <label>Échelle:</label>
+                    <input type="range" id="exportScale" min="0.5" max="4" step="0.5" value="1">
+                    <span id="scaleValue">1x</span>
+                </div>
+                <div class="control-group">
+                    <label>Qualité (PNG):</label>
+                    <input type="range" id="exportQuality" min="0.1" max="1" step="0.1" value="0.9">
+                    <span id="qualityValue">90%</span>
+                </div>
+            </div>
+            
+            <div class="export-actions">
+                <button class="btn btn-primary" id="confirmExportBtn">
+                    <i class="fas fa-check"></i> Exporter
+                </button>
+                <button class="btn btn-secondary" id="cancelExportBtn">
+                    <i class="fas fa-times"></i> Annuler
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <script src="data.js"></script>
+    <script src="brute-renderer-with-parser.js"></script>
+    <script src="simple-preview.js"></script>
+    <script src="custom-sprite-manager.js"></script>
+    <script src="asset-explorer.js"></script>
+    <script src="animation-editor.js"></script>
+    <script src="jpexs-importer.js"></script>
+    <script src="custom-editor-app.js"></script>
+</body>
+</html>

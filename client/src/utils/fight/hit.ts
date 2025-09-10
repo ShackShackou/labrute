@@ -2,7 +2,7 @@
 import { HitStep, StepType, WEAPONS_SFX, WeaponById, randomBetween } from '@labrute/core';
 import { OutlineFilter } from '@pixi/filter-outline';
 
-import { Application } from 'pixi.js';
+import { Application } from 'pixi-legacy';
 import { sound } from '@pixi/sound';
 import displayDamage from './utils/displayDamage';
 import findFighter, { AnimationFighter } from './utils/findFighter';

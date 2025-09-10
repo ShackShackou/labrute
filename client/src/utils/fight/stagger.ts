@@ -1,5 +1,5 @@
 import { Easing, Tweener } from 'pixi-tweener';
-import { Container, Sprite } from 'pixi.js';
+import { Container, Sprite } from 'pixi-legacy';
 import { AnimationFighter } from './utils/findFighter';
 import { getRealKnockBack } from './utils/knockBack';
 

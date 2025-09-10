@@ -1,0 +1,52 @@
+{
+  "body_parts": {
+    "p1": {
+      "name": "Base",
+      "variants": 1
+    },
+    "p1a": {
+      "name": "Ceinture",
+      "variants": 1
+    },
+    "p1b": {
+      "name": "Ceinture Romaine",
+      "variants": 1
+    },
+    "p2": {
+      "name": "Taille du Corps",
+      "variants": "7/0"
+    },
+    "p3": {
+      "name": "Cheveux/Coiffure",
+      "variants": 11
+    },
+    "p4": {
+      "name": "Barbe (H) / Mèches (F)",
+      "variants": "5/3"
+    },
+    "p5": {
+      "name": "Chemise/Haut",
+      "variants": 1
+    },
+    "p6": {
+      "name": "Bas",
+      "variants": 1
+    },
+    "p7": {
+      "name": "Vêtement Principal",
+      "variants": 6
+    },
+    "p7b": {
+      "name": "Dessous de Chaussures",
+      "variants": 2
+    },
+    "p8": {
+      "name": "Chaussures (Buggé)",
+      "variants": 4
+    }
+  },
+  "main_symbols": {
+    "Symbol460": "Homme",
+    "Symbol752": "Femme"
+  }
+}

@@ -1,0 +1,65 @@
+          // Simple: acteur index 1 = gauche, index 2 = droite (et leurs pets)
+          // Les pets ont un master qui détermine leur côté
+          const actorSide: 'L'|'R' = (actorIdx === 1 || actor?.master === 1) ? 'L' : 'R';
+          const targetSide: 'L'|'R' | null = targetIdx !== null 
+            ? ((targetIdx === 1 || target?.master === 1) ? 'L' : 'R')
+            ? ((targetIdx === 1 || target?.master === 1) ? 'L' : 'R')
+            : null;
+          const src = actorSide === 'L' ? left : right;
+          const tgt = targetSide ? (targetSide === 'L' ? left : right) : (src === left ? right : left);
+
+          case 2: {
+            try {
+              if (actorSide === 'L') {
+                const x = minLX + Math.random() * (maxLX - minLX);
+                const y = chooseLaneY('L'); 
+            // Si je suis à gauche, je vais vers la droite
+            // Si je suis à droite, je vais vers la gauche
+            const targetX = actorSide === 'L' 
+              ? tpos.x - meleeDist  // Je suis à gauche, je me place à gauche de ma cible
+              : tpos.x + meleeDist; // Je suis à droite, je me place à droite de ma cible
+            
+            const baseDur = Math.max(160, dist / 430 * 1000);
+            const dur = (baseDur * (actorSide === 'R' ? mulR : mulL)) / Math.max(0.001, speed);
+            
+            await tweenTo(src.node, targetX, targetY, dur);
+              const tpos = getPos(tgt.node);
+              const distX = getHitDistance(src, tgt, false, false, actorIdx, targetIdx);
+              const idealX = actorSide === 'L'
+                ? tpos.x - distX  // Je suis à gauche, je me place à gauche de ma cible
+                : tpos.x + distX; // Je suis à droite, je me place à droite de ma cible
+              
+              // Pré-move seulement si on doit avancer
+              if ((actorSide === 'L' && idealX > cur.x) || (actorSide === 'R' && idealX < cur.x)) {
+                // Mouvement DIAGONAL vers la cible
+                addVector(cur.x, cur.y, idealX, idealY, 0xff66cc);
+                addVector(cur.x, cur.y, idealX, idealY, 0xff66cc);
+                // Durée basée sur la distance totale (comme moveTo.ts ligne 55)
+                const durPre = (Math.max(160, (travelDist / 430) * 1000) * (actorSide === 'R' ? mulR : mulL)) / Math.max(0.001, speed);
+                await tweenTo(src.node, idealX, idealY, durPre); // X ET Y
+              }
+            playAnim(src, 'shoot', false);
+            const lungeDist = 18;
+            const durFwd = (100 * (actorSide === 'R' ? mulR : mulL)) / Math.max(0.001, speed);
+            const durBack = (80 * (actorSide === 'R' ? mulR : mulL)) / Math.max(0.001, speed);
+            
+            const lungeDist = 18;
+            const durFwd = (100 * (actorSide === 'R' ? mulR : mulL)) / Math.max(0.001, speed);
+            const durBack = (80 * (actorSide === 'R' ? mulR : mulL)) / Math.max(0.001, speed);
+            
+            // Lunge STRICTEMENT HORIZONTAL (pas de composante Y)
+            // Comme l'officiel: choisir une nouvelle lane
+            const cur = getPos(src.node);
+            const pos = getRandomBaseForSide(actorSide, cur.x, actor);
+            
+            // Update occupancy with new lane
+            
+            // Update occupancy with new lane
+            if (actorSide === 'L') occY.L.push(pos.y); else occY.R.push(pos.y);
+            
+            // Mettre à jour la base
+            // DIAGONAL AUTORISÉ pour le retour
+            addVector(start.x, start.y, pos.x, pos.y, 0x66ccff);
+            const dur = (durationMoveBackMs(dist) * (actorSide === 'R' ? mulR : mulL)) / Math.max(0.001, speed);
+            await tweenTo(src.node, pos.x, pos.y, dur);
+            

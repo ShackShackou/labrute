@@ -1,0 +1,6 @@
+e de ma cible
+                : tpos.x + distX; // Je suis à droite, je me place à droite de ma cible
+              const idealY = tpos.y; // PRENDRE LE Y DE LA CIBLE pour mouvement diagonal
+              const cur = getPos(src.node);
+              
+              // Calcul

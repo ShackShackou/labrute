@@ -1,0 +1,197 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Test Direct Phaser + Spine</title>
+    <script src="https://cdn.jsdelivr.net/npm/phaser@3.55.2/dist/phaser.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/phaser@3.55.2/plugins/spine/dist/SpinePlugin.min.js"></script>
+    <style>
+        body {
+            margin: 0;
+            padding: 0;
+            background-color: #2c3e50;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            min-height: 100vh;
+            font-family: Arial, sans-serif;
+            color: white;
+        }
+
+        #game-container {
+            width: 800px;
+            height: 600px;
+            border: 4px solid #e74c3c;
+            margin: 20px;
+        }
+
+        .controls {
+            display: flex;
+            gap: 10px;
+            margin: 20px;
+        }
+
+        button {
+            background-color: #e74c3c;
+            color: white;
+            border: none;
+            padding: 10px 15px;
+            cursor: pointer;
+            font-size: 16px;
+            border-radius: 4px;
+        }
+
+        button:hover {
+            background-color: #c0392b;
+        }
+        
+        #status {
+            margin: 20px;
+            padding: 10px;
+            background-color: rgba(0, 0, 0, 0.3);
+            border-radius: 4px;
+            min-width: 300px;
+        }
+    </style>
+</head>
+<body>
+    <h1>Test Direct Phaser + Spine</h1>
+    <div id="game-container"></div>
+    
+    <div class="controls">
+        <button id="start">Démarrer</button>
+        <button id="move-left">Déplacer à Gauche</button>
+        <button id="move-right">Déplacer à Droite</button>
+        <button id="animate">Animation</button>
+    </div>
+    
+    <div id="status">
+        Status: <span id="status-text">Initialisation...</span>
+    </div>
+
+    <script>
+        // Configuration Phaser
+        const config = {
+            type: Phaser.AUTO,
+            width: 800,
+            height: 600,
+            backgroundColor: '#4a6e8a',
+            parent: 'game-container',
+            scene: {
+                preload: preload,
+                create: create,
+                update: update
+            },
+            plugins: {
+                scene: [
+                    { key: 'SpinePlugin', plugin: SpinePlugin, mapping: 'spine' }
+                ]
+            }
+        };
+
+        // Variables globales
+        let game;
+        let spineboy;
+        let status;
+
+        // Initialisation
+        window.onload = function() {
+            status = document.getElementById('status-text');
+            updateStatus("Page chargée, prêt à démarrer");
+            
+            document.getElementById('start').addEventListener('click', startGame);
+            document.getElementById('move-left').addEventListener('click', moveLeft);
+            document.getElementById('move-right').addEventListener('click', moveRight);
+            document.getElementById('animate').addEventListener('click', toggleAnimation);
+        };
+
+        function updateStatus(message) {
+            console.log(message);
+            status.textContent = message;
+        }
+
+        function startGame() {
+            if (game) {
+                updateStatus("Jeu déjà démarré");
+                return;
+            }
+            
+            updateStatus("Démarrage du jeu...");
+            game = new Phaser.Game(config);
+        }
+
+        function moveLeft() {
+            if (!spineboy) {
+                updateStatus("Spineboy pas encore chargé");
+                return;
+            }
+            
+            spineboy.x -= 50;
+            updateStatus(`Déplacé à gauche: x=${spineboy.x}`);
+        }
+
+        function moveRight() {
+            if (!spineboy) {
+                updateStatus("Spineboy pas encore chargé");
+                return;
+            }
+            
+            spineboy.x += 50;
+            updateStatus(`Déplacé à droite: x=${spineboy.x}`);
+        }
+
+        function toggleAnimation() {
+            if (!spineboy) {
+                updateStatus("Spineboy pas encore chargé");
+                return;
+            }
+            
+            const currentAnim = spineboy.getCurrentAnimation();
+            const newAnim = currentAnim === 'walk' ? 'idle' : 'walk';
+            spineboy.play(newAnim, true);
+            updateStatus(`Animation changée: ${newAnim}`);
+        }
+
+        // Fonctions Phaser
+        function preload() {
+            updateStatus("Chargement des assets...");
+            
+            try {
+                this.load.setPath('assets/spine/');
+                this.load.spine('spineboy', 'spineboy.json', 'spineboy.atlas');
+                updateStatus("Assets en cours de chargement...");
+            } catch (e) {
+                updateStatus("ERREUR chargement: " + e.message);
+                console.error("Erreur de chargement:", e);
+            }
+        }
+
+        function create() {
+            try {
+                updateStatus("Création de la scène...");
+                
+                // Créer le personnage Spine au centre
+                spineboy = this.add.spine(400, 500, 'spineboy');
+                
+                // Définir l'animation de base
+                if (spineboy) {
+                    spineboy.setScale(0.5);
+                    spineboy.play('idle', true);
+                    updateStatus("Spineboy créé avec succès!");
+                } else {
+                    updateStatus("ERREUR: Spineboy n'a pas pu être créé");
+                }
+            } catch (e) {
+                updateStatus("ERREUR création: " + e.message);
+                console.error("Erreur de création:", e);
+            }
+        }
+
+        function update() {
+            // Mise à jour continue
+        }
+    </script>
+</body>
+</html>

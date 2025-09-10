@@ -1,0 +1,886 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>🔬 LaBrute Deep Analyzer - Analyse Complète du Système</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: #0a0a0a;
+            color: #ffffff;
+            overflow-x: hidden;
+        }
+
+        .analyzer-header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            padding: 2rem;
+            text-align: center;
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.5);
+        }
+
+        .analyzer-header h1 {
+            font-size: 2.5rem;
+            margin-bottom: 0.5rem;
+            text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.3);
+        }
+
+        .analyzer-container {
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: 2rem;
+        }
+
+        .analysis-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(400px, 1fr));
+            gap: 2rem;
+            margin-top: 2rem;
+        }
+
+        .analysis-section {
+            background: #1a1a1a;
+            border: 2px solid #333;
+            border-radius: 12px;
+            padding: 1.5rem;
+            transition: all 0.3s ease;
+        }
+
+        .analysis-section:hover {
+            border-color: #667eea;
+            transform: translateY(-2px);
+            box-shadow: 0 8px 24px rgba(102, 126, 234, 0.2);
+        }
+
+        .section-title {
+            font-size: 1.5rem;
+            color: #667eea;
+            margin-bottom: 1rem;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .section-title::before {
+            content: '📊';
+            font-size: 1.2rem;
+        }
+
+        .part-analysis {
+            margin: 1rem 0;
+            padding: 1rem;
+            background: #2a2a2a;
+            border-radius: 8px;
+            border: 1px solid #444;
+        }
+
+        .part-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 0.5rem;
+        }
+
+        .part-name {
+            font-weight: bold;
+            color: #764ba2;
+        }
+
+        .part-value {
+            background: #667eea;
+            color: white;
+            padding: 0.25rem 0.5rem;
+            border-radius: 4px;
+            font-size: 0.875rem;
+        }
+
+        .variants-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(60px, 1fr));
+            gap: 0.5rem;
+            margin-top: 0.5rem;
+        }
+
+        .variant-box {
+            background: #3a3a3a;
+            border: 2px solid #555;
+            border-radius: 6px;
+            padding: 0.5rem;
+            text-align: center;
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+
+        .variant-box:hover {
+            border-color: #667eea;
+            background: #4a4a4a;
+            transform: scale(1.05);
+        }
+
+        .variant-box.active {
+            background: #667eea;
+            border-color: #764ba2;
+        }
+
+        .color-analysis {
+            margin: 0.5rem 0;
+            padding: 0.75rem;
+            background: #2a2a2a;
+            border-radius: 6px;
+        }
+
+        .color-samples {
+            display: flex;
+            gap: 0.25rem;
+            margin-top: 0.5rem;
+            flex-wrap: wrap;
+        }
+
+        .color-sample {
+            width: 30px;
+            height: 30px;
+            border-radius: 4px;
+            cursor: pointer;
+            position: relative;
+            transition: transform 0.2s ease;
+        }
+
+        .color-sample:hover {
+            transform: scale(1.2);
+            z-index: 10;
+        }
+
+        .color-info {
+            position: absolute;
+            bottom: 100%;
+            left: 50%;
+            transform: translateX(-50%);
+            background: #000;
+            color: white;
+            padding: 0.25rem 0.5rem;
+            border-radius: 4px;
+            font-size: 0.75rem;
+            white-space: nowrap;
+            opacity: 0;
+            pointer-events: none;
+            transition: opacity 0.2s ease;
+        }
+
+        .color-sample:hover .color-info {
+            opacity: 1;
+        }
+
+        .symbol-viewer {
+            background: #2a2a2a;
+            border-radius: 8px;
+            padding: 1rem;
+            margin: 1rem 0;
+            min-height: 300px;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .symbol-canvas {
+            width: 100%;
+            height: 300px;
+            background: #1a1a1a;
+            border-radius: 6px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .debug-panel {
+            background: #0a0a0a;
+            border: 1px solid #333;
+            border-radius: 6px;
+            padding: 1rem;
+            margin-top: 1rem;
+            font-family: monospace;
+            font-size: 0.875rem;
+            max-height: 200px;
+            overflow-y: auto;
+        }
+
+        .debug-line {
+            padding: 0.25rem 0;
+            border-bottom: 1px solid #222;
+        }
+
+        .reference-tag {
+            display: inline-block;
+            background: #444;
+            color: #fff;
+            padding: 0.125rem 0.375rem;
+            border-radius: 3px;
+            font-size: 0.75rem;
+            margin: 0.125rem;
+        }
+
+        .reference-tag.part-ref {
+            background: #667eea;
+        }
+
+        .reference-tag.color-ref {
+            background: #764ba2;
+        }
+
+        .interactive-brute {
+            background: #1a1a1a;
+            border-radius: 12px;
+            padding: 2rem;
+            margin-top: 2rem;
+            text-align: center;
+        }
+
+        .brute-display {
+            width: 300px;
+            height: 400px;
+            margin: 0 auto;
+            background: #2a2a2a;
+            border-radius: 8px;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .control-buttons {
+            display: flex;
+            gap: 1rem;
+            justify-content: center;
+            margin-top: 1rem;
+        }
+
+        .control-btn {
+            background: #667eea;
+            color: white;
+            border: none;
+            padding: 0.75rem 1.5rem;
+            border-radius: 6px;
+            cursor: pointer;
+            font-weight: 600;
+            transition: all 0.3s ease;
+        }
+
+        .control-btn:hover {
+            background: #764ba2;
+            transform: translateY(-2px);
+        }
+
+        .loading {
+            text-align: center;
+            padding: 2rem;
+            color: #667eea;
+        }
+
+        .spinner {
+            display: inline-block;
+            width: 40px;
+            height: 40px;
+            border: 4px solid rgba(102, 126, 234, 0.3);
+            border-top-color: #667eea;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+        }
+
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+
+        .full-report {
+            background: #1a1a1a;
+            border: 2px solid #667eea;
+            border-radius: 12px;
+            padding: 2rem;
+            margin-top: 2rem;
+        }
+
+        .report-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 1.5rem;
+            margin-top: 1rem;
+        }
+
+        .report-item {
+            background: #2a2a2a;
+            padding: 1rem;
+            border-radius: 6px;
+            border: 1px solid #444;
+        }
+
+        .report-item h4 {
+            color: #667eea;
+            margin-bottom: 0.5rem;
+        }
+
+        .tree-view {
+            font-family: monospace;
+            font-size: 0.875rem;
+            line-height: 1.5;
+        }
+
+        .tree-node {
+            margin-left: 1rem;
+            position: relative;
+        }
+
+        .tree-node::before {
+            content: '├─';
+            position: absolute;
+            left: -1rem;
+            color: #666;
+        }
+
+        .tree-node:last-child::before {
+            content: '└─';
+        }
+
+        .clickable-part {
+            cursor: pointer;
+            padding: 0.5rem;
+            border-radius: 6px;
+            transition: all 0.2s ease;
+        }
+
+        .clickable-part:hover {
+            background: #3a3a3a;
+            box-shadow: 0 0 0 2px #667eea;
+        }
+
+        .clickable-part.selected {
+            background: #667eea;
+            color: white;
+        }
+    </style>
+</head>
+<body>
+    <header class="analyzer-header">
+        <h1>🔬 LaBrute Deep Analyzer</h1>
+        <p>Analyse complète et interactive du système de sprites LaBrute</p>
+    </header>
+
+    <div class="analyzer-container">
+        <div id="loadingSection" class="loading">
+            <div class="spinner"></div>
+            <p>Analyse du système en cours...</p>
+        </div>
+
+        <div id="analysisContent" style="display: none;">
+            <!-- Brute Interactive -->
+            <section class="interactive-brute">
+                <h2>🎮 Brute Interactive</h2>
+                <div class="brute-display" id="bruteDisplay">
+                    <canvas id="bruteCanvas"></canvas>
+                </div>
+                <div class="control-buttons">
+                    <button class="control-btn" onclick="randomizeBrute()">🎲 Aléatoire</button>
+                    <button class="control-btn" onclick="switchGender()">⚧ Changer Genre</button>
+                    <button class="control-btn" onclick="exportConfig()">💾 Exporter</button>
+                    <button class="control-btn" onclick="analyzeStructure()">🔍 Analyser</button>
+                </div>
+            </section>
+
+            <!-- Grid d'analyse -->
+            <div class="analysis-grid">
+                <!-- Section Body Parts -->
+                <section class="analysis-section">
+                    <h3 class="section-title">Body Parts Analysis</h3>
+                    <div id="bodyPartsAnalysis"></div>
+                </section>
+
+                <!-- Section Colors -->
+                <section class="analysis-section">
+                    <h3 class="section-title">Color System Analysis</h3>
+                    <div id="colorSystemAnalysis"></div>
+                </section>
+
+                <!-- Section Symbols -->
+                <section class="analysis-section">
+                    <h3 class="section-title">Symbol Structure</h3>
+                    <div id="symbolStructure"></div>
+                </section>
+
+                <!-- Section References -->
+                <section class="analysis-section">
+                    <h3 class="section-title">References Mapping</h3>
+                    <div id="referencesMapping"></div>
+                </section>
+            </div>
+
+            <!-- Rapport complet -->
+            <section class="full-report">
+                <h2>📊 Rapport Complet d'Analyse</h2>
+                <div class="report-grid" id="fullReport"></div>
+            </section>
+
+            <!-- Debug Panel -->
+            <div class="debug-panel" id="debugPanel">
+                <div class="debug-line">Console d'analyse...</div>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://pixijs.download/release/pixi.js"></script>
+    <script src="data.js"></script>
+    <script src="brute-loader.js"></script>
+    <script>
+        // Variables globales
+        let analyzer = null;
+        let renderer = null;
+        let currentBrute = {
+            gender: 'male',
+            body: '00000000000',
+            colors: '00000000000000000000000000000000'
+        };
+        let pixiApp = null;
+
+        // Initialisation
+        async function initialize() {
+            try {
+                // Masquer le loading immédiatement si les classes n'existent pas
+                if (!window.BruteSymbolAnalyzer) {
+                    console.warn('BruteSymbolAnalyzer non disponible, utilisation du mode simplifié');
+                    
+                    // Créer un analyseur simplifié
+                    analyzer = {
+                        partMapping: new Map([
+                            ['p1', 'Base (toujours 1)'],
+                            ['p1a', 'Ceinture (0=avec, 1=sans)'],
+                            ['p1b', 'Ceinture romaine (0=avec, 1=sans)'],
+                            ['p2', 'Taille du corps (0-7, hommes seulement)'],
+                            ['p3', 'Cheveux (0-11, 12=sans tête)'],
+                            ['p4', 'Barbe/Mèches (H: 0-4 barbe, 5=rien / F: 0-2 mèches, 3=rien)'],
+                            ['p5', 'Chemise (0=sans, 1=avec)'],
+                            ['p6', 'Bas (H: 0=shorts, 1=pantalons / F: 0=shorts, 1=rien)'],
+                            ['p7', 'Vêtement principal (0-6, 7=nu)'],
+                            ['p7b', 'Dessous chaussures (2=visible, autres=cachés)'],
+                            ['p8', 'Chaussures (0-4, mais buggé - ne change rien)']
+                        ]),
+                        symbolStructure: {
+                            male: { name: 'Symbol460', parts: [] },
+                            female: { name: 'Symbol752', parts: [] }
+                        },
+                        getPartReferences: () => ['@p1', '@p1a', '@p1b', '@p2', '@p3', '@p4', '@p5', '@p6', '@p7', '@p7b', '@p8'],
+                        getColorReferences: () => ['@col0', '@col0a', '@col0c', '@col1', '@col1a', '@col1b', '@col1c', '@col1d', '@col2', '@col2a', '@col2b', '@col3', '@col3b', '@col4', '@col4a', '@col4b'],
+                        generateReport: () => ({
+                            symbols: { male: 'Symbol460', female: 'Symbol752' },
+                            parts: Object.fromEntries(analyzer.partMapping),
+                            partReferences: analyzer.getPartReferences(),
+                            colorReferences: analyzer.getColorReferences(),
+                            svgCount: 0,
+                            animations: { idle: { frames: [0], loop: true } }
+                        })
+                    };
+                } else {
+                    // Créer l'analyseur
+                    analyzer = new BruteSymbolAnalyzer();
+                    await analyzer.analyzeSymbolStructure();
+                    await analyzer.loadRealSVGs();
+                }
+
+                // Initialiser PIXI
+                await initializePixi();
+
+                // Afficher l'analyse
+                displayAnalysis();
+
+                // Masquer le loading
+                document.getElementById('loadingSection').style.display = 'none';
+                document.getElementById('analysisContent').style.display = 'block';
+
+                // Créer une brute par défaut
+                updateBrute();
+
+                logDebug('✅ Système initialisé avec succès');
+            } catch (error) {
+                console.error('Erreur d\'initialisation:', error);
+                logDebug('❌ Erreur: ' + error.message);
+                
+                // Masquer le loading même en cas d'erreur
+                document.getElementById('loadingSection').style.display = 'none';
+                document.getElementById('analysisContent').style.display = 'block';
+            }
+        }
+
+        // Initialiser PIXI.js
+        async function initializePixi() {
+            try {
+                const canvas = document.getElementById('bruteCanvas');
+                
+                // Créer l'application PIXI
+                pixiApp = new PIXI.Application();
+                
+                // Initialiser avec les options
+                await pixiApp.init({
+                    canvas: canvas,
+                    width: 300,
+                    height: 400,
+                    backgroundColor: 0x2a2a2a,
+                    antialias: true,
+                    resolution: window.devicePixelRatio || 1,
+                    autoDensity: true
+                });
+
+                // Container principal
+                const mainContainer = new PIXI.Container();
+                mainContainer.x = pixiApp.canvas.width / 2;
+                mainContainer.y = pixiApp.canvas.height / 2;
+                pixiApp.stage.addChild(mainContainer);
+                
+                console.log('✅ PIXI initialisé');
+            } catch (error) {
+                console.error('❌ Erreur PIXI:', error);
+                // Créer un fallback sans PIXI
+                const canvas = document.getElementById('bruteCanvas');
+                const ctx = canvas.getContext('2d');
+                canvas.width = 300;
+                canvas.height = 400;
+                ctx.fillStyle = '#2a2a2a';
+                ctx.fillRect(0, 0, canvas.width, canvas.height);
+                ctx.fillStyle = '#667eea';
+                ctx.font = '16px Arial';
+                ctx.textAlign = 'center';
+                ctx.fillText('Preview Canvas', canvas.width/2, canvas.height/2);
+            }
+        }
+
+        // Afficher l'analyse complète
+        function displayAnalysis() {
+            // Body Parts
+            displayBodyParts();
+            
+            // Colors
+            displayColorSystem();
+            
+            // Symbols
+            displaySymbolStructure();
+            
+            // References
+            displayReferences();
+            
+            // Rapport complet
+            generateFullReport();
+        }
+
+        // Afficher l'analyse des body parts
+        function displayBodyParts() {
+            const container = document.getElementById('bodyPartsAnalysis');
+            const parts = analyzer.partMapping;
+            
+            let html = '';
+            
+            parts.forEach((desc, partKey) => {
+                const availableMale = window.LabruteData.availableBodyParts.male[partKey] || 0;
+                const availableFemale = window.LabruteData.availableBodyParts.female[partKey] || 0;
+                
+                html += `
+                    <div class="part-analysis clickable-part" data-part="${partKey}">
+                        <div class="part-header">
+                            <span class="part-name">${partKey}</span>
+                            <span class="part-value">${desc}</span>
+                        </div>
+                        <div class="variants-grid">
+                `;
+                
+                const maxVariants = Math.max(availableMale, availableFemale);
+                for (let i = 0; i <= maxVariants; i++) {
+                    const inMale = i <= availableMale;
+                    const inFemale = i <= availableFemale;
+                    
+                    html += `
+                        <div class="variant-box ${currentBrute.body[parts.get(partKey)] == i ? 'active' : ''}"
+                             data-part="${partKey}" 
+                             data-value="${i}"
+                             onclick="setPartValue('${partKey}', ${i})"
+                             title="${window.LabruteData.getPartVariantDescription(partKey, i, currentBrute.gender)}">
+                            ${i}
+                            ${inMale && !inFemale ? '♂' : ''}
+                            ${!inMale && inFemale ? '♀' : ''}
+                        </div>
+                    `;
+                }
+                
+                html += `
+                        </div>
+                    </div>
+                `;
+            });
+            
+            container.innerHTML = html;
+        }
+
+        // Afficher le système de couleurs
+        function displayColorSystem() {
+            const container = document.getElementById('colorSystemAnalysis');
+            const colorInfo = window.LabruteData.colorInfo;
+            const colors = window.LabruteData.colors;
+            
+            let html = '';
+            
+            Object.entries(colorInfo).forEach(([key, desc]) => {
+                const colorType = key.startsWith('col0') ? 'skin' : 
+                                key.startsWith('col1') ? 'hair' : 'clothing';
+                
+                const maleColors = colors.male[colorType] || [];
+                const femaleColors = colors.female[colorType] || [];
+                
+                html += `
+                    <div class="color-analysis">
+                        <strong>${key}</strong>: ${desc}
+                        <div class="color-samples">
+                `;
+                
+                const allColors = [...new Set([...maleColors, ...femaleColors])];
+                allColors.forEach((color, index) => {
+                    html += `
+                        <div class="color-sample" 
+                             style="background-color: ${color}"
+                             onclick="setColorValue('${key}', ${index})">
+                            <div class="color-info">${color}</div>
+                        </div>
+                    `;
+                });
+                
+                html += `
+                        </div>
+                    </div>
+                `;
+            });
+            
+            container.innerHTML = html;
+        }
+
+        // Afficher la structure des symboles
+        function displaySymbolStructure() {
+            const container = document.getElementById('symbolStructure');
+            const structure = analyzer.symbolStructure;
+            
+            let html = '<div class="tree-view">';
+            
+            ['male', 'female'].forEach(gender => {
+                const symbol = structure[gender];
+                html += `
+                    <div class="tree-node">
+                        <strong>${symbol.name}</strong> (${gender})
+                        <div class="tree-node">Parts: ${symbol.parts.length}</div>
+                `;
+                
+                // Afficher quelques parties
+                symbol.parts.slice(0, 5).forEach(part => {
+                    html += `
+                        <div class="tree-node">
+                            ${part.name}
+                            ${part.partIdx ? `<span class="reference-tag part-ref">${part.partIdx}</span>` : ''}
+                            ${part.colorIdx ? `<span class="reference-tag color-ref">${part.colorIdx}</span>` : ''}
+                        </div>
+                    `;
+                });
+                
+                html += '</div>';
+            });
+            
+            html += '</div>';
+            container.innerHTML = html;
+        }
+
+        // Afficher les références
+        function displayReferences() {
+            const container = document.getElementById('referencesMapping');
+            
+            const partRefs = analyzer.getPartReferences();
+            const colorRefs = analyzer.getColorReferences();
+            
+            let html = '<h4>Part References:</h4><div>';
+            partRefs.forEach(ref => {
+                html += `<span class="reference-tag part-ref">${ref}</span>`;
+            });
+            
+            html += '</div><h4>Color References:</h4><div>';
+            colorRefs.forEach(ref => {
+                html += `<span class="reference-tag color-ref">${ref}</span>`;
+            });
+            
+            html += '</div>';
+            container.innerHTML = html;
+        }
+
+        // Générer le rapport complet
+        function generateFullReport() {
+            const container = document.getElementById('fullReport');
+            const report = analyzer.generateReport();
+            
+            let html = '';
+            
+            // Statistiques
+            html += `
+                <div class="report-item">
+                    <h4>📊 Statistiques</h4>
+                    <ul>
+                        <li>Symboles: ${Object.keys(report.symbols).length}</li>
+                        <li>Body Parts: ${Object.keys(report.parts).length}</li>
+                        <li>Références Parts: ${report.partReferences.length}</li>
+                        <li>Références Couleurs: ${report.colorReferences.length}</li>
+                        <li>SVGs chargés: ${report.svgCount}</li>
+                    </ul>
+                </div>
+            `;
+            
+            // Configuration actuelle
+            html += `
+                <div class="report-item">
+                    <h4>🎮 Configuration Actuelle</h4>
+                    <div style="font-family: monospace; font-size: 0.875rem;">
+                        <div>Gender: ${currentBrute.gender}</div>
+                        <div>Body: ${currentBrute.body}</div>
+                        <div>Colors: ${currentBrute.colors}</div>
+                    </div>
+                </div>
+            `;
+            
+            // Animations
+            html += `
+                <div class="report-item">
+                    <h4>🎬 Animations</h4>
+                    <ul>
+            `;
+            
+            Object.entries(report.animations).forEach(([anim, data]) => {
+                html += `<li>${anim}: ${data.frames.length} frames ${data.loop ? '(loop)' : ''}</li>`;
+            });
+            
+            html += `
+                    </ul>
+                </div>
+            `;
+            
+            container.innerHTML = html;
+        }
+
+        // Fonctions interactives
+        function setPartValue(part, value) {
+            const bodyArray = currentBrute.body.split('');
+            const partIndex = window.LabruteData.bodyPartsOrder.indexOf(part);
+            if (partIndex >= 0) {
+                bodyArray[partIndex] = value.toString(16);
+                currentBrute.body = bodyArray.join('');
+                updateBrute();
+                displayBodyParts();
+                logDebug(`Part ${part} = ${value}`);
+            }
+        }
+
+        function setColorValue(color, value) {
+            const colorArray = currentBrute.colors.match(/.{2}/g);
+            const colorIndex = window.LabruteData.colorOrder.indexOf(color);
+            if (colorIndex >= 0 && colorArray) {
+                colorArray[colorIndex] = value.toString().padStart(2, '0');
+                currentBrute.colors = colorArray.join('');
+                updateBrute();
+                logDebug(`Color ${color} = ${value}`);
+            }
+        }
+
+        function randomizeBrute() {
+            const random = window.LabruteData.generateRandomBrute(currentBrute.gender);
+            currentBrute.body = random.bodyString;
+            currentBrute.colors = random.colorString;
+            updateBrute();
+            displayAnalysis();
+            logDebug('🎲 Brute aléatoire générée');
+        }
+
+        function switchGender() {
+            currentBrute.gender = currentBrute.gender === 'male' ? 'female' : 'male';
+            updateBrute();
+            displayAnalysis();
+            logDebug(`⚧ Genre changé: ${currentBrute.gender}`);
+        }
+
+        function exportConfig() {
+            const config = {
+                gender: currentBrute.gender,
+                body: currentBrute.body,
+                colors: currentBrute.colors,
+                parts: window.LabruteData.readBodyString(currentBrute.body),
+                colorValues: window.LabruteData.readColorString(currentBrute.colors),
+                timestamp: new Date().toISOString()
+            };
+            
+            navigator.clipboard.writeText(JSON.stringify(config, null, 2));
+            alert('Configuration copiée dans le presse-papiers !');
+            logDebug('💾 Configuration exportée');
+        }
+
+        function analyzeStructure() {
+            const analysis = {
+                symbol: currentBrute.gender === 'male' ? 'Symbol460' : 'Symbol752',
+                activeParts: Object.entries(window.LabruteData.readBodyString(currentBrute.body))
+                    .filter(([k,v]) => v > 0)
+                    .map(([k,v]) => `${k}=${v}`),
+                activeColors: Object.entries(window.LabruteData.readColorString(currentBrute.colors))
+                    .filter(([k,v]) => v > 0)
+                    .map(([k,v]) => `${k}=${v}`)
+            };
+            
+            console.log('🔍 Analyse détaillée:', analysis);
+            logDebug('🔍 Analyse effectuée (voir console)');
+        }
+
+        function updateBrute() {
+            // Mettre à jour PIXI directement
+            updatePixiDisplay();
+            
+            // Mettre à jour l'affichage des parties
+            displayAnalysis();
+        }
+
+        function updatePixiDisplay() {
+            if (!pixiApp) return;
+
+            // Clear stage
+            pixiApp.stage.removeChildren();
+
+            // Créer un nouveau container
+            const container = new PIXI.Container();
+            container.x = pixiApp.canvas.width / 2;
+            container.y = pixiApp.canvas.height / 2;
+
+            // Dessiner la brute basée sur les données actuelles
+            const parts = window.LabruteData.readBodyString(currentBrute.body);
+            const colors = window.LabruteData.readColorString(currentBrute.colors);
+
+            // Obtenir les couleurs
+            const skinColor = parseInt(window.LabruteData.getColor(
+                currentBrute.gender, 'skin', colors.col0 || 0
+            ).replace('#', ''), 16);
+
+            // Corps simple pour la démo
+            const graphics = new PIXI.Graphics();
+            graphics.beginFill(skinColor);
+            graphics.drawEllipse(0, 0, 50, 80);
+            graphics.endFill();
+
+            container.addChild(graphics);
+            pixiApp.stage.addChild(container);
+        }
+
+        function logDebug(message) {
+            const panel = document.getElementById('debugPanel');
+            const line = document.createElement('div');
+            line.className = 'debug-line';
+            line.textContent = `[${new Date().toLocaleTimeString()}] ${message}`;
+            panel.appendChild(line);
+            panel.scrollTop = panel.scrollHeight;
+        }
+
+        // Initialiser au chargement
+        document.addEventListener('DOMContentLoaded', initialize);
+    </script>
+</body>
+</html> 

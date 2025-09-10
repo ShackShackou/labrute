@@ -3,7 +3,7 @@ import { FIGHTER_HEIGHT, StealStep, WeaponById } from '@labrute/core';
 
 import { sound } from '@pixi/sound';
 import { Easing } from 'pixi-tweener';
-import { Application } from 'pixi.js';
+import { Application } from 'pixi-legacy';
 import { getRandomPosition } from './utils/fightPositions';
 import findFighter, { AnimationFighter } from './utils/findFighter';
 import { airbornMove } from './utils/updateShadow';

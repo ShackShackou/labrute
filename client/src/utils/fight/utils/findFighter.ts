@@ -1,5 +1,5 @@
 import { Fighter } from '@labrute/core';
-import * as PIXI from 'pixi.js';
+import * as PIXI from 'pixi-legacy';
 import FighterHolder from '../FighterHolder';
 
 export interface AnimationFighter extends Omit<Fighter, 'shield'> {

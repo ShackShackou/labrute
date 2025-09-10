@@ -1,6 +1,6 @@
 /* eslint-disable no-void */
 import { TrapStep } from '@labrute/core';
-import { Application, Sprite } from 'pixi.js';
+import { Application, Sprite } from 'pixi-legacy';
 
 import { sound } from '@pixi/sound';
 import { Easing, Tweener } from 'pixi-tweener';

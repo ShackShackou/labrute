@@ -1,0 +1,311 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>LaBrute Combat - Moteur Intégré</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #1e3c72 0%, #2a5298 100%);
+            display: flex;
+            height: 100vh;
+            overflow: hidden;
+        }
+        
+        #game-container {
+            flex: 1;
+            position: relative;
+        }
+        
+        #sidebar {
+            width: 400px;
+            background: rgba(0,0,0,0.9);
+            color: white;
+            padding: 20px;
+            overflow-y: auto;
+            border-left: 3px solid #ffd700;
+        }
+        
+        .header {
+            text-align: center;
+            margin-bottom: 20px;
+        }
+        
+        .header h1 {
+            color: #ffd700;
+            font-size: 24px;
+            margin-bottom: 10px;
+        }
+        
+        .section {
+            background: rgba(255,255,255,0.05);
+            border-radius: 8px;
+            padding: 15px;
+            margin-bottom: 15px;
+            border: 1px solid rgba(255,215,0,0.3);
+        }
+        
+        .section h3 {
+            color: #ffd700;
+            margin-bottom: 10px;
+            font-size: 16px;
+        }
+        
+        button {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            margin: 5px;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 14px;
+            transition: transform 0.2s;
+        }
+        
+        button:hover {
+            transform: scale(1.05);
+        }
+        
+        button:active {
+            transform: scale(0.95);
+        }
+        
+        .speed-btn {
+            background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+        }
+        
+        .active-speed {
+            background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
+        }
+        
+        .fighter-config {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 10px;
+            margin-top: 10px;
+        }
+        
+        .stat-input {
+            display: flex;
+            flex-direction: column;
+        }
+        
+        .stat-input label {
+            font-size: 12px;
+            color: #aaa;
+            margin-bottom: 3px;
+        }
+        
+        .stat-input input, .stat-input select {
+            padding: 5px;
+            border-radius: 3px;
+            border: 1px solid #444;
+            background: rgba(0,0,0,0.5);
+            color: white;
+        }
+        
+        #fight-log {
+            max-height: 300px;
+            overflow-y: auto;
+            background: rgba(0,0,0,0.5);
+            padding: 10px;
+            border-radius: 5px;
+            font-size: 12px;
+            font-family: 'Courier New', monospace;
+        }
+        
+        .log-entry {
+            margin: 3px 0;
+            padding: 3px 5px;
+            border-left: 3px solid transparent;
+        }
+        
+        .log-hit { border-left-color: #ff4757; color: #ff6b6b; }
+        .log-block { border-left-color: #3742fa; color: #5f6fee; }
+        .log-evade { border-left-color: #ffd700; color: #ffe66d; }
+        .log-death { border-left-color: #ee5a24; color: #ff0000; font-weight: bold; }
+        .log-skill { border-left-color: #a29bfe; color: #b8b3ff; }
+        .log-move { border-left-color: #00d2d3; color: #54e0e0; }
+        
+        .stats-display {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 10px;
+            margin-top: 10px;
+        }
+        
+        .stat-box {
+            text-align: center;
+            padding: 5px;
+            background: rgba(255,255,255,0.05);
+            border-radius: 3px;
+        }
+        
+        .stat-label {
+            font-size: 10px;
+            color: #888;
+        }
+        
+        .stat-value {
+            font-size: 20px;
+            font-weight: bold;
+            color: #ffd700;
+        }
+        
+        .weapon-select {
+            margin-top: 10px;
+        }
+        
+        .weapon-select select {
+            width: 100%;
+            padding: 8px;
+            background: rgba(0,0,0,0.5);
+            color: white;
+            border: 1px solid #444;
+            border-radius: 3px;
+        }
+    </style>
+</head>
+<body>
+    <div id="game-container"></div>
+    
+    <div id="sidebar">
+        <div class="header">
+            <h1>⚔️ LaBrute Combat Engine</h1>
+            <small>Moteur Phaser + Spine avec mécaniques officielles</small>
+        </div>
+        
+        <div class="section">
+            <h3>🎮 Contrôles</h3>
+            <div style="text-align: center;">
+                <button id="btn-generate">🎲 Nouveau Combat</button>
+                <button id="btn-play">▶ Jouer</button>
+                <button id="btn-pause">⏸ Pause</button>
+                <button id="btn-reset">↺ Reset</button>
+            </div>
+            <div style="text-align: center; margin-top: 10px;">
+                <button class="speed-btn active-speed" data-speed="1">1x</button>
+                <button class="speed-btn" data-speed="2">2x</button>
+                <button class="speed-btn" data-speed="4">4x</button>
+                <button class="speed-btn" data-speed="0.5">0.5x</button>
+            </div>
+        </div>
+        
+        <div class="section">
+            <h3>👤 Combattant 1 (Gauche)</h3>
+            <div class="fighter-config">
+                <div class="stat-input">
+                    <label>Nom</label>
+                    <input type="text" id="f1-name" value="Brutus">
+                </div>
+                <div class="stat-input">
+                    <label>Niveau</label>
+                    <input type="number" id="f1-level" value="10" min="1" max="100">
+                </div>
+            </div>
+            <div class="stats-display">
+                <div class="stat-box">
+                    <div class="stat-label">FOR</div>
+                    <div class="stat-value" id="f1-str">15</div>
+                </div>
+                <div class="stat-box">
+                    <div class="stat-label">AGI</div>
+                    <div class="stat-value" id="f1-agi">12</div>
+                </div>
+                <div class="stat-box">
+                    <div class="stat-label">VIT</div>
+                    <div class="stat-value" id="f1-spd">10</div>
+                </div>
+                <div class="stat-box">
+                    <div class="stat-label">END</div>
+                    <div class="stat-value" id="f1-end">8</div>
+                </div>
+                <div class="stat-box">
+                    <div class="stat-label">HP</div>
+                    <div class="stat-value" id="f1-hp">120</div>
+                </div>
+                <div class="stat-box">
+                    <div class="stat-label">Init</div>
+                    <div class="stat-value" id="f1-init">0</div>
+                </div>
+            </div>
+            <div class="weapon-select">
+                <select id="f1-weapons" multiple size="3">
+                    <option value="sword" selected>Épée</option>
+                    <option value="axe">Hache</option>
+                    <option value="knife">Couteau</option>
+                    <option value="broadsword">Épée large</option>
+                    <option value="whip">Fouet</option>
+                </select>
+            </div>
+        </div>
+        
+        <div class="section">
+            <h3>👤 Combattant 2 (Droite)</h3>
+            <div class="fighter-config">
+                <div class="stat-input">
+                    <label>Nom</label>
+                    <input type="text" id="f2-name" value="Maximus">
+                </div>
+                <div class="stat-input">
+                    <label>Niveau</label>
+                    <input type="number" id="f2-level" value="10" min="1" max="100">
+                </div>
+            </div>
+            <div class="stats-display">
+                <div class="stat-box">
+                    <div class="stat-label">FOR</div>
+                    <div class="stat-value" id="f2-str">18</div>
+                </div>
+                <div class="stat-box">
+                    <div class="stat-label">AGI</div>
+                    <div class="stat-value" id="f2-agi">8</div>
+                </div>
+                <div class="stat-box">
+                    <div class="stat-label">VIT</div>
+                    <div class="stat-value" id="f2-spd">8</div>
+                </div>
+                <div class="stat-box">
+                    <div class="stat-label">END</div>
+                    <div class="stat-value" id="f2-end">12</div>
+                </div>
+                <div class="stat-box">
+                    <div class="stat-label">HP</div>
+                    <div class="stat-value" id="f2-hp">150</div>
+                </div>
+                <div class="stat-box">
+                    <div class="stat-label">Init</div>
+                    <div class="stat-value" id="f2-init">0</div>
+                </div>
+            </div>
+            <div class="weapon-select">
+                <select id="f2-weapons" multiple size="3">
+                    <option value="flail" selected>Fléau</option>
+                    <option value="mammothBone">Os de mammouth</option>
+                    <option value="halbard">Hallebarde</option>
+                    <option value="morningStar">Étoile du matin</option>
+                </select>
+            </div>
+        </div>
+        
+        <div class="section">
+            <h3>📜 Journal de Combat</h3>
+            <div id="fight-log"></div>
+        </div>
+        
+        <div class="section">
+            <h3>📊 Statistiques</h3>
+            <div id="stats-summary">
+                <small>Aucun combat lancé</small>
+            </div>
+        </div>
+    </div>
+    
+    <script src="https://cdn.jsdelivr.net/npm/phaser@3.70.0/dist/phaser.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@esotericsoftware/spine-phaser@4.1.55/dist/iife/spine-phaser.js"></script>
+    <script type="module" src="js/main.js"></script>
+</body>
+</html>

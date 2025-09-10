@@ -1,0 +1,89 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Test Spine Direct</title>
+    <style>
+        body { margin: 0; background: #222; }
+        #game { display: flex; justify-content: center; align-items: center; min-height: 100vh; }
+    </style>
+</head>
+<body>
+    <div id="game"></div>
+    
+    <script src="https://cdn.jsdelivr.net/npm/phaser@3.70.0/dist/phaser.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@esotericsoftware/spine-phaser@4.1.55/dist/iife/spine-phaser.js"></script>
+    <script>
+        console.log('SpinePlugin available:', typeof window.SpinePlugin);
+        
+        class TestScene extends Phaser.Scene {
+            preload() {
+                console.log('Preload - spine loader available:', typeof this.load.spine);
+                
+                // Méthode 1: Directe
+                if (this.load.spine) {
+                    this.load.spine('spineboy', 'assets/spine/spineboy-pro.json', 'assets/spine/spineboy.atlas', true);
+                } 
+                // Méthode 2: Séparée
+                else if (this.load.spineJson) {
+                    this.load.spineJson('spineboy-data', 'assets/spine/spineboy-pro.json');
+                    this.load.spineAtlas('spineboy-atlas', 'assets/spine/spineboy.atlas');
+                }
+                // Méthode 3: Fallback manuel
+                else {
+                    console.log('Loading Spine manually...');
+                    this.load.text('spineboy-json', 'assets/spine/spineboy-pro.json');
+                    this.load.text('spineboy-atlas', 'assets/spine/spineboy.atlas');
+                    this.load.image('spineboy-png', 'assets/spine/spineboy.png');
+                }
+            }
+            
+            create() {
+                this.add.text(400, 50, 'Spine Test', { fontSize: '32px', color: '#fff' }).setOrigin(0.5);
+                
+                try {
+                    // Essayer de créer le sprite
+                    if (this.add.spine) {
+                        const spine = this.add.spine(400, 400, 'spineboy', 'spineboy', true);
+                        spine.setScale(0.5);
+                        if (spine.animationState) {
+                            spine.animationState.setAnimation(0, 'idle', true);
+                        }
+                        this.add.text(400, 500, 'Spine loaded!', { fontSize: '24px', color: '#0f0' }).setOrigin(0.5);
+                    } else {
+                        throw new Error('No spine in add');
+                    }
+                } catch (e) {
+                    console.error('Spine creation failed:', e);
+                    // Fallback
+                    const rect = this.add.rectangle(400, 400, 100, 150, 0xff0000);
+                    this.add.text(400, 500, 'Fallback rectangle', { fontSize: '24px', color: '#f00' }).setOrigin(0.5);
+                }
+            }
+        }
+        
+        // Configuration avec différentes tentatives
+        const config = {
+            type: Phaser.AUTO,
+            width: 800,
+            height: 600,
+            parent: 'game',
+            scene: TestScene,
+            plugins: {
+                scene: [{
+                    key: 'SpinePlugin',
+                    plugin: window.SpinePlugin,
+                    mapping: 'spine'
+                }]
+            }
+        };
+        
+        // Attendre que tout soit chargé
+        window.addEventListener('load', () => {
+            console.log('Creating game...');
+            const game = new Phaser.Game(config);
+        });
+    </script>
+</body>
+</html>

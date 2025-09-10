@@ -1,7 +1,7 @@
 /* eslint-disable no-void */
 import { HealStep } from '@labrute/core';
 import { Tweener } from 'pixi-tweener';
-import { Application, Sprite } from 'pixi.js';
+import { Application, Sprite } from 'pixi-legacy';
 
 import { sound } from '@pixi/sound';
 import updateHp from './updateHp';

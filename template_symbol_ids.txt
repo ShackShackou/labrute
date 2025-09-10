@@ -1,0 +1,46 @@
+TEMPLATE POUR NOTER LES SYMBOL IDs
+===================================
+
+Date: _____________
+Outil: JPEXS Free Flash Decompiler
+
+PERSONNAGES PRINCIPAUX:
+----------------------
+Symbol460 = Personnage masculin complet ✓
+Symbol752 = Personnage féminin complet ✓
+
+PARTIES DU CORPS HOMME (dans Symbol460):
+----------------------------------------
+p1 (base) = Symbol____
+p2 (musculature) variante 0 = Symbol____
+p2 (musculature) variante 1 = Symbol____
+p2 (musculature) variante 2 = Symbol____
+p2 (musculature) variante 3 = Symbol____
+p2 (musculature) variante 4 = Symbol____
+p2 (musculature) variante 5 = Symbol____
+p2 (musculature) variante 6 = Symbol____
+
+p3 (cheveux) style 0 = Symbol____
+p3 (cheveux) style 1 = Symbol____
+[... continuer pour les 11 styles ...]
+
+p4 (barbe) style 0 = Symbol____
+[... continuer pour les 5 styles ...]
+
+ARMES:
+------
+Épée = Symbol____
+Hache = Symbol____
+Lance = Symbol____
+[... continuer pour toutes les armes ...]
+
+ANIMAUX:
+--------
+Ours = Symbol____
+Chien = Symbol____
+Panthère = Symbol____
+
+AUTRES ÉLÉMENTS:
+----------------
+Symbol____ = ________________
+Symbol____ = ________________

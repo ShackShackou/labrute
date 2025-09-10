@@ -1,0 +1,309 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Test Intégration LaBrute</title>
+    <style>
+        body {
+            margin: 0;
+            padding: 20px;
+            background: #2d2419;
+            color: white;
+            font-family: Arial, sans-serif;
+        }
+        
+        .test-container {
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+        
+        .test-section {
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 8px;
+            padding: 20px;
+            margin: 20px 0;
+        }
+        
+        .test-button {
+            background: #4a90e2;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            padding: 10px 20px;
+            cursor: pointer;
+            margin: 5px;
+            font-size: 14px;
+        }
+        
+        .test-button:hover {
+            background: #357abd;
+        }
+        
+        .test-data {
+            background: rgba(0, 0, 0, 0.3);
+            border-radius: 4px;
+            padding: 10px;
+            margin: 10px 0;
+            font-family: monospace;
+            font-size: 12px;
+            overflow-x: auto;
+        }
+        
+        .game-container {
+            width: 100%;
+            height: 600px;
+            border: 2px solid #4a90e2;
+            border-radius: 8px;
+            margin: 20px 0;
+            background: #000;
+            position: relative;
+        }
+        
+        .game-info {
+            position: absolute;
+            top: 10px;
+            left: 10px;
+            background: rgba(0, 0, 0, 0.8);
+            color: white;
+            padding: 10px;
+            border-radius: 4px;
+            z-index: 1000;
+        }
+    </style>
+</head>
+<body>
+    <div class="test-container">
+        <h1>🧪 Test Intégration LaBrute - Moteur Phaser+Spine</h1>
+        
+        <div class="test-section">
+            <h2>📋 Données de Test</h2>
+            <p>Ce fichier teste l'intégration entre LaBrute et ton moteur de combat.</p>
+            
+            <div class="test-data" id="sample-data">
+                Chargement des données de test...
+            </div>
+            
+            <button class="test-button" onclick="loadSampleFight()">🎯 Charger Combat Test</button>
+            <button class="test-button" onclick="simulateFightSteps()">⚔️ Simuler Étapes</button>
+            <button class="test-button" onclick="resetTest()">🔄 Reset Test</button>
+            <button class="test-button" onclick="startLaBruteScene()">🚀 Démarrer Scène LaBrute</button>
+        </div>
+        
+        <div class="test-section">
+            <h2>🎮 Moteur de Combat</h2>
+            <p>Ton moteur Phaser+Spine intégré avec LaBrute :</p>
+            
+            <div id="game-container" class="game-container">
+                <div class="game-info">
+                    <div>Moteur Phaser+Spine</div>
+                    <div id="scene-info">Scène: -</div>
+                    <div id="game-status">Status: -</div>
+                </div>
+                <!-- Le jeu Phaser sera injecté ici -->
+            </div>
+        </div>
+        
+        <div class="test-section">
+            <h2>📊 Logs de Test</h2>
+            <div id="test-logs" class="test-data">
+                En attente des événements...
+            </div>
+        </div>
+    </div>
+
+    <!-- Scripts -->
+    <script type="module" src="src/main.js"></script>
+    
+    <script>
+        // Interface LaBrute intégrée
+        let isPlaying = true;
+        let fightSpeed = 1;
+        let soundOn = true;
+        let musicOn = true;
+        let gameInstance = null;
+        let simulationInProgress = false;
+        
+        // Données de test LaBrute
+        const sampleFightData = {
+            id: "test-fight-123",
+            brute1Id: "brute-alpha",
+            brute2Id: "brute-beta",
+            winner: "brute-alpha",
+            background: "arena",
+            steps: JSON.stringify([
+                { a: "Move", f: "brute-alpha", d: 50 },
+                { a: "Hit", f: "brute-alpha", t: "brute-beta", d: 25, w: "sword", c: 0, s: 0 },
+                { a: "Block", f: "brute-beta" },
+                { a: "Move", f: "brute-beta", d: -30 },
+                { a: "Hit", f: "brute-beta", t: "brute-alpha", d: 20, w: "axe", c: 1, s: 0 },
+                { a: "Evade", f: "brute-alpha" },
+                { a: "Hit", f: "brute-alpha", t: "brute-beta", d: 30, w: "sword", c: 0, s: 1 },
+                { a: "Death", f: "brute-beta" },
+                { a: "End", w: "brute-alpha", l: "brute-beta" }
+            ]),
+            fighters: JSON.stringify([
+                {
+                    id: "brute-alpha",
+                    name: "Brute Alpha",
+                    team: "L",
+                    hp: 100,
+                    maxHp: 100,
+                    strengthValue: 25,
+                    agilityValue: 15,
+                    speedValue: 18,
+                    initiative: 5,
+                    skills: ["berserker", "counter"],
+                    weapons: ["sword", "shield"],
+                    pets: [],
+                    body: "00000000000",
+                    colors: "00000000000000000000000000000000",
+                    x: 200,
+                    y: 300
+                },
+                {
+                    id: "brute-beta",
+                    name: "Brute Beta",
+                    team: "R",
+                    hp: 100,
+                    maxHp: 100,
+                    strengthValue: 22,
+                    agilityValue: 18,
+                    speedValue: 20,
+                    initiative: 3,
+                    skills: ["evasion", "block"],
+                    weapons: ["axe", "dagger"],
+                    pets: [],
+                    body: "00000000000",
+                    colors: "00000000000000000000000000000000",
+                    x: 800,
+                    y: 300
+                }
+            ])
+        };
+
+        // Afficher les données de test
+        document.getElementById('sample-data').textContent = JSON.stringify(sampleFightData, null, 2);
+
+        // Logs de test
+        function logTest(message) {
+            const logsDiv = document.getElementById('test-logs');
+            const timestamp = new Date().toLocaleTimeString();
+            const logEntry = document.createElement('div');
+            logEntry.textContent = `[${timestamp}] ${message}`;
+            logsDiv.appendChild(logEntry);
+            
+            // Garder seulement les 20 derniers logs
+            while (logsDiv.children.length > 20) {
+                logsDiv.removeChild(logsDiv.firstChild);
+            }
+            
+            logsDiv.scrollTop = logsDiv.scrollHeight;
+        }
+
+        // Démarrer la scène LaBrute
+        function startLaBruteScene() {
+            if (window.game && window.game.scene) {
+                const running = window.game.scene.isActive('LaBruteFight');
+                if (running) { logTest('ℹ️ Scène déjà active'); updateGameInfo('LaBruteFight', 'Actif'); return; }
+                try {
+                    window.game.scene.start('LaBruteFight');
+                    logTest('✅ Scène LaBrute démarrée avec succès');
+                    updateGameInfo('LaBruteFight', 'Actif');
+                } catch (error) {
+                    logTest(`❌ Erreur démarrage scène: ${error.message}`);
+                }
+            } else {
+                logTest('❌ Instance Phaser non trouvée');
+            }
+        }
+
+        // Charger un combat de test
+        function loadSampleFight() {
+            const currentScene = window.game?.scene?.getScene('LaBruteFight');
+            if (!currentScene) { logTest('❌ Scène non active'); return; }
+            currentScene.loadLaBruteFight(sampleFightData);
+            logTest('✅ Données de combat envoyées au moteur');
+        }
+
+        // Simuler des étapes de combat
+        function simulateFightSteps() {
+            if (simulationInProgress) { logTest('⏳ Simulation déjà en cours'); return; }
+            const currentScene = window.game?.scene?.getScene('LaBruteFight');
+            if (!currentScene) { logTest('❌ Scène non active'); return; }
+            simulationInProgress = true;
+            currentScene.startFight();
+            logTest('▶️ Combat démarré');
+            setTimeout(() => { currentScene.setFightSpeed(2); logTest('⚡ Vitesse augmentée à x2'); }, 1200);
+            setTimeout(() => { currentScene.pauseFight(); logTest('⏸️ Combat mis en pause'); simulationInProgress = false; }, 4000);
+        }
+
+        // Reset du test
+        function resetTest() {
+            logTest('🔄 Reset du test...');
+            document.getElementById('test-logs').innerHTML = 'En attente des événements...';
+            updateGameInfo('-', '-');
+        }
+
+        // Mettre à jour les infos du jeu
+        function updateGameInfo(scene, status) {
+            document.getElementById('scene-info').textContent = `Scène: ${scene}`;
+            document.getElementById('game-status').textContent = `Status: ${status}`;
+        }
+
+        // Écouter les messages du moteur
+        window.addEventListener('message', (event) => {
+            // Ignore Vite HMR and unrelated messages
+            const payload = event?.data;
+            if (!payload || typeof payload !== 'object' || !payload.type) return;
+
+            const { type, data } = payload;
+            
+            switch (type) {
+                case 'READY':
+                    logTest('🎮 Moteur de combat prêt');
+                    updateGameInfo('-', 'Prêt');
+                    break;
+                case 'FIGHT_LOADED':
+                    updateCombatInfo(data);
+                    break;
+                case 'FIGHT_STEP':
+                    updateCombatProgress(data);
+                    break;
+                case 'FIGHT_ENDED': {
+                    const winner = data?.winner || data;
+                    updateCombatEnd({ winner });
+                    break;
+                }
+                case 'COMBAT_LOG':
+                    appendCombatLog(data.message);
+                    break;
+                default:
+                    break;
+            }
+        });
+
+        // Initialisation
+        logTest('🧪 Test d\'intégration LaBrute démarré');
+        logTest('📋 Utilise les boutons ci-dessus pour tester le moteur');
+        logTest('💡 Commence par "Démarrer Scène LaBrute" puis "Charger Combat Test"');
+        
+        // Vérifier que Phaser est chargé
+        window.addEventListener('load', () => {
+            setTimeout(() => {
+                try {
+                    if (window.game && window.game.scene) {
+                        logTest('✅ Moteur Phaser détecté');
+                        updateGameInfo('-', 'Phaser chargé');
+                    } else {
+                        throw new Error('window.game absent');
+                    }
+                } catch (e) {
+                    logTest(`❌ Erreur init: ${e.message}`);
+                    updateGameInfo('-', 'Erreur');
+                }
+            }, 2000);
+        });
+    </script>
+</body>
+</html>

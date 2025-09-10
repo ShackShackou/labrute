@@ -2,7 +2,7 @@
 import { EquipStep, WeaponById } from '@labrute/core';
 
 import { sound } from '@pixi/sound';
-import { Application } from 'pixi.js';
+import { Application } from 'pixi-legacy';
 import findFighter, { AnimationFighter } from './utils/findFighter';
 import updateWeapons from './updateWeapons';
 

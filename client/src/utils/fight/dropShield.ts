@@ -1,5 +1,5 @@
 import { DropShieldStep } from '@labrute/core';
-import { Application } from 'pixi.js';
+import { Application } from 'pixi-legacy';
 
 import findFighter, { AnimationFighter } from './utils/findFighter';
 import itemDrop from './itemDrop';

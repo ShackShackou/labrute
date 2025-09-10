@@ -1,0 +1,731 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>LaBrute Combat - Moteur Réel avec Spine</title>
+    <!-- Phaser 3.60.0 + SpinePlugin (combo validée) -->
+    <script src="https://cdn.jsdelivr.net/npm/phaser@3.60.0/dist/phaser.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/gh/phaserjs/spine-phaser@main/dist/SpinePlugin.min.js"></script>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            display: flex;
+            min-height: 100vh;
+        }
+        
+        #game-container {
+            flex: 1;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            position: relative;
+        }
+        
+        #sidebar {
+            width: 380px;
+            background: rgba(0,0,0,0.9);
+            color: white;
+            padding: 20px;
+            overflow-y: auto;
+            height: 100vh;
+        }
+        
+        h1 {
+            color: #ffd700;
+            text-align: center;
+            margin-bottom: 20px;
+        }
+        
+        .section {
+            background: rgba(255,255,255,0.05);
+            border-radius: 8px;
+            padding: 15px;
+            margin-bottom: 15px;
+            border: 1px solid rgba(255,215,0,0.3);
+        }
+        
+        button {
+            background: #4CAF50;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            margin: 5px;
+            cursor: pointer;
+            font-size: 14px;
+            border-radius: 5px;
+            width: calc(50% - 10px);
+        }
+        
+        button:hover { background: #45a049; }
+        
+        .controls {
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: space-between;
+        }
+        
+        #log {
+            background: rgba(0,0,0,0.5);
+            padding: 10px;
+            border-radius: 5px;
+            max-height: 300px;
+            overflow-y: auto;
+            font-size: 12px;
+            font-family: monospace;
+        }
+        
+        .log-entry {
+            margin: 2px 0;
+            padding: 2px 5px;
+        }
+        
+        .log-hit { color: #ff6b6b; }
+        .log-block { color: #4ecdc4; }
+        .log-evade { color: #ffe66d; }
+        .log-move { color: #95e1d3; }
+        .log-death { color: #ff0000; font-weight: bold; }
+        
+        .fighter-stats {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 10px;
+            margin-top: 10px;
+        }
+        
+        .stat {
+            text-align: center;
+            padding: 5px;
+            background: rgba(255,255,255,0.05);
+            border-radius: 3px;
+        }
+        
+        .stat-label {
+            font-size: 10px;
+            color: #888;
+        }
+        
+        .stat-value {
+            font-size: 18px;
+            color: #ffd700;
+            font-weight: bold;
+        }
+    </style>
+</head>
+<body>
+    <div id="game-container"></div>
+    
+    <div id="sidebar">
+        <h1>⚔️ LaBrute Combat</h1>
+        <small style="text-align: center; display: block; color: #888;">Mécaniques officielles + Spine</small>
+        
+        <div class="section">
+            <h3>🎮 Contrôles</h3>
+            <div class="controls">
+                <button onclick="generateFight()">🎲 Nouveau Combat</button>
+                <button onclick="playFight()">▶ Jouer</button>
+                <button onclick="pauseFight()">⏸ Pause</button>
+                <button onclick="resetFight()">↺ Reset</button>
+            </div>
+        </div>
+        
+        <div class="section">
+            <h3>👤 Combattant 1</h3>
+            <div class="fighter-stats">
+                <div class="stat">
+                    <div class="stat-label">FOR</div>
+                    <div class="stat-value" id="f1-str">15</div>
+                </div>
+                <div class="stat">
+                    <div class="stat-label">AGI</div>
+                    <div class="stat-value" id="f1-agi">12</div>
+                </div>
+                <div class="stat">
+                    <div class="stat-label">VIT</div>
+                    <div class="stat-value" id="f1-spd">10</div>
+                </div>
+                <div class="stat">
+                    <div class="stat-label">END</div>
+                    <div class="stat-value" id="f1-end">10</div>
+                </div>
+                <div class="stat">
+                    <div class="stat-label">HP</div>
+                    <div class="stat-value" id="f1-hp">100</div>
+                </div>
+                <div class="stat">
+                    <div class="stat-label">LVL</div>
+                    <div class="stat-value" id="f1-lvl">10</div>
+                </div>
+            </div>
+        </div>
+        
+        <div class="section">
+            <h3>👤 Combattant 2</h3>
+            <div class="fighter-stats">
+                <div class="stat">
+                    <div class="stat-label">FOR</div>
+                    <div class="stat-value" id="f2-str">18</div>
+                </div>
+                <div class="stat">
+                    <div class="stat-label">AGI</div>
+                    <div class="stat-value" id="f2-agi">8</div>
+                </div>
+                <div class="stat">
+                    <div class="stat-label">VIT</div>
+                    <div class="stat-value" id="f2-spd">8</div>
+                </div>
+                <div class="stat">
+                    <div class="stat-label">END</div>
+                    <div class="stat-value" id="f2-end">15</div>
+                </div>
+                <div class="stat">
+                    <div class="stat-label">HP</div>
+                    <div class="stat-value" id="f2-hp">120</div>
+                </div>
+                <div class="stat">
+                    <div class="stat-label">LVL</div>
+                    <div class="stat-value" id="f2-lvl">10</div>
+                </div>
+            </div>
+        </div>
+        
+        <div class="section">
+            <h3>📜 Combat Log</h3>
+            <div id="log"></div>
+        </div>
+    </div>
+    
+    <script>
+        // ========== VRAIES MÉCANIQUES LABRUTE ==========
+        
+        const StepType = {
+            Move: 15, MoveBack: 17, Hit: 9, Block: 20, Evade: 21,
+            AttemptHit: 19, Death: 24, End: 26, Equip: 18
+        };
+        
+        const BARE_HANDS_DAMAGE = 5;
+        const BASE_STATS = {
+            evasion: 0.1,
+            block: -0.25,
+            criticalChance: 0.05,
+            criticalDamage: 1.5,
+            tempo: 1.2
+        };
+        
+        const weapons = {
+            sword: { damage: 12, tempo: 0.9, reach: 1 },
+            axe: { damage: 50, tempo: 2.2, reach: 1 },
+            knife: { damage: 7, tempo: 0.5, reach: 0 }
+        };
+        
+        // Calcul HP officiel LaBrute
+        function getHP(level, endurance) {
+            return Math.floor(50 + (Math.max(endurance, 0) + level * 0.25) * 6);
+        }
+        
+        // Calcul dégâts officiel
+        function calculateDamage(attacker, weapon) {
+            const weaponDamage = weapon ? weapon.damage : BARE_HANDS_DAMAGE;
+            let damage = weaponDamage + attacker.strength * (0.2 + weaponDamage * 0.05);
+            damage *= (0.8 + Math.random() * 0.4);
+            
+            if (Math.random() < BASE_STATS.criticalChance) {
+                damage *= BASE_STATS.criticalDamage;
+            }
+            
+            return Math.floor(damage);
+        }
+        
+        // Générer un combat
+        function generateCombatSteps(f1, f2) {
+            const steps = [];
+            let fighters = [
+                { ...f1, id: 1, hp: f1.maxHp, position: 200 },
+                { ...f2, id: 2, hp: f2.maxHp, position: 600 }
+            ];
+            
+            let turn = 0;
+            while (turn < 50) {
+                for (let attacker of fighters) {
+                    if (attacker.hp <= 0) continue;
+                    
+                    const target = fighters.find(f => f.id !== attacker.id && f.hp > 0);
+                    if (!target) break;
+                    
+                    // Move si nécessaire
+                    if (Math.abs(attacker.position - target.position) > 100) {
+                        steps.push({
+                            type: StepType.Move,
+                            fighter: attacker.id,
+                            to: target.position > attacker.position ? 400 : 400,
+                            duration: 800
+                        });
+                        attacker.position = 400;
+                    }
+                    
+                    // Attempt hit
+                    steps.push({
+                        type: StepType.AttemptHit,
+                        fighter: attacker.id,
+                        target: target.id,
+                        duration: 200
+                    });
+                    
+                    // Résolution
+                    if (Math.random() < 0.3) { // 30% block
+                        steps.push({
+                            type: StepType.Block,
+                            fighter: target.id,
+                            duration: 300
+                        });
+                    } else if (Math.random() < 0.2) { // 20% evade
+                        steps.push({
+                            type: StepType.Evade,
+                            fighter: target.id,
+                            duration: 500
+                        });
+                    } else {
+                        // Hit!
+                        const damage = calculateDamage(attacker, null);
+                        target.hp -= damage;
+                        
+                        steps.push({
+                            type: StepType.Hit,
+                            fighter: attacker.id,
+                            target: target.id,
+                            damage: damage,
+                            duration: 400
+                        });
+                        
+                        if (target.hp <= 0) {
+                            steps.push({
+                                type: StepType.Death,
+                                fighter: target.id,
+                                duration: 1000
+                            });
+                            steps.push({
+                                type: StepType.End,
+                                winner: attacker.id
+                            });
+                            return steps;
+                        }
+                    }
+                }
+                turn++;
+            }
+            
+            steps.push({ type: StepType.End, winner: null });
+            return steps;
+        }
+        
+        // ========== SCÈNE PHASER AVEC SPINE ==========
+        
+        class CombatScene extends Phaser.Scene {
+            constructor() {
+                super({ key: 'CombatScene' });
+                this.fighters = [];
+                this.steps = [];
+                this.currentStep = 0;
+                this.isPlaying = false;
+            }
+            
+            preload() {
+                console.log('Preloading assets...');
+                
+                this.load.setPath('assets/spine/');
+                this.load.spine('spineboy', 'spineboy-pro.json', 'spineboy.atlas', true);
+                this.load.spine('raptor', 'raptor-pro.json', 'raptor.atlas', true);
+                
+                this.load.on('loaderror', (file) => {
+                    console.error('Failed to load:', file.key);
+                });
+                
+                this.load.on('filecomplete', (key) => {
+                    console.log('Loaded:', key);
+                });
+            }
+            
+            create() {
+                // Background
+                this.add.rectangle(400, 300, 800, 600, 0x87CEEB);
+                this.add.rectangle(400, 450, 800, 300, 0xD2691E);
+                
+                // Créer les sprites
+                this.fighter1Sprite = this.createFighter(200, 400, 'spineboy', 1);
+                this.fighter2Sprite = this.createFighter(600, 400, 'raptor', -1);
+                
+                // UI
+                this.stepText = this.add.text(400, 30, 'Ready', {
+                    fontSize: '20px',
+                    color: '#ffffff',
+                    stroke: '#000000',
+                    strokeThickness: 3
+                }).setOrigin(0.5);
+            }
+            
+            createFighter(x, y, key, scaleX) {
+                try {
+                    const spine = this.add.spine(x, y, key, 'idle', true);
+                    spine.scale = 0.3;
+                    spine.scaleX = 0.3 * scaleX;
+                    
+                    // Barre de vie
+                    const hpBg = this.add.rectangle(x, y - 80, 100, 10, 0x333333);
+                    const hpBar = this.add.rectangle(x, y - 80, 100, 10, 0x00ff00);
+                    
+                    return { spine, hpBg, hpBar, maxHp: 100, hp: 100 };
+                } catch (e) {
+                    console.warn('Spine failed, using rectangle:', e.message);
+                    const rect = this.add.rectangle(x, y, 60, 120, scaleX > 0 ? 0xff0000 : 0x0000ff);
+                    const hpBg = this.add.rectangle(x, y - 80, 100, 10, 0x333333);
+                    const hpBar = this.add.rectangle(x, y - 80, 100, 10, 0x00ff00);
+                    return { spine: rect, hpBg, hpBar, maxHp: 100, hp: 100 };
+                }
+            }
+            
+            loadFight(fighters, steps) {
+                this.fighters = fighters;
+                this.steps = steps;
+                this.currentStep = 0;
+                
+                // Mettre à jour les HP
+                this.fighter1Sprite.maxHp = fighters[0].maxHp;
+                this.fighter1Sprite.hp = fighters[0].maxHp;
+                this.fighter2Sprite.maxHp = fighters[1].maxHp;
+                this.fighter2Sprite.hp = fighters[1].maxHp;
+                
+                this.updateHealthBars();
+            }
+            
+            play() {
+                this.isPlaying = true;
+                this.processNextStep();
+            }
+            
+            pause() {
+                this.isPlaying = false;
+            }
+            
+            reset() {
+                this.currentStep = 0;
+                this.isPlaying = false;
+                
+                // Reset positions
+                this.fighter1Sprite.spine.x = 200;
+                this.fighter2Sprite.spine.x = 600;
+                
+                // Reset HP
+                this.fighter1Sprite.hp = this.fighter1Sprite.maxHp;
+                this.fighter2Sprite.hp = this.fighter2Sprite.maxHp;
+                this.updateHealthBars();
+            }
+            
+            processNextStep() {
+                if (!this.isPlaying || this.currentStep >= this.steps.length) {
+                    return;
+                }
+                
+                const step = this.steps[this.currentStep];
+                this.stepText.setText(`Step ${this.currentStep + 1}/${this.steps.length}`);
+                
+                this.executeStep(step, () => {
+                    this.currentStep++;
+                    if (this.isPlaying) {
+                        this.processNextStep();
+                    }
+                });
+            }
+            
+            executeStep(step, callback) {
+                const fighter = step.fighter === 1 ? this.fighter1Sprite : this.fighter2Sprite;
+                const target = step.target === 1 ? this.fighter1Sprite : this.fighter2Sprite;
+                
+                switch(step.type) {
+                    case StepType.Move:
+                        this.tweens.add({
+                            targets: fighter.spine,
+                            x: step.to,
+                            duration: step.duration,
+                            onComplete: callback
+                        });
+                        break;
+                        
+                    case StepType.Hit:
+                        // Flash et knockback
+                        this.cameras.main.shake(100, 0.01);
+                        this.tweens.add({
+                            targets: target.spine,
+                            x: target.spine.x + (step.fighter === 1 ? 20 : -20),
+                            duration: 100,
+                            yoyo: true
+                        });
+                        
+                        // Update HP
+                        target.hp -= step.damage;
+                        this.updateHealthBars();
+                        
+                        // Damage number
+                        const dmgText = this.add.text(target.spine.x, target.spine.y - 50, `-${step.damage}`, {
+                            fontSize: '24px',
+                            color: '#ff0000',
+                            stroke: '#000000',
+                            strokeThickness: 3
+                        }).setOrigin(0.5);
+                        
+                        this.tweens.add({
+                            targets: dmgText,
+                            y: dmgText.y - 30,
+                            alpha: 0,
+                            duration: 1000,
+                            onComplete: () => dmgText.destroy()
+                        });
+                        
+                        this.time.delayedCall(step.duration, callback);
+                        break;
+                        
+                    case StepType.Block:
+                    case StepType.Evade:
+                        const text = step.type === StepType.Block ? 'BLOCK!' : 'DODGE!';
+                        const color = step.type === StepType.Block ? '#ffd700' : '#00ffff';
+                        
+                        const effectText = this.add.text(fighter.spine.x, fighter.spine.y - 70, text, {
+                            fontSize: '20px',
+                            color: color,
+                            stroke: '#000000',
+                            strokeThickness: 3
+                        }).setOrigin(0.5);
+                        
+                        this.tweens.add({
+                            targets: effectText,
+                            y: effectText.y - 20,
+                            alpha: 0,
+                            duration: 800,
+                            onComplete: () => effectText.destroy()
+                        });
+                        
+                        this.time.delayedCall(step.duration, callback);
+                        break;
+                        
+                    case StepType.Death:
+                        this.tweens.add({
+                            targets: fighter.spine,
+                            angle: 90,
+                            y: fighter.spine.y + 60,
+                            alpha: 0.5,
+                            duration: step.duration,
+                            onComplete: callback
+                        });
+                        break;
+                        
+                    case StepType.End:
+                        const winner = step.winner ? `Fighter ${step.winner} Wins!` : 'Draw!';
+                        this.add.text(400, 300, winner, {
+                            fontSize: '48px',
+                            color: '#ffd700',
+                            stroke: '#000000',
+                            strokeThickness: 4
+                        }).setOrigin(0.5);
+                        callback();
+                        break;
+                        
+                    default:
+                        this.time.delayedCall(step.duration || 100, callback);
+                }
+                
+                // Log
+                logStep(step);
+            }
+            
+            updateHealthBars() {
+                // Fighter 1
+                const pct1 = this.fighter1Sprite.hp / this.fighter1Sprite.maxHp;
+                this.fighter1Sprite.hpBar.displayWidth = 100 * pct1;
+                this.fighter1Sprite.hpBar.setFillStyle(pct1 > 0.5 ? 0x00ff00 : pct1 > 0.25 ? 0xffaa00 : 0xff0000);
+                
+                // Fighter 2
+                const pct2 = this.fighter2Sprite.hp / this.fighter2Sprite.maxHp;
+                this.fighter2Sprite.hpBar.displayWidth = 100 * pct2;
+                this.fighter2Sprite.hpBar.setFillStyle(pct2 > 0.5 ? 0x00ff00 : pct2 > 0.25 ? 0xffaa00 : 0xff0000);
+            }
+        }
+        
+        // ========== INITIALISATION ==========
+        // Chargeur de secours pour SpinePlugin si le CDN ne l'a pas injecté
+        function ensureSpinePlugin(callback) {
+            if (typeof window.SpinePlugin !== 'undefined') {
+                callback && callback();
+                return;
+            }
+            const sources = [
+                'https://cdn.jsdelivr.net/gh/phaserjs/spine-phaser@main/dist/SpinePlugin.min.js',
+                'https://unpkg.com/@esotericsoftware/spine-phaser@4.1.55/dist/spine-phaser.min.js',
+                'vendor/SpinePlugin.min.js'
+            ];
+
+            let index = 0;
+            function tryNext() {
+                if (typeof window.SpinePlugin !== 'undefined') {
+                    callback && callback();
+                    return;
+                }
+                if (index >= sources.length) {
+                    console.error('Failed to load SpinePlugin from all sources');
+                    return;
+                }
+                const src = sources[index++];
+                const s = document.createElement('script');
+                s.src = src;
+                s.async = true;
+                s.onload = () => setTimeout(tryNext, 0);
+                s.onerror = () => setTimeout(tryNext, 0);
+                document.head.appendChild(s);
+            }
+            tryNext();
+        }
+        
+        let game;
+        let scene;
+        let currentFightData = null;
+        
+        function initGame() {
+            console.log('SpinePlugin available?', typeof window.SpinePlugin);
+            if (typeof window.SpinePlugin === 'undefined') {
+                console.error('SpinePlugin not found, loading dynamically...');
+                ensureSpinePlugin(initGame);
+                return;
+            }
+            
+            const config = {
+                type: Phaser.WEBGL,
+                width: 800,
+                height: 600,
+                parent: 'game-container',
+                plugins: {
+                    scene: [{
+                        key: 'SpinePlugin',
+                        plugin: window.SpinePlugin,
+                        mapping: 'spine'
+                    }]
+                },
+                scene: CombatScene
+            };
+            
+            console.log('Creating game with config:', config);
+            game = new Phaser.Game(config);
+            
+            game.events.once('ready', () => {
+                console.log('Game ready!');
+                scene = game.scene.getScene('CombatScene');
+                generateFight(); // Générer un combat initial
+            });
+        }
+        
+        function generateFight() {
+            // Stats des combattants
+            const f1 = {
+                name: 'Fighter 1',
+                strength: parseInt(document.getElementById('f1-str').textContent),
+                agility: parseInt(document.getElementById('f1-agi').textContent),
+                speed: parseInt(document.getElementById('f1-spd').textContent),
+                endurance: parseInt(document.getElementById('f1-end').textContent),
+                level: parseInt(document.getElementById('f1-lvl').textContent)
+            };
+            
+            const f2 = {
+                name: 'Fighter 2',
+                strength: parseInt(document.getElementById('f2-str').textContent),
+                agility: parseInt(document.getElementById('f2-agi').textContent),
+                speed: parseInt(document.getElementById('f2-spd').textContent),
+                endurance: parseInt(document.getElementById('f2-end').textContent),
+                level: parseInt(document.getElementById('f2-lvl').textContent)
+            };
+            
+            // Calculer les HP
+            f1.maxHp = getHP(f1.level, f1.endurance);
+            f2.maxHp = getHP(f2.level, f2.endurance);
+            
+            document.getElementById('f1-hp').textContent = f1.maxHp;
+            document.getElementById('f2-hp').textContent = f2.maxHp;
+            
+            // Générer les steps
+            const steps = generateCombatSteps(f1, f2);
+            
+            currentFightData = {
+                fighters: [f1, f2],
+                steps: steps
+            };
+            
+            if (scene) {
+                scene.loadFight([f1, f2], steps);
+            }
+            
+            // Clear log
+            document.getElementById('log').innerHTML = '<div class="log-entry">Combat généré!</div>';
+        }
+        
+        function playFight() {
+            if (scene) scene.play();
+        }
+        
+        function pauseFight() {
+            if (scene) scene.pause();
+        }
+        
+        function resetFight() {
+            if (scene) scene.reset();
+            document.getElementById('log').innerHTML = '<div class="log-entry">Combat réinitialisé</div>';
+        }
+        
+        function logStep(step) {
+            const log = document.getElementById('log');
+            let text = '';
+            let className = '';
+            
+            switch(step.type) {
+                case StepType.Hit:
+                    text = `Fighter ${step.fighter} frappe pour ${step.damage} dégâts!`;
+                    className = 'log-hit';
+                    break;
+                case StepType.Block:
+                    text = `Fighter ${step.fighter} bloque!`;
+                    className = 'log-block';
+                    break;
+                case StepType.Evade:
+                    text = `Fighter ${step.fighter} esquive!`;
+                    className = 'log-evade';
+                    break;
+                case StepType.Move:
+                    text = `Fighter ${step.fighter} avance`;
+                    className = 'log-move';
+                    break;
+                case StepType.Death:
+                    text = `Fighter ${step.fighter} est K.O.!`;
+                    className = 'log-death';
+                    break;
+            }
+            
+            if (text) {
+                const entry = document.createElement('div');
+                entry.className = `log-entry ${className}`;
+                entry.textContent = text;
+                log.appendChild(entry);
+                log.scrollTop = log.scrollHeight;
+            }
+        }
+        
+        // Randomize stats
+        function randomizeStats() {
+            ['f1', 'f2'].forEach(f => {
+                document.getElementById(`${f}-str`).textContent = 5 + Math.floor(Math.random() * 25);
+                document.getElementById(`${f}-agi`).textContent = 5 + Math.floor(Math.random() * 25);
+                document.getElementById(`${f}-spd`).textContent = 5 + Math.floor(Math.random() * 25);
+                document.getElementById(`${f}-end`).textContent = 5 + Math.floor(Math.random() * 25);
+            });
+            generateFight();
+        }
+        
+        // Init on load
+        window.addEventListener('load', initGame);
+    </script>
+</body>
+</html>

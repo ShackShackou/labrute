@@ -1,5 +1,5 @@
 import { WeaponById, WeaponId, weapons } from '@labrute/core';
-import { Application, Sprite, Container, filters } from 'pixi.js';
+import { Application, Sprite, Container, filters } from 'pixi-legacy';
 import { DropShadowFilter } from '@pixi/filter-drop-shadow';
 
 import { AnimationFighter } from './utils/findFighter';

@@ -1,0 +1,417 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>SPINE TEST WORKING</title>
+    <!-- Phaser 3.60 (version stable pour Spine) -->
+    <script src="https://cdn.jsdelivr.net/npm/phaser@3.60.0/dist/phaser.min.js"></script>
+    <!-- SpinePlugin pour Phaser 3.60 -->
+    <script src="https://cdn.jsdelivr.net/gh/phaserjs/spine-phaser@main/dist/SpinePlugin.min.js"></script>
+    <style>
+        body { 
+            margin: 0; 
+            padding: 20px; 
+            background: #1a1a1a; 
+            color: white;
+            font-family: Arial;
+        }
+        h1 { text-align: center; color: #4CAF50; }
+        #game-container {
+            width: 800px;
+            height: 600px;
+            margin: 20px auto;
+            border: 3px solid #4CAF50;
+        }
+        .controls {
+            text-align: center;
+            margin: 20px;
+        }
+        button {
+            background: #4CAF50;
+            color: white;
+            border: none;
+            padding: 12px 24px;
+            margin: 5px;
+            cursor: pointer;
+            font-size: 16px;
+            border-radius: 4px;
+        }
+        button:hover {
+            background: #45a049;
+        }
+        #status {
+            background: #2a2a2a;
+            padding: 15px;
+            margin: 20px auto;
+            width: 760px;
+            border-radius: 8px;
+            font-family: monospace;
+        }
+        .success { color: #4CAF50; }
+        .error { color: #f44336; }
+        .info { color: #2196F3; }
+    </style>
+</head>
+<body>
+    <h1>🎮 SPINE TEST - VERSION QUI MARCHE</h1>
+    
+    <div class="controls">
+        <button onclick="testSpineboy()">Test Spineboy</button>
+        <button onclick="testRaptor()">Test Raptor</button>
+        <button onclick="testCombatWithSpine()">Test Combat Spine</button>
+        <button onclick="clearStatus()">Clear</button>
+    </div>
+    
+    <div id="game-container"></div>
+    
+    <div id="status"></div>
+    
+    <script>
+        let game = null;
+        
+        function addStatus(msg, type = 'info') {
+            const status = document.getElementById('status');
+            const time = new Date().toLocaleTimeString();
+            const color = type === 'success' ? '#4CAF50' : type === 'error' ? '#f44336' : '#2196F3';
+            status.innerHTML += `<div style="color: ${color}">[${time}] ${msg}</div>`;
+            status.scrollTop = status.scrollHeight;
+            console.log(`[${type}] ${msg}`);
+        }
+        
+        function clearStatus() {
+            document.getElementById('status').innerHTML = '';
+            addStatus('Status cleared', 'info');
+        }
+        
+        function destroyGame() {
+            if (game) {
+                addStatus('Destroying previous game', 'info');
+                game.destroy(true);
+                game = null;
+            }
+        }
+        
+        function testSpineboy() {
+            addStatus('=== TESTING SPINEBOY ===', 'info');
+            destroyGame();
+            
+            class SpineboyScene extends Phaser.Scene {
+                constructor() {
+                    super({ key: 'SpineboyScene' });
+                }
+                
+                preload() {
+                    addStatus('Loading Spineboy assets...', 'info');
+                    
+                    this.load.setPath('assets/spine/');
+                    this.load.spine('spineboy', 'spineboy-pro.json', 'spineboy.atlas', true);
+                    
+                    this.load.on('loaderror', (file) => {
+                        addStatus(`Failed to load: ${file.key}`, 'error');
+                    });
+                    
+                    this.load.on('filecomplete', (key) => {
+                        addStatus(`Loaded: ${key}`, 'success');
+                    });
+                }
+                
+                create() {
+                    addStatus('Creating Spineboy...', 'info');
+                    
+                    try {
+                        // Background
+                        this.add.rectangle(400, 300, 800, 600, 0x2d2419);
+                        
+                        // Create Spineboy
+                        const spineboy = this.add.spine(400, 500, 'spineboy', 'idle', true);
+                        spineboy.scale = 0.5;
+                        
+                        addStatus('Spineboy created successfully!', 'success');
+                        
+                        // Get animations
+                        const anims = spineboy.skeleton.data.animations.map(a => a.name);
+                        addStatus(`Animations: ${anims.join(', ')}`, 'info');
+                        
+                        // Animation buttons
+                        let currentAnim = 0;
+                        this.add.text(400, 50, 'Click to change animation', {
+                            fontSize: '24px',
+                            color: '#ffffff'
+                        }).setOrigin(0.5);
+                        
+                        this.input.on('pointerdown', () => {
+                            currentAnim = (currentAnim + 1) % anims.length;
+                            const animName = anims[currentAnim];
+                            spineboy.play(animName, true);
+                            addStatus(`Playing: ${animName}`, 'info');
+                        });
+                        
+                    } catch (error) {
+                        addStatus(`Error: ${error.message}`, 'error');
+                    }
+                }
+            }
+            
+            const config = {
+                type: Phaser.WEBGL,
+                width: 800,
+                height: 600,
+                parent: 'game-container',
+                plugins: {
+                    scene: [{
+                        key: 'SpinePlugin',
+                        plugin: window.SpinePlugin,
+                        mapping: 'spine'
+                    }]
+                },
+                scene: SpineboyScene
+            };
+            
+            try {
+                game = new Phaser.Game(config);
+                addStatus('Game created', 'success');
+            } catch (error) {
+                addStatus(`Game creation error: ${error.message}`, 'error');
+            }
+        }
+        
+        function testRaptor() {
+            addStatus('=== TESTING RAPTOR ===', 'info');
+            destroyGame();
+            
+            class RaptorScene extends Phaser.Scene {
+                constructor() {
+                    super({ key: 'RaptorScene' });
+                }
+                
+                preload() {
+                    addStatus('Loading Raptor assets...', 'info');
+                    
+                    this.load.setPath('assets/spine/');
+                    this.load.spine('raptor', 'raptor-pro.json', 'raptor.atlas', true);
+                    
+                    this.load.on('loaderror', (file) => {
+                        addStatus(`Failed to load: ${file.key}`, 'error');
+                    });
+                }
+                
+                create() {
+                    addStatus('Creating Raptor...', 'info');
+                    
+                    try {
+                        // Background
+                        this.add.rectangle(400, 300, 800, 600, 0x2d2419);
+                        
+                        // Create Raptor
+                        const raptor = this.add.spine(400, 450, 'raptor', 'walk', true);
+                        raptor.scale = 0.5;
+                        
+                        addStatus('Raptor created successfully!', 'success');
+                        
+                        // Animation cycle
+                        const anims = ['walk', 'jump', 'roar'];
+                        let index = 0;
+                        
+                        this.time.addEvent({
+                            delay: 2000,
+                            callback: () => {
+                                index = (index + 1) % anims.length;
+                                raptor.play(anims[index], true);
+                                addStatus(`Raptor: ${anims[index]}`, 'info');
+                            },
+                            loop: true
+                        });
+                        
+                    } catch (error) {
+                        addStatus(`Error: ${error.message}`, 'error');
+                    }
+                }
+            }
+            
+            const config = {
+                type: Phaser.WEBGL,
+                width: 800,
+                height: 600,
+                parent: 'game-container',
+                plugins: {
+                    scene: [{
+                        key: 'SpinePlugin',
+                        plugin: window.SpinePlugin,
+                        mapping: 'spine'
+                    }]
+                },
+                scene: RaptorScene
+            };
+            
+            try {
+                game = new Phaser.Game(config);
+                addStatus('Game created', 'success');
+            } catch (error) {
+                addStatus(`Game creation error: ${error.message}`, 'error');
+            }
+        }
+        
+        function testCombatWithSpine() {
+            addStatus('=== TESTING COMBAT WITH SPINE ===', 'info');
+            destroyGame();
+            
+            class CombatSpineScene extends Phaser.Scene {
+                constructor() {
+                    super({ key: 'CombatSpineScene' });
+                }
+                
+                preload() {
+                    addStatus('Loading combat assets...', 'info');
+                    
+                    this.load.setPath('assets/spine/');
+                    this.load.spine('spineboy', 'spineboy-pro.json', 'spineboy.atlas', true);
+                }
+                
+                create() {
+                    addStatus('Creating combat scene...', 'info');
+                    
+                    try {
+                        // Background
+                        this.add.rectangle(400, 300, 800, 600, 0x2d2419);
+                        
+                        // Title
+                        this.add.text(400, 50, 'SPINE COMBAT', {
+                            fontSize: '32px',
+                            color: '#ffffff'
+                        }).setOrigin(0.5);
+                        
+                        // Fighter 1 (left)
+                        const fighter1 = this.add.spine(200, 450, 'spineboy', 'idle', true);
+                        fighter1.scale = 0.4;
+                        fighter1.scaleX = 0.4; // Face right
+                        
+                        // Fighter 2 (right)
+                        const fighter2 = this.add.spine(600, 450, 'spineboy', 'idle', true);
+                        fighter2.scale = 0.4;
+                        fighter2.scaleX = -0.4; // Face left
+                        
+                        addStatus('Fighters created', 'success');
+                        
+                        // HP Bars
+                        const hp1Bg = this.add.rectangle(200, 350, 100, 15, 0x333333);
+                        const hp1 = this.add.rectangle(200, 350, 100, 15, 0x00ff00);
+                        
+                        const hp2Bg = this.add.rectangle(600, 350, 100, 15, 0x333333);
+                        const hp2 = this.add.rectangle(600, 350, 100, 15, 0x00ff00);
+                        
+                        // Combat simulation
+                        let step = 0;
+                        const runCombat = () => {
+                            step++;
+                            
+                            switch(step) {
+                                case 1:
+                                    addStatus('Fighter 1 attacks!', 'info');
+                                    fighter1.play('jump', false);
+                                    this.tweens.add({
+                                        targets: fighter1,
+                                        x: 350,
+                                        duration: 500,
+                                        onComplete: () => {
+                                            fighter1.play('idle', true);
+                                            fighter2.play('hit', false);
+                                            hp2.scaleX = 0.7;
+                                            runCombat();
+                                        }
+                                    });
+                                    break;
+                                    
+                                case 2:
+                                    this.tweens.add({
+                                        targets: fighter1,
+                                        x: 200,
+                                        duration: 300,
+                                        onComplete: () => runCombat()
+                                    });
+                                    break;
+                                    
+                                case 3:
+                                    addStatus('Fighter 2 attacks!', 'info');
+                                    fighter2.play('jump', false);
+                                    this.tweens.add({
+                                        targets: fighter2,
+                                        x: 450,
+                                        duration: 500,
+                                        onComplete: () => {
+                                            fighter2.play('idle', true);
+                                            fighter1.play('hit', false);
+                                            hp1.scaleX = 0.6;
+                                            runCombat();
+                                        }
+                                    });
+                                    break;
+                                    
+                                case 4:
+                                    this.tweens.add({
+                                        targets: fighter2,
+                                        x: 600,
+                                        duration: 300,
+                                        onComplete: () => runCombat()
+                                    });
+                                    break;
+                                    
+                                case 5:
+                                    addStatus('Fighter 1 final attack!', 'info');
+                                    fighter1.play('shoot', false);
+                                    this.time.delayedCall(500, () => {
+                                        fighter2.play('death', false);
+                                        hp2.scaleX = 0;
+                                        hp2.setFillStyle(0xff0000);
+                                        addStatus('Fighter 1 wins!', 'success');
+                                        
+                                        this.add.text(400, 300, 'VICTORY!', {
+                                            fontSize: '64px',
+                                            color: '#ffff00',
+                                            stroke: '#000000',
+                                            strokeThickness: 6
+                                        }).setOrigin(0.5);
+                                    });
+                                    break;
+                            }
+                        };
+                        
+                        // Start combat after delay
+                        this.time.delayedCall(1000, runCombat);
+                        
+                    } catch (error) {
+                        addStatus(`Error: ${error.message}`, 'error');
+                    }
+                }
+            }
+            
+            const config = {
+                type: Phaser.WEBGL,
+                width: 800,
+                height: 600,
+                parent: 'game-container',
+                plugins: {
+                    scene: [{
+                        key: 'SpinePlugin',
+                        plugin: window.SpinePlugin,
+                        mapping: 'spine'
+                    }]
+                },
+                scene: CombatSpineScene
+            };
+            
+            try {
+                game = new Phaser.Game(config);
+                addStatus('Combat game created', 'success');
+            } catch (error) {
+                addStatus(`Game creation error: ${error.message}`, 'error');
+            }
+        }
+        
+        // Initial status
+        clearStatus();
+        addStatus('Page loaded successfully', 'success');
+        addStatus('Phaser version: ' + (typeof Phaser !== 'undefined' ? Phaser.VERSION : 'NOT LOADED'), 'info');
+        addStatus('SpinePlugin: ' + (typeof window.SpinePlugin !== 'undefined' ? 'LOADED' : 'NOT LOADED'), 'info');
+        addStatus('Click buttons to test different features', 'info');
+    </script>
+</body>
+</html>

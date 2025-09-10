@@ -1,6 +1,6 @@
 /* eslint-disable no-void */
 import { SkillActivateStep, SkillById, SkillId } from '@labrute/core';
-import { AnimatedSprite, Application, Sprite } from 'pixi.js';
+import { AnimatedSprite, Application, Sprite } from 'pixi-legacy';
 import { AdjustmentFilter } from '@pixi/filter-adjustment';
 
 import { sound } from '@pixi/sound';

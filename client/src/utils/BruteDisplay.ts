@@ -1,8 +1,8 @@
 import { BruteBodyPart, readBodyString, readColorString } from '@labrute/core';
 import { Gender } from '@labrute/prisma';
 import { FramePart, Symbol as LaBruteSymbol, Svg, Symbol460, Symbol752 } from 'labrute-static-fla-parser';
-import * as PIXI from 'pixi.js';
-import { Filter, Matrix, Texture } from 'pixi.js';
+import * as PIXI from 'pixi-legacy';
+import { Filter, Matrix, Texture } from 'pixi-legacy';
 
 const FEMALE_SYMBOL = Symbol752;
 const MALE_SYMBOL = Symbol460;

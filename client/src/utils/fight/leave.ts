@@ -1,7 +1,7 @@
 /* eslint-disable no-void */
 import { LeaveStep } from '@labrute/core';
 import { Easing, Tweener } from 'pixi-tweener';
-import { Application } from 'pixi.js';
+import { Application } from 'pixi-legacy';
 
 import findFighter, { AnimationFighter } from './utils/findFighter';
 

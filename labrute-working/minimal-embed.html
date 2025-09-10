@@ -1,0 +1,159 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Combat LaBrute Minimal</title>
+    <style>
+        body {
+            margin: 0;
+            padding: 0;
+            background: transparent;
+            overflow: hidden;
+        }
+        
+        #game-container {
+            width: 100%;
+            height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+        
+        .debug-panel {
+            position: absolute;
+            bottom: 10px;
+            left: 10px;
+            background: rgba(0, 0, 0, 0.7);
+            color: white;
+            padding: 10px;
+            border-radius: 5px;
+            font-family: monospace;
+            z-index: 1000;
+        }
+        
+        button {
+            background: #ff5722;
+            color: white;
+            border: none;
+            padding: 8px 12px;
+            margin: 5px;
+            cursor: pointer;
+        }
+    </style>
+</head>
+<body>
+    <div id="game-container"></div>
+    
+    <div class="debug-panel">
+        <button id="test-button">TESTER ANIMATION SIMPLE</button>
+        <div id="log"></div>
+    </div>
+
+    <script>
+        // Fonction de logging
+        function log(message) {
+            console.log(message);
+            document.getElementById('log').innerHTML += `<div>${message}</div>`;
+        }
+        
+        log("Page chargée");
+        
+        document.getElementById('test-button').addEventListener('click', async () => {
+            log("Test démarré...");
+            
+            // Charge Phaser depuis un CDN
+            await loadScript("https://cdn.jsdelivr.net/npm/phaser@3.55.2/dist/phaser.min.js");
+            log("✓ Phaser chargé");
+            
+            // Charge le plugin Spine
+            await loadScript("https://cdn.jsdelivr.net/npm/phaser@3.55.2/plugins/spine/dist/SpinePlugin.min.js");
+            log("✓ Plugin Spine chargé");
+            
+            // Configuration Phaser simple
+            const config = {
+                type: Phaser.AUTO,
+                width: 600,
+                height: 400,
+                backgroundColor: '#4a6e8a',
+                parent: 'game-container',
+                scene: {
+                    preload: preload,
+                    create: create
+                },
+                plugins: {
+                    scene: [
+                        { key: 'SpinePlugin', plugin: SpinePlugin, mapping: 'spine' }
+                    ]
+                }
+            };
+            
+            // Démarrer Phaser
+            const game = new Phaser.Game(config);
+            
+            function preload() {
+                log("Préchargement des assets...");
+                this.load.setPath('assets/spine/');
+                this.load.spine('spineboy', 'spineboy-pro.json', 'spineboy.atlas');
+            }
+            
+            function create() {
+                log("Création de la scène...");
+                
+                try {
+                    // Créer un sprite Spine
+                    const spineboy = this.add.spine(300, 300, 'spineboy');
+                    
+                    if (spineboy) {
+                        spineboy.setScale(0.5);
+                        
+                        // Animation
+                        spineboy.animationState.setAnimation(0, 'idle', true);
+                        
+                        log("✓ Spine créé avec succès!");
+                        log("✓ Animation 'idle' démarrée");
+                        
+                        // Créer des boutons pour contrôler le personnage
+                        const button1 = this.add.text(100, 50, '[ Idle ]', { fill: '#ffffff' })
+                            .setInteractive()
+                            .on('pointerdown', () => {
+                                spineboy.animationState.setAnimation(0, 'idle', true);
+                                log("Animation: idle");
+                            });
+                            
+                        const button2 = this.add.text(200, 50, '[ Run ]', { fill: '#ffffff' })
+                            .setInteractive()
+                            .on('pointerdown', () => {
+                                spineboy.animationState.setAnimation(0, 'run', true);
+                                log("Animation: run");
+                            });
+                            
+                        const button3 = this.add.text(300, 50, '[ Jump ]', { fill: '#ffffff' })
+                            .setInteractive()
+                            .on('pointerdown', () => {
+                                spineboy.animationState.setAnimation(0, 'jump', false);
+                                log("Animation: jump");
+                            });
+                    } else {
+                        log("⚠️ Échec de création du sprite Spine");
+                    }
+                } catch (error) {
+                    log(`⚠️ ERREUR: ${error.message}`);
+                    console.error(error);
+                }
+            }
+        });
+        
+        // Fonction utilitaire pour charger un script
+        function loadScript(src) {
+            return new Promise((resolve, reject) => {
+                const script = document.createElement('script');
+                script.src = src;
+                script.onload = resolve;
+                script.onerror = reject;
+                document.head.appendChild(script);
+            });
+        }
+    </script>
+</body>
+</html>

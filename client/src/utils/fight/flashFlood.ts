@@ -2,7 +2,7 @@
 import { HitStep, WeaponById, randomBetween } from '@labrute/core';
 import { sound } from '@pixi/sound';
 import { Easing, Tweener } from 'pixi-tweener';
-import { Application, Sprite, Container, Graphics, AnimatedSprite } from 'pixi.js';
+import { Application, Sprite, Container, Graphics, AnimatedSprite } from 'pixi-legacy';
 
 import displayDamage from './utils/displayDamage';
 import findFighter, { AnimationFighter } from './utils/findFighter';

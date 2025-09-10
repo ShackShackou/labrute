@@ -1,6 +1,6 @@
 /* eslint-disable no-void */
 import { TrashStep, WeaponById, weapons } from '@labrute/core';
-import { Application, Sprite } from 'pixi.js';
+import { Application, Sprite } from 'pixi-legacy';
 
 import { DropShadowFilter } from '@pixi/filter-drop-shadow';
 import { sound } from '@pixi/sound';

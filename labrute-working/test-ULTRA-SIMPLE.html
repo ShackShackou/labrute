@@ -1,0 +1,294 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>TEST ULTRA SIMPLE</title>
+    <script src="https://cdn.jsdelivr.net/npm/phaser@3.80.1/dist/phaser.min.js"></script>
+    <style>
+        body { 
+            margin: 0; 
+            padding: 20px; 
+            background: #222; 
+            color: white;
+            font-family: Arial;
+        }
+        #game-container {
+            width: 800px;
+            height: 600px;
+            margin: 20px auto;
+            border: 2px solid red;
+        }
+        button {
+            background: red;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            margin: 5px;
+            cursor: pointer;
+            font-size: 16px;
+        }
+        #log {
+            background: black;
+            padding: 10px;
+            margin: 20px;
+            height: 200px;
+            overflow-y: auto;
+            font-family: monospace;
+        }
+    </style>
+</head>
+<body>
+    <h1>TEST ULTRA SIMPLE - PHASER SEULEMENT</h1>
+    
+    <div style="text-align: center;">
+        <button onclick="testPhaser()">1. TEST PHASER BASIQUE</button>
+        <button onclick="testCombat()">2. TEST COMBAT SIMPLE</button>
+        <button onclick="clearLog()">CLEAR LOG</button>
+    </div>
+    
+    <div id="game-container"></div>
+    
+    <div id="log"></div>
+    
+    <script>
+        let game = null;
+        
+        function log(msg) {
+            const logDiv = document.getElementById('log');
+            const time = new Date().toLocaleTimeString();
+            logDiv.innerHTML += `[${time}] ${msg}<br>`;
+            logDiv.scrollTop = logDiv.scrollHeight;
+            console.log(msg);
+        }
+        
+        function clearLog() {
+            document.getElementById('log').innerHTML = '';
+            log('Log cleared');
+        }
+        
+        function destroyGame() {
+            if (game) {
+                log('Destroying previous game');
+                game.destroy(true);
+                game = null;
+            }
+        }
+        
+        function testPhaser() {
+            log('=== TEST PHASER BASIQUE ===');
+            destroyGame();
+            
+            class TestScene extends Phaser.Scene {
+                constructor() {
+                    super({ key: 'TestScene' });
+                }
+                
+                create() {
+                    log('Scene created successfully!');
+                    
+                    // Background
+                    this.add.rectangle(400, 300, 800, 600, 0x333333);
+                    
+                    // Title
+                    this.add.text(400, 100, 'PHASER WORKS!', {
+                        fontSize: '48px',
+                        color: '#00ff00'
+                    }).setOrigin(0.5);
+                    
+                    // Moving circle
+                    const circle = this.add.circle(100, 300, 30, 0xff0000);
+                    
+                    this.tweens.add({
+                        targets: circle,
+                        x: 700,
+                        duration: 2000,
+                        yoyo: true,
+                        repeat: -1
+                    });
+                    
+                    log('Added text and animation');
+                }
+            }
+            
+            const config = {
+                type: Phaser.AUTO,
+                width: 800,
+                height: 600,
+                parent: 'game-container',
+                scene: TestScene
+            };
+            
+            try {
+                game = new Phaser.Game(config);
+                log('Phaser game created successfully!');
+            } catch (error) {
+                log('ERROR: ' + error.message);
+            }
+        }
+        
+        function testCombat() {
+            log('=== TEST COMBAT SIMPLE ===');
+            destroyGame();
+            
+            class CombatScene extends Phaser.Scene {
+                constructor() {
+                    super({ key: 'CombatScene' });
+                    this.fighters = [];
+                }
+                
+                create() {
+                    log('Combat scene created');
+                    
+                    // Background
+                    this.add.rectangle(400, 300, 800, 600, 0x2d2419);
+                    
+                    // Title
+                    this.add.text(400, 50, 'COMBAT SIMULATOR', {
+                        fontSize: '32px',
+                        color: '#ffffff'
+                    }).setOrigin(0.5);
+                    
+                    // Fighter 1 (left)
+                    const fighter1 = this.add.rectangle(200, 400, 60, 100, 0xff0000);
+                    const hp1Bar = this.add.rectangle(200, 350, 80, 10, 0x00ff00);
+                    const name1 = this.add.text(200, 320, 'Fighter 1', {
+                        fontSize: '14px',
+                        color: '#ffffff'
+                    }).setOrigin(0.5);
+                    
+                    // Fighter 2 (right)
+                    const fighter2 = this.add.rectangle(600, 400, 60, 100, 0x0000ff);
+                    const hp2Bar = this.add.rectangle(600, 350, 80, 10, 0x00ff00);
+                    const name2 = this.add.text(600, 320, 'Fighter 2', {
+                        fontSize: '14px',
+                        color: '#ffffff'
+                    }).setOrigin(0.5);
+                    
+                    this.fighters = [
+                        { sprite: fighter1, hp: hp1Bar, name: 'Fighter 1', maxHp: 100, currentHp: 100 },
+                        { sprite: fighter2, hp: hp2Bar, name: 'Fighter 2', maxHp: 100, currentHp: 100 }
+                    ];
+                    
+                    log('Fighters created');
+                    
+                    // Start combat simulation
+                    this.startCombat();
+                }
+                
+                startCombat() {
+                    log('Starting combat simulation');
+                    
+                    let step = 0;
+                    const combatSteps = [
+                        { action: 'move', fighter: 0, target: 1 },
+                        { action: 'hit', fighter: 0, target: 1, damage: 20 },
+                        { action: 'move', fighter: 1, target: 0 },
+                        { action: 'hit', fighter: 1, target: 0, damage: 15 },
+                        { action: 'move', fighter: 0, target: 1 },
+                        { action: 'hit', fighter: 0, target: 1, damage: 30 },
+                        { action: 'move', fighter: 1, target: 0 },
+                        { action: 'hit', fighter: 1, target: 0, damage: 25 },
+                        { action: 'end' }
+                    ];
+                    
+                    const executeStep = () => {
+                        if (step >= combatSteps.length) {
+                            log('Combat ended');
+                            return;
+                        }
+                        
+                        const currentStep = combatSteps[step];
+                        const fighter = this.fighters[currentStep.fighter];
+                        const target = this.fighters[currentStep.target];
+                        
+                        switch (currentStep.action) {
+                            case 'move':
+                                log(`${fighter.name} moves toward ${target.name}`);
+                                const targetX = currentStep.fighter === 0 ? 400 : 400;
+                                this.tweens.add({
+                                    targets: fighter.sprite,
+                                    x: targetX,
+                                    duration: 500,
+                                    onComplete: () => {
+                                        step++;
+                                        executeStep();
+                                    }
+                                });
+                                break;
+                                
+                            case 'hit':
+                                log(`${fighter.name} hits ${target.name} for ${currentStep.damage} damage`);
+                                
+                                // Flash effect
+                                this.tweens.add({
+                                    targets: target.sprite,
+                                    alpha: 0.3,
+                                    duration: 100,
+                                    yoyo: true,
+                                    onComplete: () => {
+                                        // Update HP
+                                        target.currentHp -= currentStep.damage;
+                                        if (target.currentHp < 0) target.currentHp = 0;
+                                        
+                                        const hpPercent = target.currentHp / target.maxHp;
+                                        target.hp.scaleX = hpPercent;
+                                        
+                                        if (hpPercent < 0.3) {
+                                            target.hp.setFillStyle(0xff0000);
+                                        } else if (hpPercent < 0.6) {
+                                            target.hp.setFillStyle(0xffff00);
+                                        }
+                                        
+                                        // Move back
+                                        const backX = currentStep.fighter === 0 ? 200 : 600;
+                                        this.tweens.add({
+                                            targets: fighter.sprite,
+                                            x: backX,
+                                            duration: 300,
+                                            onComplete: () => {
+                                                step++;
+                                                executeStep();
+                                            }
+                                        });
+                                    }
+                                });
+                                break;
+                                
+                            case 'end':
+                                log('Combat finished!');
+                                this.add.text(400, 300, 'COMBAT FINISHED!', {
+                                    fontSize: '48px',
+                                    color: '#ffff00',
+                                    stroke: '#000000',
+                                    strokeThickness: 4
+                                }).setOrigin(0.5);
+                                break;
+                        }
+                    };
+                    
+                    // Start after delay
+                    this.time.delayedCall(1000, executeStep);
+                }
+            }
+            
+            const config = {
+                type: Phaser.AUTO,
+                width: 800,
+                height: 600,
+                parent: 'game-container',
+                scene: CombatScene
+            };
+            
+            try {
+                game = new Phaser.Game(config);
+                log('Combat game created successfully!');
+            } catch (error) {
+                log('ERROR: ' + error.message);
+            }
+        }
+        
+        // Initial log
+        log('Page loaded. Click buttons to test.');
+        log('Phaser version: ' + (typeof Phaser !== 'undefined' ? Phaser.VERSION : 'NOT LOADED'));
+    </script>
+</body>
+</html>

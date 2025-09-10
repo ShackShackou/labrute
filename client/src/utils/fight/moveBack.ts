@@ -1,7 +1,7 @@
 /* eslint-disable no-void */
 import { MoveBackStep } from '@labrute/core';
 import { Easing, Tweener } from 'pixi-tweener';
-import { Application } from 'pixi.js';
+import { Application } from 'pixi-legacy';
 
 import { getRandomPosition } from './utils/fightPositions';
 import findFighter, { AnimationFighter } from './utils/findFighter';

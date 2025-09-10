@@ -1,0 +1,57 @@
+{
+  "skeleton": {
+    "hash": "test",
+    "spine": "4.2",
+    "width": 256,
+    "height": 256,
+    "images": "spineboy"
+  },
+  "bones": [
+    { "name": "root" },
+    { "name": "body", "parent": "root", "x": 0, "y": 100 }
+  ],
+  "slots": [
+    { "name": "body", "bone": "body", "attachment": "default" }
+  ],
+  "skins": {
+    "default": {
+      "body": {
+        "default": { "width": 256, "height": 256 }
+      }
+    }
+  },
+  "animations": {
+    "idle": {
+      "bones": {
+        "body": {
+          "translate": [
+            { "time": 0, "x": 0, "y": 0 },
+            { "time": 0.5, "x": 0, "y": 5 },
+            { "time": 1, "x": 0, "y": 0 }
+          ]
+        }
+      }
+    },
+    "attack": {
+      "bones": {
+        "body": {
+          "translate": [
+            { "time": 0, "x": 0, "y": 0 },
+            { "time": 0.2, "x": 20, "y": 0 },
+            { "time": 0.4, "x": 0, "y": 0 }
+          ]
+        }
+      }
+    },
+    "death": {
+      "bones": {
+        "body": {
+          "rotate": [
+            { "time": 0, "angle": 0 },
+            { "time": 0.5, "angle": 90 }
+          ]
+        }
+      }
+    }
+  }
+}

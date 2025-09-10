@@ -1,0 +1,218 @@
+{
+  "version": "2.0",
+  "source": "labrute-sprite-editor + analyse du code",
+  "date": "2025-08-01",
+  "main_symbols": {
+    "Symbol460": {
+      "name": "Personnage masculin complet",
+      "type": "full_character",
+      "gender": "male",
+      "description": "Symbole principal contenant toutes les animations du personnage masculin"
+    },
+    "Symbol752": {
+      "name": "Personnage féminin complet",
+      "type": "full_character",
+      "gender": "female",
+      "description": "Symbole principal contenant toutes les animations du personnage féminin"
+    }
+  },
+  "body_parts": {
+    "p1": {
+      "name": "Base",
+      "description": "Élément de base de la brute (toujours présent)",
+      "category": "Base",
+      "variants": 1,
+      "symbol_range": "1-50"
+    },
+    "p1a": {
+      "name": "Ceinture",
+      "description": "Ceinture basique autour de la taille",
+      "category": "Accessoires",
+      "variants": 1,
+      "symbol_range": "51-60"
+    },
+    "p1b": {
+      "name": "Ceinture Romaine",
+      "description": "Ceinture de style romain/gladiateur",
+      "category": "Accessoires",
+      "variants": 1,
+      "symbol_range": "61-70"
+    },
+    "p2": {
+      "name": "Taille du Corps",
+      "description": "Détermine la corpulence de la brute (hommes seulement)",
+      "category": "Corps",
+      "variants_male": 7,
+      "variants_female": 0,
+      "symbol_range": "100-170"
+    },
+    "p3": {
+      "name": "Cheveux/Coiffure",
+      "description": "Style de cheveux de la brute",
+      "category": "Tête",
+      "variants": 11,
+      "symbol_range": "200-310"
+    },
+    "p4": {
+      "name": "Barbe (H) / Mèches (F)",
+      "description": "Barbe pour les hommes, mèches avant pour les femmes",
+      "category": "Tête",
+      "variants_male": 5,
+      "variants_female": 3,
+      "symbol_range": "320-380"
+    },
+    "p5": {
+      "name": "Chemise/Haut",
+      "description": "Port d'un haut ou torse nu",
+      "category": "Vêtements",
+      "variants": 1,
+      "symbol_range": "400-410"
+    },
+    "p6": {
+      "name": "Bas",
+      "description": "Type de vêtement pour le bas du corps",
+      "category": "Vêtements",
+      "variants": 1,
+      "symbol_range": "420-430"
+    },
+    "p7": {
+      "name": "Vêtement Principal",
+      "description": "Tenue principale du combattant",
+      "category": "Vêtements",
+      "variants": 6,
+      "symbol_range": "500-560"
+    },
+    "p7b": {
+      "name": "Dessous de Chaussures",
+      "description": "Visibilité de la semelle des chaussures",
+      "category": "Accessoires",
+      "variants": 2,
+      "symbol_range": "570-590"
+    },
+    "p8": {
+      "name": "Chaussures (Buggé)",
+      "description": "Censé être les chaussures mais ne change rien visuellement (bug du jeu)",
+      "category": "Accessoires",
+      "variants": 4,
+      "symbol_range": "600-640"
+    }
+  },
+  "colors": {
+    "col0": {
+      "name": "Couleur de Peau",
+      "type": "skin"
+    },
+    "col0a": {
+      "name": "Couleur du Visage",
+      "type": "skin"
+    },
+    "col0c": {
+      "name": "Couleur des Oreilles",
+      "type": "skin"
+    },
+    "col1": {
+      "name": "Couleur des Cheveux",
+      "type": "hair"
+    },
+    "col1a": {
+      "name": "Cheveux Arrière",
+      "type": "hair"
+    },
+    "col1b": {
+      "name": "Cheveux Arrière 2",
+      "type": "hair"
+    },
+    "col1c": {
+      "name": "Cheveux Avant",
+      "type": "hair"
+    },
+    "col1d": {
+      "name": "Sourcils",
+      "type": "hair"
+    },
+    "col2": {
+      "name": "Couleur Secondaire",
+      "type": "clothing"
+    },
+    "col2a": {
+      "name": "Accent 3",
+      "type": "clothing"
+    },
+    "col2b": {
+      "name": "Accent 1",
+      "type": "clothing"
+    },
+    "col3": {
+      "name": "Couleur Primaire (inclut les yeux)",
+      "type": "clothing"
+    },
+    "col3b": {
+      "name": "Accent 2",
+      "type": "clothing"
+    },
+    "col4": {
+      "name": "Couleur de la Chemise",
+      "type": "clothing"
+    },
+    "col4a": {
+      "name": "Accent des Chaussures",
+      "type": "clothing"
+    },
+    "col4b": {
+      "name": "Couleur Mystère",
+      "type": "clothing"
+    }
+  },
+  "animations": {
+    "idle": "Animation de repos",
+    "walk": "Animation de marche",
+    "run": "Animation de course",
+    "hit": "Animation de frappe",
+    "block": "Animation de blocage",
+    "evade": "Animation d'esquive",
+    "hurt": "Animation de blessure",
+    "death": "Animation de mort",
+    "win": "Animation de victoire",
+    "throw": "Animation de lancer",
+    "grab": "Animation de saisie"
+  },
+  "weapons": {
+    "fist": "Poings",
+    "sword": "Épée",
+    "axe": "Hache",
+    "lance": "Lance",
+    "hammer": "Marteau",
+    "whip": "Fouet",
+    "knife": "Couteau",
+    "shield": "Bouclier",
+    "mug": "Chope",
+    "fan": "Éventail",
+    "keyboard": "Clavier",
+    "leek": "Poireau",
+    "fryingPan": "Poêle à frire",
+    "noodleBowl": "Bol de nouilles"
+  },
+  "estimated_symbol_ids": {
+    "1-99": "Éléments de base et système",
+    "100-199": "Corps et corpulence",
+    "200-399": "Têtes, cheveux et accessoires faciaux",
+    "400-499": "Vêtements hauts",
+    "500-599": "Vêtements principaux et accessoires",
+    "600-699": "Pieds et chaussures",
+    "700-799": "Armes",
+    "800-899": "Effets et animations spéciales",
+    "900-999": "Éléments divers"
+  },
+  "notes": {
+    "important": [
+      "Les Symbol IDs exacts nécessitent l'extraction avec JPEXS",
+      "Le système utilise des symboles imbriqués (symboles dans symboles)",
+      "Ne jamais modifier les IDs existants, seulement ajouter après le dernier",
+      "Symbol460 et Symbol752 sont les conteneurs principaux"
+    ],
+    "bugs_connus": [
+      "p8 (chaussures) ne s'affiche pas correctement",
+      "Certaines combinaisons de couleurs peuvent créer des conflits"
+    ]
+  }
+}

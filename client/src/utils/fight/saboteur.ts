@@ -1,6 +1,6 @@
 /* eslint-disable no-void */
 import { randomBetween, SaboteurStep } from '@labrute/core';
-import { Application } from 'pixi.js';
+import { Application } from 'pixi-legacy';
 
 import { sound } from '@pixi/sound';
 import findFighter, { AnimationFighter } from './utils/findFighter';

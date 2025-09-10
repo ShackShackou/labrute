@@ -2,7 +2,7 @@
 import findFighter, { AnimationFighter } from './utils/findFighter';
 import updateHp from './updateHp';
 import updateWeapons from './updateWeapons';
-import { Application, Texture } from 'pixi.js';
+import { Application, Texture } from 'pixi-legacy';
 import createBustImage from './utils/createBustImage';
 import { RendererContextInterface } from '../../hooks/useRenderer';
 

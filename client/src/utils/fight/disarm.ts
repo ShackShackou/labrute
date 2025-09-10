@@ -1,5 +1,5 @@
 import { DisarmStep } from '@labrute/core';
-import { Application, AnimatedSprite } from 'pixi.js';
+import { Application, AnimatedSprite } from 'pixi-legacy';
 
 import findFighter, { AnimationFighter } from './utils/findFighter';
 import itemDrop from './itemDrop';

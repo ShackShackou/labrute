@@ -122,6 +122,9 @@ const PixiFight: React.FC<Props> = ({
       // Calibration multipliers per side (R often needs to be slowed down)
       const mulL = (() => { const u = params.get('pixiMulL'); const ls = localStorage.getItem('compare.pixiMulL'); const n = Number(u ?? ls ?? '1'); return isNaN(n) ? 1 : n; })();
       const mulR = (() => { const u = params.get('pixiMulR'); const ls = localStorage.getItem('compare.pixiMulR'); const n = Number(u ?? ls ?? '1.66'); return isNaN(n) ? 1.66 : n; })();
+      // Flag pour interdire tout mouvement Y hors Move(r=1) et MoveBack (désactivé par défaut)
+      const strictNoY = (params.get('pixiNoY') === '1' || localStorage.getItem('compare.pixiNoY') === '1');
+      const minDiagX = Number(params.get('pixiMinDiagX') ?? localStorage.getItem('compare.pixiMinDiagX') ?? '30');
       const addVector = (x1:number,y1:number,x2:number,y2:number,color=0x00ff88) => {
         if (!debugDiag) return;
         try {
@@ -260,13 +263,21 @@ const PixiFight: React.FC<Props> = ({
         scene.addChild(sh);
         return {
           follow: () => {
+            if (!sh || !obj?.node) return;
             const p = 'position' in obj.node ? obj.node.position : obj.node;
             sh.position.set(p.x, p.y + 2);
             // Sort by Y (shadows below character)
             // @ts-ignore
             sh.zIndex = (p.y as number) - 1;
           },
-          destroy: () => sh.destroy(),
+          destroy: () => {
+            try {
+              sh.visible = false;
+              sh.renderable = false;
+              // Détruire plus tard, pas immédiatement
+              setTimeout(() => { try { sh.destroy(); } catch {} }, 100);
+            } catch {}
+          },
         };
       };
       let shadowL = addShadow(left);
@@ -341,7 +352,9 @@ const PixiFight: React.FC<Props> = ({
         };
         left = { node: L, baseX: L.x, baseY: L.y, type: 'spine', width: scaledWidth(L) };
         right = { node: R, baseX: R.x, baseY: R.y, type: 'spine', width: scaledWidth(R) };
-        shadowL?.destroy(); shadowR?.destroy();
+        // Ne pas détruire les ombres si on les remplace, juste les masquer
+        if (shadowL) { shadowL.destroy(); }
+        if (shadowR) { shadowR.destroy(); }
         shadowL = addShadow(left);
         shadowR = addShadow(right);
       } catch {
@@ -428,12 +441,24 @@ const PixiFight: React.FC<Props> = ({
         let a = 0;
         const duration = 650 / Math.max(0.001, speed);
         const tick = (tk:any) => {
-          if (disposed) { try { app.ticker.remove(tick); } catch {} try { scene.removeChild(t); } catch {} recycleText(t); return; }
+          if (disposed) { 
+            try { app.ticker.remove(tick); } catch {} 
+            // NE PAS removeChild pendant le tick - juste masquer
+            try { t.visible = false; t.renderable = false; } catch {}
+            recycleText(t); 
+            return; 
+          }
           const dm = typeof tk?.deltaMS === 'number' ? tk.deltaMS : 16.7;
           a += dm; const p = Math.min(1, a / duration);
           t.alpha = Math.max(0, 1 - p);
           t.y = (y - 60) - 20 * p;
-          if (p >= 1) { app.ticker.remove(tick); t.visible=false; t.renderable=false; recycleText(t); }
+          if (p >= 1) { 
+            app.ticker.remove(tick); 
+            // NE PAS removeChild pendant le tick - juste masquer et recycler
+            t.visible=false; 
+            t.renderable=false; 
+            recycleText(t); 
+          }
         };
         addTick(tick);
       };
@@ -453,12 +478,14 @@ const PixiFight: React.FC<Props> = ({
       const getPos = (o:any) => ({ x: (o?.position?.x ?? o?.x) as number, y: clampY((o?.position?.y ?? o?.y) as number) });
       const setPos = (o:any, x:number, y:number) => { if ('position' in o) { o.position.set(x,y); } else { o.x = x; o.y = y; } };
 
-      // Duration from distance constants close to legacy v6 renderer
+      // Duration EXACTEMENT comme l'officiel (moveTo.ts ligne 55)
       const durationMoveMs = (px:number) => Math.max(160, (px / 430) * 1000);
-      const durationMoveBackMs = (px:number) => Math.max(150, (px / 480) * 1000);
+      const durationMoveBackMs = (px:number) => Math.max(150, (px / 430) * 1000); // Même vitesse que Move
 
+      // EXACTEMENT comme l'officiel (fightPositions.ts)
       const minY = 175, maxY = 281;
-      const minLX = 40, maxLX = 125, minRX = W - maxLX, maxRX = W - minLX;
+      const minLX = 40, maxLX = 125;
+      const minRX = 500 - minLX, maxRX = 500 - maxLX;
       const occY: Record<'L'|'R', number[]> = { L: [], R: [] };
       const chooseLaneY = (side:'L'|'R') => {
         const comfort = 15;
@@ -493,21 +520,42 @@ const PixiFight: React.FC<Props> = ({
         const y = chooseLaneY(side);
         const minX = side === 'L' ? minLX : minRX;
         const maxX = side === 'L' ? maxLX : maxRX;
-        // Official-like X factor with weapon/skills influence
-        let factor = 0.4 + Math.random() * 0.6;
+        
+        // EXACTEMENT comme l'officiel (fightPositions.ts lignes 120-165)
+        let randomXPositionFactor = 0.4 + Math.random() * 0.6;
+        
         try {
           let wname: string | undefined;
-          try { if (actor && typeof actor.index === 'number') wname = lastWeaponByActor.get(actor.index); } catch {}
-          const wobj = weapons.find((w) => w.name === wname);
-          if (wobj) {
-            if (wobj.types?.includes(WeaponType.LONG)) factor -= 0.25;
-            if (wobj.types?.includes(WeaponType.THROWN)) factor -= 0.5;
-            if (wobj.types?.includes(WeaponType.HEAVY) && Array.isArray(actor?.skills) && (actor.skills as number[]).includes(SkillId.bodybuilder)) factor += 0.15;
-            if (wobj.types?.includes(WeaponType.SHARP) && Array.isArray(actor?.skills) && (actor.skills as number[]).includes(SkillId.weaponsMaster)) factor += 0.15;
-          } else if (Array.isArray(actor?.skills) && (actor.skills as number[]).includes(SkillId.martialArts)) {
-            factor += 0.25;
+          if (actor && typeof actor.index === 'number') {
+            wname = lastWeaponByActor.get(actor.index);
           }
-          const mods: Partial<Record<number, number>> = {
+          const possibleWeapon = weapons.find((w) => w.name === wname);
+          
+          // If fighter has a weapon
+          if (possibleWeapon) {
+            // A bit further if long range
+            if (possibleWeapon.types.includes(WeaponType.LONG)) randomXPositionFactor -= 0.25;
+            // Further if thrown weapon
+            if (possibleWeapon.types.includes(WeaponType.THROWN)) randomXPositionFactor -= 0.5;
+            // Confidence boost if heavy weapon and bodybuilder
+            if (possibleWeapon.types.includes(WeaponType.HEAVY) 
+              && Array.isArray(actor?.skills) 
+              && (actor.skills as number[]).includes(SkillId.bodybuilder)) {
+              randomXPositionFactor += 0.15;
+            }
+            // Confidence boost if sharp weapon and weaponMaster
+            if (possibleWeapon.types.includes(WeaponType.SHARP)
+              && Array.isArray(actor?.skills)
+              && (actor.skills as number[]).includes(SkillId.weaponsMaster)) {
+              randomXPositionFactor += 0.15;
+            }
+          // Confidence boost if unarmed and martialArts
+          } else if (Array.isArray(actor?.skills) && (actor.skills as number[]).includes(SkillId.martialArts)) {
+            randomXPositionFactor += 0.25;
+          }
+          
+          // Adjust x position to overall gameplan (EXACTEMENT comme l'officiel)
+          const skillPositionModifiers: Partial<Record<number, number>> = {
             [SkillId.hideaway]: -0.25,
             [SkillId.monk]: -0.25,
             [SkillId.untouchable]: -0.25,
@@ -519,47 +567,74 @@ const PixiFight: React.FC<Props> = ({
             [SkillId.armor]: 0.1,
             [SkillId.ironHead]: 0.15,
           };
+          
+          // Apply position modifier for each fighter's skill
           if (Array.isArray(actor?.skills)) {
-            for (const sId of actor.skills as number[]) factor += (mods[sId] ?? 0);
+            for (const skillId of actor.skills as number[]) {
+              randomXPositionFactor += (skillPositionModifiers[skillId] ?? 0);
+            }
           }
         } catch {}
-        factor = Math.max(0, Math.min(1, factor));
-        let x = minX + factor * (maxX - minX);
-        // Enforce diagonal shift
-        const minShift = Math.max(60, (maxX - minX) * 0.6);
-        let tries = 0;
-        while (typeof currX === 'number' && Math.abs(x - currX) < minShift && tries < 5) {
-          factor = Math.random();
-          x = minX + factor * (maxX - minX);
-          tries++;
-        }
-        if (typeof currX === 'number' && Math.abs(x - currX) < minShift) {
-          x = currX < (minX + maxX) / 2 ? maxX : minX;
-        }
+        
+        // Clamp position to 0 - 1
+        randomXPositionFactor = Math.max(0, Math.min(1, randomXPositionFactor));
+        
+        // Interpolate it to minXPosition - maxXPosition
+        const x = minX + randomXPositionFactor * (maxX - minX);
+        
         return { x, y };
       };
 
-      const getHitDistance = (srcObj:any, tgtObj:any, step:any, useCounter=false) => {
-        // Same space
-        if (step?.s === 1) return 20;
-        const srcW = (srcObj?.width ?? Math.max(40, Math.abs(srcObj?.node?.width ?? 40)));
-        const tgtW = (tgtObj?.width ?? Math.max(40, Math.abs(tgtObj?.node?.width ?? 40)));
-        let dist = (srcW * 0.5) + (tgtW * 0.5);
-        // reach from known weapon
-        let reach = 0;
-        try {
-          const actorIdx = (typeof step.f === 'number') ? step.f : undefined;
-          const targetIdx = (typeof step.t === 'number') ? step.t : undefined;
-          if (useCounter && targetIdx !== undefined) {
-            const wname = lastWeaponByActor.get(targetIdx);
-            reach = (weapons.find((ww)=> ww.name === wname)?.reach ?? 0);
-          } else if (!useCounter && actorIdx !== undefined) {
-            const wname = lastWeaponByActor.get(actorIdx);
-            reach = (weapons.find((ww)=> ww.name === wname)?.reach ?? 0);
+      const getHitDistance = (srcObj:any, tgtObj:any, isCountered:boolean = false, isSameSpace:boolean = false, srcActor?:any, tgtActor?:any) => {
+        let distance = 0;
+        
+        // OFFICIEL: Same space = 20 pixels
+        if (isSameSpace) {
+          distance = 20;
+        }
+        
+        // OFFICIEL: Weapon reach calculation
+        if (!isSameSpace) {
+          // OFFICIEL utilise animation.baseWidth qui dépend du sprite chargé
+          // Pour Spine, on utilise les bounds réels ou une valeur par défaut
+          let srcWidth = 40; // Valeur par défaut (brute standard)
+          let tgtWidth = 40;
+          
+          // Essayer d'obtenir les vraies largeurs depuis les sprites
+          try {
+            if (srcObj?.node?.bounds?.width) srcWidth = srcObj.node.bounds.width;
+            else if (srcObj?.node?.width) srcWidth = srcObj.node.width;
+          } catch {}
+          
+          try {
+            if (tgtObj?.node?.bounds?.width) tgtWidth = tgtObj.node.bounds.width;
+            else if (tgtObj?.node?.width) tgtWidth = tgtObj.node.width;
+          } catch {}
+          
+          // OFFICIEL: baseWidth * 0.5 pour chaque combattant
+          distance += srcWidth * 0.5 + tgtWidth * 0.5;
+          
+          // OFFICIEL: Boss distance multiplier
+          if (tgtActor?.type === 'boss') distance *= 0.7;
+          
+          // OFFICIEL: Weapon reach
+          let reach = 0;
+          if (isCountered && tgtActor) {
+            // Countered: utiliser le reach de l'adversaire
+            const tgtIdx = typeof tgtActor === 'number' ? tgtActor : tgtActor.index;
+            const wname = lastWeaponByActor.get(tgtIdx);
+            reach = weapons.find((w) => w.name === wname)?.reach || 0;
+          } else if (srcActor) {
+            // Normal: utiliser le reach de l'attaquant
+            const srcIdx = typeof srcActor === 'number' ? srcActor : srcActor.index;
+            const wname = lastWeaponByActor.get(srcIdx);
+            reach = weapons.find((w) => w.name === wname)?.reach || 0;
           }
-        } catch {}
-        dist += reach * 16;
-        return dist;
+          
+          // OFFICIEL: reach * 16 pixels
+          distance += reach * 16;
+        }
+        return distance;
       };
 
       const tweenTo = (obj: any, x:number, y:number, duration=200) => new Promise<void>((resolve) => {
@@ -603,6 +678,9 @@ const PixiFight: React.FC<Props> = ({
 
       const play = async () => {
         const t0 = performance.now();
+        // Capturer les positions HomeX/HomeY à l'Arrive pour le retour MoveBack
+        const homePositions = new Map<number, {x: number, y: number}>();
+        
         for (const s of steps) {
           if (disposed) return;
           const a = s.a as number;
@@ -610,8 +688,17 @@ const PixiFight: React.FC<Props> = ({
           const targetIdx: number | null = (typeof s.t === 'number') ? s.t : null;
           const actor = actorIdx !== null ? byIndex.get(actorIdx) : undefined;
           const target = targetIdx !== null ? byIndex.get(targetIdx) : undefined;
-          const actorSide: 'L'|'R' = actor?.team === 'R' ? 'R' : 'L';
-          const targetSide: 'L'|'R' | null = target ? (target.team === 'R' ? 'R' : 'L') : null;
+          
+          // Simple: acteur index 1 = gauche, index 2 = droite (et leurs pets)
+          // Les pets ont un master qui détermine leur côté
+          // Robust side detection (prefer payload team, fallback to master/main indexes)
+          const sideOf = (p: any, idx: number | null): 'L'|'R' => {
+            if (p?.team === 'L' || p?.team === 'R') return p.team;
+            if (idx !== null && (idx === leftMainIdx || p?.master === leftMainIdx)) return 'L';
+            return 'R';
+          };
+          const actorSide: 'L'|'R' = sideOf(actor, actorIdx);
+          const targetSide: 'L'|'R' | null = targetIdx !== null ? sideOf(target, targetIdx) : null;
           const src = actorSide === 'L' ? left : right;
           const tgt = targetSide ? (targetSide === 'L' ? left : right) : (src === left ? right : left);
 
@@ -631,77 +718,95 @@ const PixiFight: React.FC<Props> = ({
             try {
               if (actorSide === 'L') {
                 const x = minLX + Math.random() * (maxLX - minLX);
-                const y = chooseLaneY('L'); occY.L.push(y);
-                setPos(src.node, x, y); src.baseX = x; src.baseY = y;
+                const y = chooseLaneY('L'); 
+                occY.L.push(y);
+                setPos(src.node, x, y); 
+                src.baseX = x; 
+                src.baseY = y;
+                // Capturer la position home pour le retour MoveBack
+                if (actorIdx !== null) homePositions.set(actorIdx, {x, y});
               } else {
                 const x = minRX + Math.random() * (maxRX - minRX);
-                const y = chooseLaneY('R'); occY.R.push(y);
-                setPos(src.node, x, y); src.baseX = x; src.baseY = y;
+                const y = chooseLaneY('R'); 
+                occY.R.push(y);
+                setPos(src.node, x, y); 
+                src.baseX = x; 
+                src.baseY = y;
+                // Capturer la position home pour le retour MoveBack
+                if (actorIdx !== null) homePositions.set(actorIdx, {x, y});
               }
             } catch {}
             break; }
           // Move
           case 15: {
-            // Autoriser uniquement les déplacements de mêlée explicites (r=1)
-            try { if ((s as any)?.r !== 1) { break; } } catch {}
-            // Skip "loose" moves that don't quickly lead to an AttemptHit for the same actor
-            try {
-              const curIdx = steps.indexOf(s);
-              let willHitSoon = false;
-              for (let k = curIdx + 1; k < steps.length && k <= curIdx + 5; k++) {
-                const nx = steps[k];
-                if (!nx) break;
-                if (nx.a === 26) break; // End
-                if (typeof nx.f === 'number' && nx.f === actorIdx && nx.a === 19) { willHitSoon = true; break; }
-                if (typeof nx.f === 'number' && nx.f === actorIdx && (nx.a === 15 || nx.a === 17)) continue; // neutral
-                // If another action by same actor that is not AttemptHit comes first, treat as not an approach for hit
-                if (typeof nx.f === 'number' && nx.f === actorIdx) break;
-              }
-              if (!willHitSoon) { break; }
-            } catch {}
-            playAnim(src, 'walk', true);
+            // COMME L'OFFICIEL: Move se fait TOUJOURS
+            // Si r n'est pas défini, on devrait repositionner les autres fighters
+            // mais pour l'instant on fait juste le move normal
+            
+            if (!src || !tgt) break;
+            
+            playAnim(src, 'run', true);
             const tpos = getPos(tgt.node);
             const countered = s?.c === 1;
-            const meleeDist = getHitDistance(src, tgt, s, countered);
-            const targetX = (targetSide === 'R') ? (tpos.x - meleeDist) : (tpos.x + meleeDist);
+            const isSameSpace = s?.s === 1;
+            const meleeDist = getHitDistance(src, tgt, countered, isSameSpace, actorIdx, targetIdx);
+            
+            // L'attaquant va vers sa cible
+            // Si je suis à gauche, je vais vers la droite
+            // Si je suis à droite, je vais vers la gauche
+            const targetX = actorSide === 'L' 
+              ? tpos.x - meleeDist  // Je suis à gauche, je me place à gauche de ma cible
+              : tpos.x + meleeDist; // Je suis à droite, je me place à droite de ma cible
+            const targetY = tpos.y; // Move diagonal: on prend le Y de la cible
+            
             const start = getPos(src.node);
-            let ty = clampY(tpos.y); // follow official by default
-            // Avoid pure vertical moves: if horizontal delta is tiny, keep Y
-            const minDiagX = 28;
-            if (Math.abs(targetX - start.x) < (Number(new URLSearchParams(window.location.search).get('pixiMinDiagX')) || Number(localStorage.getItem('compare.pixiMinDiagX')) || 60)) { break; }
-            const dist = Math.hypot(targetX - start.x, ty - start.y);
-            addVector(start.x, start.y, targetX, ty, 0x00cc66);
-            const dur = (durationMoveMs(dist) * (actorSide === 'R' ? mulR : mulL)) / Math.max(0.001, speed);
-            await tweenTo(src.node, targetX, ty, dur);
+            const dist = Math.hypot(targetX - start.x, targetY - start.y);
+            
+            addVector(start.x, start.y, targetX, targetY, 0x00cc66);
+            
+            const baseDur = Math.max(160, dist / 430 * 1000);
+            const dur = (baseDur * (actorSide === 'R' ? mulR : mulL)) / Math.max(0.001, speed);
+            
+            await tweenTo(src.node, targetX, targetY, dur);
             playAnim(src, 'idle', true);
             break; }
           // AttemptHit
           case 19: {
             if (traceEnabled && !traceOnRef.current) { traceOnRef.current = true; traceT0Ref.current = performance.now()/1000; }
+            
+            // Pré-move vers la cible (DIAGONAL comme dans moveTo.ts officiel)
             try {
               const tpos = getPos(tgt.node);
-              const distX = getHitDistance(src, tgt, s, false);
-              const idealX = (targetSide === 'R') ? (tpos.x - distX) : (tpos.x + distX);
+              const distX = getHitDistance(src, tgt, false, false, actorIdx, targetIdx);
+              const idealX = actorSide === 'L'
+                ? tpos.x - distX  // Je suis à gauche, je me place à gauche de ma cible
+                : tpos.x + distX; // Je suis à droite, je me place à droite de ma cible
               const cur = getPos(src.node);
-              if ((src === left && idealX > cur.x) || (src === right && idealX < cur.x)) {
-                const minDiag = (Number(new URLSearchParams(window.location.search).get('pixiMinDiagX'))
-                  || Number(localStorage.getItem('compare.pixiMinDiagX')) || 60);
-                if (Math.abs(idealX - cur.x) >= minDiag) {
-                  // Pré-move en X uniquement (pas de Y)
-                  const ty2 = cur.y;
-                  addVector(cur.x, cur.y, idealX, ty2, 0xff66cc);
-                  const durPre = (100 * (actorSide === 'R' ? mulR : mulL)) / Math.max(0.001, speed);
-                  await tweenTo(src.node, idealX, ty2, durPre);
-                }
+              const idealY = cur.y; // Ne pas bouger en Y sur AttemptHit (horizontal uniquement)
+              
+              // Distance horizontale uniquement
+              const travelDist = Math.abs(idealX - cur.x);
+              
+              // Pré-move seulement si on doit avancer
+              if ((actorSide === 'L' && idealX > cur.x) || (actorSide === 'R' && idealX < cur.x)) {
+                // Mouvement horizontal vers la cible
+                addVector(cur.x, cur.y, idealX, idealY, 0xff66cc);
+                // Durée basée sur la distance totale (comme moveTo.ts ligne 55)
+                const durPre = (Math.max(160, (travelDist / 430) * 1000) * (actorSide === 'R' ? mulR : mulL)) / Math.max(0.001, speed);
+                await tweenTo(src.node, idealX, idealY, durPre); // X ET Y
               }
             } catch {}
+            
             playAnim(src, 'shoot', false);
             const lungeDist = 18;
             const durFwd = (100 * (actorSide === 'R' ? mulR : mulL)) / Math.max(0.001, speed);
             const durBack = (80 * (actorSide === 'R' ? mulR : mulL)) / Math.max(0.001, speed);
-            // Lunge strictement horizontal (Y inchangé)
-            await tweenTo(src.node, src.baseX + (src===left? +lungeDist : -lungeDist), src.baseY, durFwd);
-            await tweenTo(src.node, src.baseX, src.baseY, durBack);
+            
+            // Lunge STRICTEMENT HORIZONTAL (pas de composante Y)
+            const cur2 = getPos(src.node);
+            const lungeX = cur2.x + (src===left? +lungeDist : -lungeDist);
+            await tweenTo(src.node, lungeX, cur2.y, durFwd);
+            await tweenTo(src.node, cur2.x, cur2.y, durBack);
             playAnim(src, 'idle', true);
             break; }
           // Hit / variants
@@ -713,7 +818,7 @@ const PixiFight: React.FC<Props> = ({
             const tpos = getPos(tgt.node);
             floatText(tpos.x, tpos.y, `-${dmg}`, 0xff5555);
             await shake(2, 100);
-            // Pas de retour base ici (évite micro-déplacements). Le retour se fait au Step MoveBack.
+            // IMPORTANT: PAS de retour base ici. Le retour se fait UNIQUEMENT au Step MoveBack.
             playAnim(src, 'idle', true);
             // Track last weapon used if provided
             try {
@@ -733,17 +838,26 @@ const PixiFight: React.FC<Props> = ({
             break; }
           // MoveBack
           case 17: {
-            // Reposition to a new lane like official
+            // Retour à une nouvelle position base (DIAGONAL AUTORISÉ)
+            // Comme l'officiel: choisir une nouvelle lane
             const cur = getPos(src.node);
-            const pos = getRandomBaseForSide(actorSide, cur.x);
-            // update occupancy with new lane
+            const pos = getRandomBaseForSide(actorSide, cur.x, actor);
+            
+            // Update occupancy with new lane
             if (actorSide === 'L') occY.L.push(pos.y); else occY.R.push(pos.y);
-            src.baseX = pos.x; src.baseY = pos.y;
+            
+            // Mettre à jour la base
+            src.baseX = pos.x;
+            src.baseY = pos.y;
+            
             const start = getPos(src.node);
             const dist = Math.hypot(pos.x - start.x, pos.y - start.y);
+            
+            // DIAGONAL AUTORISÉ pour le retour
             addVector(start.x, start.y, pos.x, pos.y, 0x66ccff);
             const dur = (durationMoveBackMs(dist) * (actorSide === 'R' ? mulR : mulL)) / Math.max(0.001, speed);
             await tweenTo(src.node, pos.x, pos.y, dur);
+            
             playAnim(src, 'idle', true);
             break; }
           // Death

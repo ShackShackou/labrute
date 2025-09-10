@@ -1,0 +1,61 @@
+COMMENT OBTENIR LES SYMBOL IDs DE LABRUTE
+=========================================
+
+CE QUE NOUS SAVONS DÉJÀ:
+------------------------
+- Symbol460 = Personnage masculin complet
+- Symbol752 = Personnage féminin complet
+- Le fichier SWF contient TOUS les sprites du jeu
+- Chaque sprite a un Symbol ID unique (ex: Symbol245)
+
+ÉTAPES POUR OBTENIR TOUS LES SYMBOL IDs:
+-----------------------------------------
+
+1. INSTALLER JPEXS:
+   - Double-cliquez sur: LANCER_JPEXS_INSTALL.bat
+   - OU téléchargez depuis: https://github.com/jindrapetrik/jpexs-decompiler/releases
+
+2. OUVRIR LE SWF:
+   - Lancez JPEXS
+   - File > Open
+   - Ouvrez: C:\Users\User\labrute\mini_perso.swf
+
+3. EXPLORER LES SYMBOLES:
+   Dans l'arbre à gauche:
+   - sprites/ : Contient tous les DefineSprite
+   - shapes/ : Contient les formes
+   
+   Cliquez sur chaque élément pour voir:
+   - Son Symbol ID (ex: DefineSprite (245))
+   - Son aperçu visuel
+   - Son contenu
+
+4. COMMENCER PAR:
+   - DefineSprite (460) = Homme complet
+   - DefineSprite (752) = Femme complète
+   
+   Ces symboles contiennent des références vers:
+   - Les parties du corps (p1 à p8)
+   - Les armes
+   - Les animations
+
+5. NOTER LES IDs:
+   Utilisez le template: labrute-symbol-mapper\template_mapping_jpexs.txt
+   
+   Format: Symbol[numéro] = [description]
+   Exemple: Symbol245 = Épée
+
+FICHIERS CRÉÉS POUR VOUS:
+-------------------------
+- SYMBOL_IDS_LABRUTE.md : Documentation complète
+- MAPPING_COMPLET_SYMBOLS.json : Mapping structuré
+- JPEXS_HELPER.bat : Assistant pour JPEXS
+
+BESOIN D'AIDE?
+--------------
+Les Symbol IDs sont essentiels pour:
+- Créer de nouveaux sprites
+- Modifier les animations existantes
+- Comprendre la structure du jeu
+
+Une fois que vous avez JPEXS, l'extraction est simple!

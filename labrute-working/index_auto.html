@@ -1,0 +1,38 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <title>LaBrute RebornV04 - Auto Config</title>
+    <style>
+        body {
+            margin: 0;
+            padding: 0;
+            background: #1a1a1a;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+        }
+        #game-container {
+            border: 3px solid #3e2723;
+            box-shadow: 0 0 30px rgba(0,0,0,0.8);
+        }
+    </style>
+</head>
+<body>
+    <div id="game-container"></div>
+
+    <!-- Phaser -->
+    <script src="https://cdn.jsdelivr.net/npm/phaser@3.70.0/dist/phaser.min.js"></script>
+
+    <!-- Plugin Spine -->
+    <script src="https://cdn.jsdelivr.net/npm/@esotericsoftware/spine-phaser@4.2.0/dist/SpinePlugin.min.js"></script>
+
+    <!-- Charger toutes tes scènes -->
+    <!-- Tes fichiers de jeu --> 
+    <!-- On ne charge pas les fichiers modules directement ici, Vite s'en charge via src/main.js -->
+ECHO is off.
+    <!-- Lancer le jeu via Vite (option A) -->
+    <script type="module" src="src/main.js"></script>
+</body>
+</html>

@@ -1,7 +1,7 @@
 /* eslint-disable no-void */
 import { ArriveStep, WeaponById } from '@labrute/core';
 import { Easing } from 'pixi-tweener';
-import { Application } from 'pixi.js';
+import { Application } from 'pixi-legacy';
 import { BossName } from '@labrute/prisma';
 
 import findFighter, { AnimationFighter } from './utils/findFighter';

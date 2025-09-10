@@ -1,4 +1,4 @@
-import { Application, Sprite } from 'pixi.js';
+import { Application, Sprite } from 'pixi-legacy';
 import { AnimationFighter } from './utils/findFighter';
 import { BevelFilter } from '@pixi/filter-bevel';
 import { Easing, Tweener } from 'pixi-tweener';

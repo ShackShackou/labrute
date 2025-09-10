@@ -1,6 +1,6 @@
 /* eslint-disable no-void */
 import { StepType } from '@labrute/core';
-import { Application } from 'pixi.js';
+import { Application } from 'pixi-legacy';
 import moveBack from '../moveBack';
 import { AnimationFighter } from './findFighter';
 

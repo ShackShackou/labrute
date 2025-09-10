@@ -1,0 +1,241 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>LaBrute - Embed CDN</title>
+    <style>
+        body {
+            margin: 0;
+            padding: 20px;
+            background: #f0f0f0;
+            font-family: Arial, sans-serif;
+        }
+        
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 10px;
+            padding: 20px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+        }
+        
+        h1 {
+            color: #333;
+            text-align: center;
+            margin-bottom: 30px;
+        }
+        
+        .game-embed {
+            width: 100%;
+            height: 600px;
+            border: 3px solid #e74c3c;
+            border-radius: 8px;
+            overflow: hidden;
+        }
+        
+        .controls {
+            margin-top: 20px;
+            text-align: center;
+        }
+        
+        .controls button {
+            background: #3498db;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            margin: 0 10px;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 16px;
+        }
+        
+        .controls button:hover {
+            background: #2980b9;
+        }
+        
+        .info {
+            margin-top: 20px;
+            padding: 15px;
+            background: #ecf0f1;
+            border-radius: 5px;
+            color: #2c3e50;
+        }
+        
+        .status {
+            margin-top: 10px;
+            padding: 10px;
+            border-radius: 5px;
+            font-weight: bold;
+        }
+        
+        .status.success {
+            background: #d5f4e6;
+            color: #2c7a2c;
+        }
+        
+        .status.error {
+            background: #f8d7da;
+            color: #721c24;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🎮 LaBrute Combat Engine - Version CDN</h1>
+        
+        <iframe 
+            id="game-frame" 
+            class="game-embed" 
+            src="labrute-integration-cdn.html"
+            frameborder="0">
+        </iframe>
+        
+        <div class="controls">
+            <button onclick="sendMessage('PLAY_FIGHT')">▶️ Démarrer Combat</button>
+            <button onclick="sendMessage('PAUSE_FIGHT')">⏸️ Pause</button>
+            <button onclick="changeSpeed()">⚡ Vitesse x<span id="speed">1</span></button>
+            <button onclick="loadTestFight()">🔄 Charger Combat Test</button>
+        </div>
+        
+        <div class="info">
+            <h3>📋 Instructions:</h3>
+            <ul>
+                <li><strong>Version CDN:</strong> Cette version utilise Phaser et Spine depuis des CDN externes</li>
+                <li><strong>Pas de bundler requis:</strong> Fonctionne directement dans le navigateur</li>
+                <li><strong>Assets locaux:</strong> Les fichiers Spine (spineboy.json/.atlas/.png) doivent être dans assets/spine/</li>
+                <li><strong>Test rapide:</strong> Utilisez les boutons ci-dessus pour tester le moteur de combat</li>
+            </ul>
+            
+            <h3>📁 Fichiers créés:</h3>
+            <ul>
+                <li><code>index-cdn.html</code> - Version standalone avec CDN</li>
+                <li><code>labrute-integration-cdn.html</code> - Version intégrée LaBrute avec CDN</li>
+                <li><code>test-simple-cdn.html</code> - Version test simple pour diagnostics</li>
+                <li><code>embed-cdn.html</code> - Cette page d'embed</li>
+            </ul>
+        </div>
+        
+        <div id="status-container">
+            <div id="status" class="status">État: Initialisation...</div>
+        </div>
+    </div>
+
+    <script>
+        let currentSpeed = 1;
+        let gameFrame = document.getElementById('game-frame');
+        
+        function updateStatus(message, type = 'info') {
+            const status = document.getElementById('status');
+            status.textContent = `État: ${message}`;
+            status.className = `status ${type}`;
+            console.log(`[${type.toUpperCase()}] ${message}`);
+        }
+        
+        function sendMessage(type, data = {}) {
+            try {
+                gameFrame.contentWindow.postMessage({ type, data }, '*');
+                updateStatus(`Message envoyé: ${type}`, 'success');
+            } catch (e) {
+                updateStatus(`Erreur envoi message: ${e.message}`, 'error');
+            }
+        }
+        
+        function changeSpeed() {
+            currentSpeed = currentSpeed === 1 ? 2 : 1;
+            document.getElementById('speed').textContent = currentSpeed;
+            sendMessage('SET_SPEED', { speed: currentSpeed });
+        }
+        
+        function loadTestFight() {
+            const testFightData = {
+                id: 'test-fight-001',
+                fighters: [
+                    {
+                        name: 'Combattant A',
+                        hp: 100,
+                        maxHp: 100,
+                        strength: 15
+                    },
+                    {
+                        name: 'Combattant B', 
+                        hp: 90,
+                        maxHp: 90,
+                        strength: 12
+                    }
+                ],
+                steps: [
+                    {
+                        action: 'fight',
+                        attacker: { name: 'Combattant A' },
+                        defender: { name: 'Combattant B' },
+                        damage: 10
+                    },
+                    {
+                        action: 'fight',
+                        attacker: { name: 'Combattant B' },
+                        defender: { name: 'Combattant A' },
+                        damage: 8
+                    },
+                    {
+                        action: 'fight',
+                        attacker: { name: 'Combattant A' },
+                        defender: { name: 'Combattant B' },
+                        damage: 12
+                    },
+                    {
+                        action: 'end'
+                    }
+                ],
+                winner: 'Combattant A'
+            };
+            
+            sendMessage('LOAD_FIGHT_STEPS', testFightData);
+            updateStatus('Combat test chargé', 'success');
+        }
+        
+        // Écouter les messages du jeu
+        window.addEventListener('message', (event) => {
+            const { type, data } = event.data;
+            
+            switch (type) {
+                case 'READY':
+                    updateStatus('Moteur de combat prêt', 'success');
+                    // Auto-charger un combat test
+                    setTimeout(() => loadTestFight(), 1000);
+                    break;
+                    
+                case 'FIGHT_LOADED':
+                    updateStatus(`Combat chargé: ${data.fightId} (${data.totalSteps} étapes)`, 'success');
+                    break;
+                    
+                case 'FIGHT_STEP':
+                    updateStatus(`Étape ${data.currentStep}/${data.totalSteps}`, 'info');
+                    break;
+                    
+                case 'FIGHT_ENDED':
+                    updateStatus(`Combat terminé! Vainqueur: ${data.winner}`, 'success');
+                    break;
+                    
+                case 'COMBAT_LOG':
+                    console.log('Combat Log:', data.message);
+                    break;
+                    
+                default:
+                    console.log('Message reçu:', type, data);
+            }
+        });
+        
+        // Initialisation
+        window.addEventListener('load', () => {
+            updateStatus('Page d\'embed chargée');
+            
+            // Vérifier que l'iframe est bien chargée
+            gameFrame.addEventListener('load', () => {
+                updateStatus('Moteur de combat en cours de chargement...');
+            });
+        });
+    </script>
+</body>
+</html>

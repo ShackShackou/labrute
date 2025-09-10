@@ -1,5 +1,5 @@
 import { Brute } from '@labrute/prisma';
-import { Extract, Renderer } from 'pixi.js';
+import { Extract, Renderer } from 'pixi-legacy';
 import React, { useContext, useEffect, useMemo, useState } from 'react';
 import BruteDisplay from '../utils/BruteDisplay';
 

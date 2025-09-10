@@ -3,8 +3,8 @@ import { BossName, Gender, PetName, SkillName, WeaponName } from '@labrute/prism
 import { AdjustmentFilter } from '@pixi/filter-adjustment';
 import dayjs from 'dayjs';
 import { FramePart, Symbol as LaBruteSymbol, Svg, Symbol475, Symbol476, Symbol478, Symbol479, Symbol488, Symbol489, Symbol490, Symbol491, Symbol493, Symbol494, Symbol495, Symbol496, Symbol497, Symbol498, Symbol503, Symbol505, Symbol506, Symbol507, Symbol508, Symbol509, Symbol510, Symbol513, Symbol516, Symbol517, Symbol541, Symbol542, Symbol543, Symbol544, Symbol545, Symbol546, Symbol846, Symbol847, Symbol848, Symbol849, Symbol851, Symbol854, Symbol855, Symbol856, Symbol857, Symbol858, Symbol859, Symbol860, Symbol861, Symbol863, Symbol864, Symbol865, Symbol866, Symbol867, Symbol868, Symbol869, Symbol870, Symbol871, Symbol875, Symbol876, Symbol877, Symbol878, Symbol879, Symbol880, Symbol894, Symbol903, Symbol904, Symbol905, Symbol906, Symbol907, Symbol910, Symbol911, Symbol912, Symbol913, Symbol935, Symbol936, Symbol937, Symbol938, Symbol939, Symbol940, Symbol941, Symbol942, Symbol943, Symbol944 } from 'labrute-fla-parser';
-import * as PIXI from 'pixi.js';
-import { Filter, Matrix, Texture } from 'pixi.js';
+import * as PIXI from 'pixi-legacy';
+import { Filter, Matrix, Texture } from 'pixi-legacy';
 import { MutableRefObject } from 'react';
 
 const ANIMATIONS: Record<

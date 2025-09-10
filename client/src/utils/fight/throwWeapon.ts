@@ -2,7 +2,7 @@
 import { ThrowStep, WeaponById, weapons } from '@labrute/core';
 import { sound } from '@pixi/sound';
 import { Easing, Tweener } from 'pixi-tweener';
-import { Application, Sprite } from 'pixi.js';
+import { Application, Sprite } from 'pixi-legacy';
 import findFighter, { AnimationFighter } from './utils/findFighter';
 import { knockBack } from './utils/knockBack';
 

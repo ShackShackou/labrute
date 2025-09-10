@@ -1,4 +1,4 @@
-import { Application, Text } from 'pixi.js';
+import { Application, Text } from 'pixi-legacy';
 import insideXBounds from './insideXBounds';
 import { AnimationFighter } from './findFighter';
 import { OutlineFilter } from '@pixi/filter-outline';

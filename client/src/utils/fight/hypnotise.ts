@@ -4,7 +4,7 @@ import { Gender } from '@labrute/prisma';
 import { sound } from '@pixi/sound';
 import { GlowFilter } from '@pixi/filter-glow';
 import { Easing, Tweener } from 'pixi-tweener';
-import { Application, Sprite, RenderTexture, Graphics, filters, Container } from 'pixi.js';
+import { Application, Sprite, RenderTexture, Graphics, filters, Container } from 'pixi-legacy';
 import { getMultipleRandomPosition } from './utils/fightPositions';
 import findFighter, { AnimationFighter } from './utils/findFighter';
 

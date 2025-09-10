@@ -1,0 +1,466 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Debug Spine Loader</title>
+    <style>
+        body {
+            margin: 0;
+            padding: 20px;
+            background: #1a1a1a;
+            color: #fff;
+            font-family: 'Courier New', monospace;
+        }
+        #controls {
+            background: #2a2a2a;
+            padding: 15px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+        }
+        button {
+            background: #4CAF50;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            margin: 5px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 14px;
+        }
+        button:hover {
+            background: #45a049;
+        }
+        button.danger {
+            background: #f44336;
+        }
+        button.danger:hover {
+            background: #da190b;
+        }
+        #game-container {
+            width: 800px;
+            height: 600px;
+            margin: 0 auto;
+            border: 2px solid #4CAF50;
+            background: #2d2419;
+        }
+        #logs {
+            background: #000;
+            padding: 10px;
+            margin-top: 20px;
+            border-radius: 8px;
+            max-height: 300px;
+            overflow-y: auto;
+            font-size: 12px;
+        }
+        .log-entry {
+            margin: 2px 0;
+            padding: 2px 5px;
+        }
+        .success { color: #4CAF50; }
+        .error { color: #f44336; }
+        .warning { color: #ff9800; }
+        .info { color: #2196F3; }
+    </style>
+</head>
+<body>
+    <h1>🔧 Debug Spine Loader</h1>
+    
+    <div id="controls">
+        <button onclick="testBasicPhaser()">1. Test Phaser Basic</button>
+        <button onclick="testSpinePlugin()">2. Test Spine Plugin</button>
+        <button onclick="testAtlasLoad()">3. Test Atlas Load</button>
+        <button onclick="testJsonLoad()">4. Test JSON Load</button>
+        <button onclick="testFullSpine()">5. Test Full Spine</button>
+        <button onclick="testCombatScene()">6. Test Combat Scene</button>
+        <button class="danger" onclick="clearLogs()">Clear Logs</button>
+    </div>
+    
+    <div id="game-container"></div>
+    
+    <div id="logs"></div>
+    
+    <script type="module">
+        import Phaser from 'phaser';
+        import { SpinePlugin } from '@esotericsoftware/spine-phaser';
+        
+        window.Phaser = Phaser;
+        window.SpinePlugin = SpinePlugin;
+        
+        let game = null;
+        
+        window.log = function(message, type = 'info') {
+            const logs = document.getElementById('logs');
+            const entry = document.createElement('div');
+            entry.className = `log-entry ${type}`;
+            const time = new Date().toLocaleTimeString();
+            entry.textContent = `[${time}] ${message}`;
+            logs.appendChild(entry);
+            logs.scrollTop = logs.scrollHeight;
+            console.log(`[${type}] ${message}`);
+        }
+        
+        window.clearLogs = function() {
+            document.getElementById('logs').innerHTML = '';
+            log('Logs cleared', 'info');
+        }
+        
+        window.destroyGame = function() {
+            if (game) {
+                log('Destroying current game instance', 'warning');
+                game.destroy(true);
+                game = null;
+            }
+        }
+        
+        window.testBasicPhaser = function() {
+            log('=== TEST 1: Basic Phaser ===', 'info');
+            destroyGame();
+            
+            class BasicScene extends Phaser.Scene {
+                create() {
+                    log('BasicScene created', 'success');
+                    this.add.text(400, 300, 'Phaser Works!', { 
+                        fontSize: '32px', 
+                        color: '#ffffff' 
+                    }).setOrigin(0.5);
+                    
+                    const graphics = this.add.graphics();
+                    graphics.fillStyle(0x00ff00, 1);
+                    graphics.fillCircle(400, 400, 50);
+                    log('Added text and graphics', 'success');
+                }
+            }
+            
+            const config = {
+                type: Phaser.AUTO,
+                width: 800,
+                height: 600,
+                parent: 'game-container',
+                backgroundColor: '#2d2419',
+                scene: [BasicScene]
+            };
+            
+            try {
+                game = new Phaser.Game(config);
+                log('Basic Phaser test successful', 'success');
+            } catch (error) {
+                log(`Error: ${error.message}`, 'error');
+            }
+        }
+        
+        window.testSpinePlugin = function() {
+            log('=== TEST 2: Spine Plugin ===', 'info');
+            destroyGame();
+            
+            class PluginScene extends Phaser.Scene {
+                create() {
+                    log('PluginScene created', 'success');
+                    
+                    if (this.spine) {
+                        log('Spine plugin is available!', 'success');
+                        this.add.text(400, 300, 'Spine Plugin Loaded!', { 
+                            fontSize: '32px', 
+                            color: '#00ff00' 
+                        }).setOrigin(0.5);
+                    } else {
+                        log('Spine plugin NOT available', 'error');
+                        this.add.text(400, 300, 'Spine Plugin FAILED!', { 
+                            fontSize: '32px', 
+                            color: '#ff0000' 
+                        }).setOrigin(0.5);
+                    }
+                }
+            }
+            
+            const config = {
+                type: Phaser.AUTO,
+                width: 800,
+                height: 600,
+                parent: 'game-container',
+                backgroundColor: '#2d2419',
+                plugins: {
+                    scene: [{
+                        key: 'SpinePlugin',
+                        plugin: SpinePlugin,
+                        mapping: 'spine'
+                    }]
+                },
+                scene: [PluginScene]
+            };
+            
+            try {
+                game = new Phaser.Game(config);
+                log('Spine plugin test initiated', 'info');
+            } catch (error) {
+                log(`Error: ${error.message}`, 'error');
+            }
+        }
+        
+        window.testAtlasLoad = function() {
+            log('=== TEST 3: Atlas Load ===', 'info');
+            destroyGame();
+            
+            class AtlasScene extends Phaser.Scene {
+                preload() {
+                    log('Loading atlas file...', 'info');
+                    
+                    this.load.on('loaderror', (file) => {
+                        log(`Load error: ${file.key} from ${file.url}`, 'error');
+                    });
+                    
+                    this.load.on('filecomplete', (key, type, data) => {
+                        log(`Loaded: ${key} (${type})`, 'success');
+                    });
+                    
+                    this.load.spineAtlas('test-atlas', 'assets/spine/spineboy.atlas');
+                }
+                
+                create() {
+                    log('AtlasScene created', 'success');
+                    
+                    if (this.cache.custom.spineAtlas && this.cache.custom.spineAtlas.exists('test-atlas')) {
+                        log('Atlas loaded successfully!', 'success');
+                        this.add.text(400, 300, 'Atlas Loaded!', { 
+                            fontSize: '32px', 
+                            color: '#00ff00' 
+                        }).setOrigin(0.5);
+                    } else {
+                        log('Atlas NOT in cache', 'error');
+                    }
+                }
+            }
+            
+            const config = {
+                type: Phaser.AUTO,
+                width: 800,
+                height: 600,
+                parent: 'game-container',
+                backgroundColor: '#2d2419',
+                plugins: {
+                    scene: [{
+                        key: 'SpinePlugin',
+                        plugin: SpinePlugin,
+                        mapping: 'spine'
+                    }]
+                },
+                scene: [AtlasScene]
+            };
+            
+            try {
+                game = new Phaser.Game(config);
+                log('Atlas load test initiated', 'info');
+            } catch (error) {
+                log(`Error: ${error.message}`, 'error');
+            }
+        }
+        
+        window.testJsonLoad = function() {
+            log('=== TEST 4: JSON Load ===', 'info');
+            destroyGame();
+            
+            class JsonScene extends Phaser.Scene {
+                preload() {
+                    log('Loading JSON file...', 'info');
+                    
+                    this.load.on('loaderror', (file) => {
+                        log(`Load error: ${file.key} from ${file.url}`, 'error');
+                    });
+                    
+                    this.load.on('filecomplete', (key, type, data) => {
+                        log(`Loaded: ${key} (${type})`, 'success');
+                    });
+                    
+                    this.load.spineJson('test-json', 'assets/spine/spineboy-pro.json');
+                }
+                
+                create() {
+                    log('JsonScene created', 'success');
+                    
+                    if (this.cache.custom.spine && this.cache.custom.spine.exists('test-json')) {
+                        log('JSON loaded successfully!', 'success');
+                        this.add.text(400, 300, 'JSON Loaded!', { 
+                            fontSize: '32px', 
+                            color: '#00ff00' 
+                        }).setOrigin(0.5);
+                    } else {
+                        log('JSON NOT in cache', 'error');
+                    }
+                }
+            }
+            
+            const config = {
+                type: Phaser.AUTO,
+                width: 800,
+                height: 600,
+                parent: 'game-container',
+                backgroundColor: '#2d2419',
+                plugins: {
+                    scene: [{
+                        key: 'SpinePlugin',
+                        plugin: SpinePlugin,
+                        mapping: 'spine'
+                    }]
+                },
+                scene: [JsonScene]
+            };
+            
+            try {
+                game = new Phaser.Game(config);
+                log('JSON load test initiated', 'info');
+            } catch (error) {
+                log(`Error: ${error.message}`, 'error');
+            }
+        }
+        
+        window.testFullSpine = function() {
+            log('=== TEST 5: Full Spine ===', 'info');
+            destroyGame();
+            
+            class FullSpineScene extends Phaser.Scene {
+                preload() {
+                    log('Loading all Spine assets...', 'info');
+                    
+                    this.load.on('loaderror', (file) => {
+                        log(`Load error: ${file.key} from ${file.url}`, 'error');
+                    });
+                    
+                    this.load.on('filecomplete', (key, type, data) => {
+                        log(`Loaded: ${key} (${type})`, 'success');
+                    });
+                    
+                    this.load.spineJson('spineboy-data', 'assets/spine/spineboy-pro.json');
+                    this.load.spineAtlas('spineboy-atlas', 'assets/spine/spineboy.atlas');
+                }
+                
+                create() {
+                    log('Creating Spine character...', 'info');
+                    
+                    try {
+                        const spineboy = this.add.spine(400, 500, 'spineboy-data', 'spineboy-atlas');
+                        log('Spine character created!', 'success');
+                        
+                        spineboy.setScale(0.5);
+                        
+                        const anims = spineboy.getAnimationList();
+                        log(`Available animations: ${anims.join(', ')}`, 'info');
+                        
+                        if (anims.includes('idle')) {
+                            spineboy.play('idle', true);
+                            log('Playing idle animation', 'success');
+                        } else if (anims.length > 0) {
+                            spineboy.play(anims[0], true);
+                            log(`Playing ${anims[0]} animation`, 'success');
+                        }
+                        
+                        this.add.text(400, 50, 'Spine Character Active!', { 
+                            fontSize: '24px', 
+                            color: '#00ff00' 
+                        }).setOrigin(0.5);
+                        
+                    } catch (error) {
+                        log(`Error creating Spine: ${error.message}`, 'error');
+                        console.error(error);
+                    }
+                }
+            }
+            
+            const config = {
+                type: Phaser.AUTO,
+                width: 800,
+                height: 600,
+                parent: 'game-container',
+                backgroundColor: '#2d2419',
+                plugins: {
+                    scene: [{
+                        key: 'SpinePlugin',
+                        plugin: SpinePlugin,
+                        mapping: 'spine'
+                    }]
+                },
+                scene: [FullSpineScene]
+            };
+            
+            try {
+                game = new Phaser.Game(config);
+                log('Full Spine test initiated', 'info');
+            } catch (error) {
+                log(`Error: ${error.message}`, 'error');
+            }
+        }
+        
+        window.testCombatScene = function() {
+            log('=== TEST 6: Combat Scene ===', 'info');
+            destroyGame();
+            
+            // Import et test de la vraie scène de combat
+            import('./scenes/LaBruteFightScene.js').then(module => {
+                const LaBruteFightScene = module.LaBruteFightScene;
+                
+                const config = {
+                    type: Phaser.AUTO,
+                    width: 800,
+                    height: 600,
+                    parent: 'game-container',
+                    backgroundColor: '#2d2419',
+                    plugins: {
+                        scene: [{
+                            key: 'SpinePlugin',
+                            plugin: SpinePlugin,
+                            mapping: 'spine'
+                        }]
+                    },
+                    scene: [LaBruteFightScene]
+                };
+                
+                try {
+                    game = new Phaser.Game(config);
+                    log('Combat Scene test initiated', 'info');
+                    
+                    // Envoyer des données de test après un délai
+                    setTimeout(() => {
+                        log('Sending test fight data...', 'info');
+                        window.postMessage({
+                            type: 'LOAD_FIGHT_STEPS',
+                            data: {
+                                fightId: "test-debug",
+                                fighters: [
+                                    {
+                                        id: "charA",
+                                        name: "Fighter A",
+                                        team: "L",
+                                        hp: 10,
+                                        maxHp: 10
+                                    },
+                                    {
+                                        id: "charB",
+                                        name: "Fighter B",
+                                        team: "R",
+                                        hp: 8,
+                                        maxHp: 8
+                                    }
+                                ],
+                                steps: [
+                                    { type: 1, f: "charA", t: "charB" },
+                                    { type: 2, f: "charA", t: "charB", d: 3 },
+                                    { type: 5, f: "charB" },
+                                    { type: 6, w: "charA" }
+                                ]
+                            }
+                        }, '*');
+                    }, 1000);
+                    
+                } catch (error) {
+                    log(`Error: ${error.message}`, 'error');
+                }
+            }).catch(error => {
+                log(`Failed to import LaBruteFightScene: ${error.message}`, 'error');
+            });
+        }
+        
+        // Log initial
+        log('Debug interface ready', 'success');
+        log('Click buttons in order to test each component', 'info');
+    </script>
+</body>
+</html>

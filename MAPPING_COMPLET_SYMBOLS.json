@@ -1,0 +1,159 @@
+{
+  "personnages_principaux": {
+    "Symbol460": {
+      "nom": "Personnage masculin complet",
+      "description": "Container principal pour tous les sprites masculins",
+      "parties": {
+        "p1": "Base du corps (1 variante)",
+        "p1a": "Ceinture basique (1 variante)",
+        "p1b": "Ceinture romaine (1 variante)",
+        "p2": "Taille du corps - 7 niveaux de musculature",
+        "p3": "Cheveux/Coiffure - 11 styles",
+        "p4": "Barbe - 5 styles",
+        "p5": "Chemise/Haut (torse nu ou avec chemise)",
+        "p6": "Bas (shorts ou pantalons)",
+        "p7": "Vêtement principal - 6 types d'armures/tenues",
+        "p7b": "Dessous de chaussures (2 variantes)",
+        "p8": "Chaussures (4 variantes - buggé)"
+      }
+    },
+    "Symbol752": {
+      "nom": "Personnage féminin complet",
+      "description": "Container principal pour tous les sprites féminins",
+      "parties": {
+        "p1": "Base du corps (1 variante)",
+        "p1a": "Ceinture basique (1 variante)",
+        "p1b": "Ceinture romaine (1 variante)",
+        "p2": "Corps unique (pas de variation)",
+        "p3": "Cheveux/Coiffure - 11 styles",
+        "p4": "Mèches avant - 3 styles",
+        "p5": "Chemise/Haut (torse nu ou avec chemise)",
+        "p6": "Bas (shorts ou rien)",
+        "p7": "Vêtement principal - 6 types d'armures/tenues",
+        "p7b": "Dessous de chaussures (2 variantes)",
+        "p8": "Chaussures (4 variantes - buggé)"
+      }
+    }
+  },
+  "details_parties": {
+    "p2_homme": {
+      "nom": "Taille du Corps (Homme)",
+      "variantes": {
+        "0": "Très maigre",
+        "1": "Maigre",
+        "2": "Mince",
+        "3": "Normal",
+        "4": "Musclé",
+        "5": "Costaud",
+        "6": "Très costaud"
+      }
+    },
+    "p3_cheveux": {
+      "nom": "Styles de Cheveux",
+      "variantes": {
+        "0": "Cheveux courts",
+        "1": "Cheveux mi-longs",
+        "2": "Cheveux longs",
+        "3": "Crête iroquoise",
+        "4": "Chauve",
+        "5": "Afro",
+        "6": "Queue de cheval",
+        "7": "Dreadlocks",
+        "8": "Coupe punk",
+        "9": "Cheveux ébouriffés",
+        "10": "Coupe classique"
+      }
+    },
+    "p4_homme": {
+      "nom": "Barbes",
+      "variantes": {
+        "0": "Barbe de 3 jours",
+        "1": "Bouc",
+        "2": "Barbe complète",
+        "3": "Moustache",
+        "4": "Barbe viking"
+      }
+    },
+    "p4_femme": {
+      "nom": "Mèches Avant",
+      "variantes": {
+        "0": "Mèches courtes",
+        "1": "Mèches longues",
+        "2": "Frange"
+      }
+    },
+    "p7_vetements": {
+      "nom": "Vêtements Principaux",
+      "variantes": {
+        "0": "Armure légère",
+        "1": "Tunique",
+        "2": "Armure lourde",
+        "3": "Tenue de combat",
+        "4": "Toge",
+        "5": "Tenue barbare"
+      }
+    }
+  },
+  "couleurs": {
+    "canaux": {
+      "col0": "Couleur de Peau",
+      "col0a": "Couleur du Visage",
+      "col0c": "Couleur des Oreilles",
+      "col1": "Couleur des Cheveux",
+      "col1a": "Cheveux Arrière",
+      "col1b": "Cheveux Arrière 2",
+      "col1c": "Cheveux Avant",
+      "col1d": "Sourcils",
+      "col2": "Couleur Secondaire",
+      "col2a": "Accent 3",
+      "col2b": "Accent 1",
+      "col3": "Couleur Primaire (inclut les yeux)",
+      "col3b": "Accent 2",
+      "col4": "Couleur de la Chemise",
+      "col4a": "Accent des Chaussures",
+      "col4b": "Couleur Mystère"
+    }
+  },
+  "armes": {
+    "principales": [
+      "sword (épée)",
+      "axe (hache)",
+      "lance",
+      "hammer (marteau)",
+      "whip (fouet)",
+      "knife (couteau)",
+      "baton (gourdin)",
+      "trident",
+      "halbard (hallebarde)",
+      "morningStar (étoile du matin)",
+      "flail (fléau)",
+      "scimitar (cimeterre)",
+      "sai",
+      "hatchet (hachette)"
+    ],
+    "speciales": [
+      "fryingPan (poêle à frire)",
+      "keyboard (clavier)",
+      "leek (poireau)",
+      "mug (chope)",
+      "mammothBone (os de mammouth)",
+      "fan (éventail)",
+      "racquet (raquette)",
+      "noodleBowl (bol de nouilles)",
+      "piopio",
+      "trombone",
+      "shuriken"
+    ]
+  },
+  "animaux": {
+    "bear": "Ours",
+    "dog": "Chien",
+    "panther": "Panthère"
+  },
+  "notes": {
+    "structure": "Les Symbol IDs exacts pour chaque élément (ex: Symbol245 pour l'épée) doivent être extraits avec JPEXS",
+    "imbrication": "Les symboles sont imbriqués - Symbol460/752 contiennent des références vers d'autres symboles",
+    "animations": "Chaque symbole contient sa propre timeline avec les animations",
+    "extraction": "Utilisez JPEXS Free Flash Decompiler pour obtenir les IDs exacts de chaque sprite"
+  }
+}

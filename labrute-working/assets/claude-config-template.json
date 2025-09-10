@@ -1,0 +1,72 @@
+{
+  "authenticationConfig": {
+    "preferredMethod": "subscription",
+    "fallbackToAPI": false,
+    "apiKeyHelper": null,
+    "description": "Configuration for Claude Code authentication methods"
+  },
+  
+  "subscriptionSettings": {
+    "accountType": "pro|max",
+    "enforceSubscriptionOnly": true,
+    "preventAPIFallback": true,
+    "usageTracking": true,
+    "description": "Settings specific to Claude.ai subscription usage"
+  },
+  
+  "modelPreferences": {
+    "defaultModel": "sonnet-4",
+    "allowOpus": false,
+    "autoDowngrade": true,
+    "description": "Model selection preferences (Max subscribers only for Opus)"
+  },
+  
+  "usageLimits": {
+    "alertAt80Percent": true,
+    "pauseAtLimit": true,
+    "showUsageInPrompt": false,
+    "description": "Usage monitoring and limit management"
+  },
+  
+  "securitySettings": {
+    "storeCredentialsSecurely": true,
+    "useSystemKeychain": true,
+    "sessionTimeout": 3600,
+    "description": "Security and credential storage settings"
+  },
+  
+  "projectSettings": {
+    "contextWindow": 200000,
+    "includeFileTypes": [".js", ".ts", ".jsx", ".tsx", ".py", ".css", ".html", ".md"],
+    "excludeDirectories": ["node_modules", ".git", "dist", "build"],
+    "description": "Project-specific configuration for code analysis"
+  },
+  
+  "enterpriseIntegration": {
+    "bedrock": {
+      "enabled": false,
+      "region": "",
+      "accessKeyId": "",
+      "description": "Amazon Bedrock integration settings"
+    },
+    "vertexAI": {
+      "enabled": false,
+      "projectId": "",
+      "region": "",
+      "description": "Google Vertex AI integration settings"
+    },
+    "customAuth": {
+      "enabled": false,
+      "scriptPath": "",
+      "description": "Custom authentication script configuration"
+    }
+  },
+  
+  "developmentMode": {
+    "verboseLogging": false,
+    "debugMode": false,
+    "saveSessionLogs": false,
+    "logDirectory": "./claude-logs",
+    "description": "Development and debugging settings"
+  }
+}

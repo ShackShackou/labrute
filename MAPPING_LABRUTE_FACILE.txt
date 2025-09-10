@@ -1,0 +1,114 @@
+====================================
+    MAPPING LABRUTE - VERSION SIMPLE
+====================================
+
+PERSONNAGES PRINCIPAUX
+----------------------
+Symbol460 = HOMME (contient toutes les animations)
+Symbol752 = FEMME (contient toutes les animations)
+
+
+PARTIES DU CORPS
+----------------
+p1  = Base (1 variante)
+p1a = Ceinture normale (1 variante)  
+p1b = Ceinture romaine (1 variante)
+p2  = Corpulence/Muscles (7 types pour homme, 0 pour femme)
+p3  = Cheveux/Coiffure (11 styles)
+p4  = Barbe (homme: 5) / Meches (femme: 3)
+p5  = Chemise/Torse nu (1 variante)
+p6  = Pantalon/Bas (1 variante)
+p7  = Vetement principal/Armure (6 types)
+p7b = Dessous chaussures (2 variantes)
+p8  = Chaussures (4 types) - BUGGE, ne s'affiche pas
+
+
+COULEURS (16 canaux)
+--------------------
+PEAU:
+- col0  = Couleur de peau principale
+- col0a = Couleur du visage
+- col0c = Couleur des oreilles
+
+CHEVEUX:
+- col1  = Couleur cheveux principale
+- col1a = Cheveux arriere
+- col1b = Cheveux arriere 2
+- col1c = Cheveux avant
+- col1d = Sourcils
+
+VETEMENTS:
+- col2  = Couleur secondaire
+- col2a = Accent 3
+- col2b = Accent 1
+- col3  = Couleur primaire (+ yeux)
+- col3b = Accent 2
+- col4  = Couleur chemise
+- col4a = Accent chaussures
+- col4b = Couleur mystere
+
+
+ANIMATIONS DISPONIBLES
+----------------------
+- idle   = Repos
+- walk   = Marche
+- run    = Course
+- hit    = Frappe
+- block  = Blocage
+- evade  = Esquive
+- hurt   = Blesse
+- death  = Mort
+- win    = Victoire
+- throw  = Lancer
+- grab   = Saisie
+
+
+ARMES
+-----
+- fist       = Poings
+- sword      = Epee
+- axe        = Hache
+- lance      = Lance
+- hammer     = Marteau
+- whip       = Fouet
+- knife      = Couteau
+- shield     = Bouclier
+- mug        = Chope
+- fan        = Eventail
+- keyboard   = Clavier
+- leek       = Poireau
+- fryingPan  = Poele a frire
+- noodleBowl = Bol de nouilles
+
+
+ESTIMATION DES SYMBOL IDS
+-------------------------
+1-99     = Elements de base
+100-199  = Corps et corpulence
+200-399  = Tetes et cheveux
+400-499  = Vetements hauts
+500-599  = Vetements principaux
+600-699  = Pieds et chaussures
+700-799  = Armes
+800-899  = Effets speciaux
+900-999  = Divers
+
+
+REGLES IMPORTANTES
+------------------
+1. NE JAMAIS modifier les IDs existants
+2. TOUJOURS ajouter apres le dernier ID
+3. Les symboles sont IMBRIQUES (symboles dans symboles)
+4. Symbol460 et Symbol752 contiennent tout le reste
+
+
+NOTES
+-----
+- p8 (chaussures) ne fonctionne pas visuellement (bug du jeu original)
+- Certaines combinaisons de couleurs peuvent creer des conflits
+- Pour modifier : utiliser JPEXS ou le sprite editor existant
+
+
+====================================
+         FIN DU MAPPING
+====================================

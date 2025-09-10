@@ -1,0 +1,400 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>LaBrute Combat Engine</title>
+    <style>
+        body {
+            margin: 0;
+            padding: 0;
+            background: transparent;
+            overflow: hidden;
+        }
+        
+        #game-container {
+            width: 100%;
+            height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+        
+        #game-container canvas {
+            max-width: 100% !important;
+            max-height: 100% !important;
+            width: auto !important;
+            height: auto !important;
+            object-fit: contain;
+        }
+        
+        /* Interface LaBrute intégrée */
+        .labrute-ui {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            pointer-events: none;
+            z-index: 1000;
+        }
+        
+        .labrute-ui * {
+            pointer-events: auto;
+        }
+        
+        .combat-controls {
+            position: absolute;
+            bottom: 20px;
+            left: 20px;
+            background: rgba(255, 255, 255, 0.9);
+            border-radius: 8px;
+            padding: 10px;
+            display: flex;
+            gap: 10px;
+        }
+        
+        .combat-controls button {
+            background: #4a90e2;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            padding: 8px 12px;
+            cursor: pointer;
+            font-size: 14px;
+        }
+        
+        .combat-controls button:hover {
+            background: #357abd;
+        }
+        
+        .combat-info {
+            position: absolute;
+            top: 20px;
+            right: 20px;
+            background: rgba(0, 0, 0, 0.8);
+            color: white;
+            border-radius: 8px;
+            padding: 10px;
+            font-size: 14px;
+        }
+        
+        .combat-logs {
+            position: absolute;
+            top: 20px;
+            left: 20px;
+            background: rgba(0, 0, 0, 0.8);
+            color: white;
+            border-radius: 8px;
+            padding: 10px;
+            max-width: 300px;
+            max-height: 200px;
+            overflow-y: auto;
+            font-size: 12px;
+        }
+    </style>
+</head>
+<body>
+    <div id="game-container">
+        <!-- Le jeu Phaser sera injecté ici -->
+    </div>
+    
+    <!-- Interface LaBrute intégrée -->
+    <div class="labrute-ui">
+        <div class="combat-controls">
+            <button id="force-test" style="background-color: #ff5722;">🔥 FORCER COMBAT TEST</button>
+            <button id="play-pause">⏸️ Pause</button>
+            <button id="speed-toggle">⚡ x1</button>
+            <button id="sound-toggle">🔊 Son</button>
+            <button id="music-toggle">🎵 Musique</button>
+        </div>
+        
+        <div class="combat-info">
+            <div>Combat LaBrute</div>
+            <div id="fight-id">ID: -</div>
+            <div id="fight-progress">Étapes: 0/0</div>
+        </div>
+        
+        <div class="combat-logs">
+            <div>Logs de Combat</div>
+            <div id="combat-log-content"></div>
+        </div>
+    </div>
+
+    <!-- Scripts -->
+    <script type="module" src="src/main.js"></script>
+    
+    <script>
+        // Interface LaBrute intégrée
+        let isPlaying = true;
+        let fightSpeed = 1;
+        let soundOn = true;
+        let musicOn = true;
+        
+        // Données de combat de test pour le bouton d'urgence
+        const testFightData = {
+            fightId: "test-123",
+            apiBase: window.location.origin,
+            mapping: {
+                heroIndex: 0,
+                enemyIndex: 1,
+                heroId: 'charA',
+                enemyId: 'charB'
+            },
+            fighters: [
+                {
+                    id: "hero-123",
+                    name: "Héros Test",
+                    level: 3,
+                    strength: 5,
+                    agility: 4,
+                    speed: 4,
+                    health: 10,
+                    endurance: 8,
+                    master: false,
+                    body: {
+                        gender: "male",
+                        colors: { skin: "#e8beac", hair: "#402305" }
+                    }
+                },
+                {
+                    id: "enemy-456",
+                    name: "Ennemi Test",
+                    level: 3,
+                    strength: 4,
+                    agility: 5,
+                    speed: 3,
+                    health: 10,
+                    endurance: 7,
+                    master: false,
+                    body: {
+                        gender: "male",
+                        colors: { skin: "#e8beac", hair: "#000000" }
+                    }
+                }
+            ],
+            steps: [
+                { type: 1, f: "hero-123", t: "enemy-456" },  // Approche
+                { type: 2, f: "hero-123", t: "enemy-456", d: 2 },  // Coup
+                { type: 1, f: "enemy-456", t: "hero-123" },  // Approche
+                { type: 3, f: "enemy-456", t: "hero-123" },  // Blocage
+                { type: 1, f: "hero-123", t: "enemy-456" },  // Approche
+                { type: 2, f: "hero-123", t: "enemy-456", d: 3 },  // Coup
+                { type: 4, f: "enemy-456", t: "hero-123" },  // Esquive
+                { type: 1, f: "enemy-456", t: "hero-123" },  // Approche
+                { type: 2, f: "enemy-456", t: "hero-123", d: 6 },  // Coup fort
+                { type: 1, f: "hero-123", t: "enemy-456" },  // Approche
+                { type: 2, f: "hero-123", t: "enemy-456", d: 4 },  // Coup mortel
+                { type: 5, f: "enemy-456" },  // Mort
+                { type: 6, w: "hero-123" }  // Fin du combat
+            ]
+        };
+        
+        // Bouton d'urgence pour forcer un combat test
+        document.getElementById('force-test').addEventListener('click', () => {
+            console.log("🔥 FORÇAGE D'UN COMBAT TEST");
+            appendCombatLog("🔥 Forçage d'un combat test");
+            
+            // Style du bouton pour montrer qu'il est actif
+            const btn = document.getElementById('force-test');
+            btn.style.backgroundColor = 'green';
+            btn.textContent = '⚔️ COMBAT EN COURS...';
+            
+            // Données simplifiées - assurons-nous que les personnages sont bien positionnés
+            const simpleFightData = {
+                fightId: "test-123",
+                fighters: [
+                    {
+                        id: "charA",
+                        name: "Héros Test",
+                        team: "L", // Équipe gauche
+                        hp: 10,
+                        maxHp: 10,
+                        strengthValue: 5,
+                        agilityValue: 4,
+                        speedValue: 3
+                    },
+                    {
+                        id: "charB",
+                        name: "Ennemi Test",
+                        team: "R", // Équipe droite
+                        hp: 8,
+                        maxHp: 8,
+                        strengthValue: 4,
+                        agilityValue: 3,
+                        speedValue: 4
+                    }
+                ],
+                steps: [
+                    { type: 1, f: "charA", t: "charB" },  // Move
+                    { type: 2, f: "charA", t: "charB", d: 2 },  // Hit
+                    { type: 1, f: "charB", t: "charA" },  // Move
+                    { type: 2, f: "charB", t: "charA", d: 1 },  // Hit
+                    { type: 1, f: "charA", t: "charB" },  // Move
+                    { type: 2, f: "charA", t: "charB", d: 3 },  // Hit
+                    { type: 1, f: "charB", t: "charA" },  // Move
+                    { type: 2, f: "charB", t: "charA", d: 2 },  // Hit
+                    { type: 1, f: "charA", t: "charB" },  // Move
+                    { type: 2, f: "charA", t: "charB", d: 4 },  // Hit mortel
+                    { type: 5, f: "charB" },  // Death
+                    { type: 6, w: "charA" }  // End
+                ]
+            };
+            
+            // RESET COMPLET - Détruire et recréer l'iframe
+            const gameContainer = document.getElementById('game-container');
+            gameContainer.innerHTML = ''; // Vider complètement
+            
+            // Créer une nouvelle iframe Phaser
+            const script = document.createElement('script');
+            script.type = 'module';
+            script.src = 'src/main.js';
+            gameContainer.appendChild(script);
+            
+            appendCombatLog("🔄 Rechargement du moteur");
+            
+            // Envoyer message de test après un délai pour permettre au moteur de démarrer
+            setTimeout(() => {
+                console.log("📤 Envoi données de combat");
+                appendCombatLog("📤 Envoi données de combat");
+                window.postMessage({
+                    type: 'LOAD_FIGHT_STEPS',
+                    data: simpleFightData
+                }, '*');
+            }, 1000);
+            
+            // Séquence d'auto-démarrage avec plusieurs tentatives
+            setTimeout(() => {
+                console.log("▶️ Envoi commande PLAY_FIGHT #1");
+                appendCombatLog("▶️ Démarrage du combat #1");
+                window.postMessage({ type: 'PLAY_FIGHT' }, '*');
+            }, 2000);
+            
+            setTimeout(() => {
+                console.log("⚡ Envoi commande PLAY_FIGHT #2");
+                appendCombatLog("⚡ Démarrage du combat #2");
+                window.postMessage({ type: 'PLAY_FIGHT' }, '*');
+            }, 3000);
+            
+            setTimeout(() => {
+                console.log("🔄 Envoi commande PLAY_FIGHT #3");
+                appendCombatLog("🔄 Démarrage du combat #3");
+                window.postMessage({ type: 'PLAY_FIGHT' }, '*');
+                
+                // Réinitialiser le bouton
+                btn.style.backgroundColor = '#ff5722';
+                btn.textContent = '🔥 FORCER COMBAT TEST';
+            }, 4000);
+        });
+        
+        // Contrôles
+        document.getElementById('play-pause').addEventListener('click', () => {
+            isPlaying = !isPlaying;
+            const button = document.getElementById('play-pause');
+            button.textContent = isPlaying ? '⏸️ Pause' : '▶️ Play';
+            
+            // Envoyer message au jeu
+            window.postMessage({
+                type: isPlaying ? 'PLAY_FIGHT' : 'PAUSE_FIGHT'
+            }, '*');
+        });
+        
+        document.getElementById('speed-toggle').addEventListener('click', () => {
+            fightSpeed = fightSpeed === 1 ? 2 : 1;
+            const button = document.getElementById('speed-toggle');
+            button.textContent = `⚡ x${fightSpeed}`;
+            
+            // Envoyer message au jeu
+            window.postMessage({
+                type: 'SET_SPEED',
+                data: { speed: fightSpeed }
+            }, '*');
+        });
+        
+        document.getElementById('sound-toggle').addEventListener('click', () => {
+            soundOn = !soundOn;
+            const button = document.getElementById('sound-toggle');
+            button.textContent = soundOn ? '🔊 Son' : '🔇 Son';
+        });
+        
+        document.getElementById('music-toggle').addEventListener('click', () => {
+            musicOn = !musicOn;
+            const button = document.getElementById('music-toggle');
+            button.textContent = musicOn ? '🎵 Musique' : '🎵 Musique';
+        });
+        
+        // Écouter les messages du jeu et du parent
+        window.addEventListener('message', (event) => {
+            // Accepter tous les messages (pas de vérification d'origine)
+            console.log('Message reçu dans embed.html:', event.data);
+            
+            if (!event.data || typeof event.data !== 'object') return;
+            
+            const { type, data } = event.data;
+            
+            switch (type) {
+                case 'LOAD_FIGHT_STEPS':
+                    appendCombatLog('📥 Données de combat reçues');
+                    console.log('Données de combat reçues:', data);
+                    
+                    // Transmettre au jeu Phaser
+                    window.postMessage(event.data, '*');
+                    break;
+                    
+                case 'FIGHT_LOADED':
+                    updateCombatInfo(data);
+                    break;
+                    
+                case 'FIGHT_STEP':
+                    updateCombatProgress(data);
+                    break;
+                    
+                case 'FIGHT_ENDED':
+                    updateCombatEnd(data);
+                    break;
+                    
+                case 'COMBAT_LOG':
+                    appendCombatLog(data.message);
+                    break;
+            }
+        });
+        
+        function updateCombatInfo(data) {
+            document.getElementById('fight-id').textContent = `ID: ${data.fightId}`;
+            document.getElementById('fight-progress').textContent = `Étapes: 0/${data.totalSteps}`;
+        }
+        
+        function updateCombatProgress(data) {
+            document.getElementById('fight-progress').textContent = `Étapes: ${data.currentStep}/${data.totalSteps}`;
+        }
+        
+        function updateCombatEnd(data) {
+            appendCombatLog(`🏆 Combat terminé ! Vainqueur: ${data.winner}`);
+        }
+        
+        function appendCombatLog(message) {
+            const logContent = document.getElementById('combat-log-content');
+            const logEntry = document.createElement('div');
+            logEntry.textContent = `[${new Date().toLocaleTimeString()}] ${message}`;
+            logContent.appendChild(logEntry);
+            
+            // Garder seulement les 10 derniers logs
+            while (logContent.children.length > 10) {
+                logContent.removeChild(logContent.firstChild);
+            }
+            
+            // Auto-scroll vers le bas
+            logContent.scrollTop = logContent.scrollHeight;
+        }
+        
+        // Message initial
+        appendCombatLog('🎮 Moteur de combat LaBrute prêt');
+        
+        // Démarrer avec la scène LaBrute
+        window.addEventListener('load', () => {
+            // Ne pas démarrer automatiquement; attendre les messages du parent
+            appendCombatLog('⌛ En attente des données LaBrute...');
+        });
+    </script>
+</body>
+</html>

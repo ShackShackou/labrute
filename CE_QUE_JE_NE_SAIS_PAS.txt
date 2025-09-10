@@ -1,0 +1,38 @@
+CE QUE JE NE SAIS PAS SUR LES SYMBOLS LABRUTE
+==============================================
+
+JE SAIS :
+- Symbol460 = Personnage homme complet
+- Symbol752 = Personnage femme complet
+- p1, p2, p3... = Les codes des parties du corps dans le jeu
+
+JE NE SAIS PAS :
+- Symbol ??? = Tête chauve
+- Symbol ??? = Tête cheveux courts  
+- Symbol ??? = Tête cheveux longs
+- Symbol ??? = Corps maigre
+- Symbol ??? = Corps musclé
+- Symbol ??? = Épée
+- Symbol ??? = Hache
+- etc.
+
+POURQUOI ?
+Les vrais numéros de symboles sont DANS le fichier mini_perso.swf
+mais je ne peux pas les lire sans les extraire avec JPEXS.
+
+SOLUTION :
+1. Utilisez JPEXS pour ouvrir mini_perso.swf
+2. Naviguez dans les symboles
+3. Notez chaque numéro et ce qu'il représente
+
+OU
+
+Demandez à Zenoo s'il a déjà cette liste quelque part !
+
+EXEMPLE DE CE QU'ON CHERCHE :
+Symbol 1 = p1 (base)
+Symbol 35 = p3 variante 0 (cheveux courts)
+Symbol 36 = p3 variante 1 (cheveux mi-longs)
+Symbol 245 = Une épée
+Symbol 367 = Un bouclier
+etc.

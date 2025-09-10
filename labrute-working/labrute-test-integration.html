@@ -1,0 +1,597 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Test Intégration LaBrute</title>
+    <style>
+        body {
+            margin: 0;
+            padding: 0;
+            background: #1a1a1a;
+            color: #fff;
+            font-family: Arial, sans-serif;
+        }
+        
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+        
+        h1 {
+            text-align: center;
+            color: #ff6b35;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.5);
+        }
+        
+        .test-section {
+            background: #2a2a2a;
+            border-radius: 10px;
+            padding: 20px;
+            margin: 20px 0;
+        }
+        
+        .controls {
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+            margin-bottom: 20px;
+        }
+        
+        button {
+            background: #ff6b35;
+            color: white;
+            border: none;
+            padding: 12px 24px;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 14px;
+            font-weight: bold;
+            transition: all 0.3s;
+        }
+        
+        button:hover {
+            background: #ff8555;
+            transform: translateY(-2px);
+            box-shadow: 0 4px 8px rgba(255, 107, 53, 0.3);
+        }
+        
+        button.success {
+            background: #4CAF50;
+        }
+        
+        button.success:hover {
+            background: #5CBF60;
+        }
+        
+        button.danger {
+            background: #f44336;
+        }
+        
+        button.danger:hover {
+            background: #f66356;
+        }
+        
+        .game-container {
+            width: 100%;
+            height: 600px;
+            background: #2d2419;
+            border: 3px solid #ff6b35;
+            border-radius: 10px;
+            position: relative;
+            overflow: hidden;
+        }
+        
+        .game-iframe {
+            width: 100%;
+            height: 100%;
+            border: none;
+        }
+        
+        .status-panel {
+            background: rgba(0, 0, 0, 0.8);
+            padding: 15px;
+            border-radius: 8px;
+            margin-top: 20px;
+        }
+        
+        .status-item {
+            padding: 5px 0;
+            border-bottom: 1px solid #333;
+        }
+        
+        .status-item:last-child {
+            border-bottom: none;
+        }
+        
+        .status-label {
+            display: inline-block;
+            width: 150px;
+            color: #888;
+        }
+        
+        .status-value {
+            color: #fff;
+            font-weight: bold;
+        }
+        
+        .status-value.active {
+            color: #4CAF50;
+        }
+        
+        .status-value.error {
+            color: #f44336;
+        }
+        
+        .logs {
+            background: #000;
+            padding: 10px;
+            border-radius: 5px;
+            max-height: 200px;
+            overflow-y: auto;
+            font-family: 'Courier New', monospace;
+            font-size: 12px;
+        }
+        
+        .log-entry {
+            margin: 2px 0;
+        }
+        
+        .log-entry.success {
+            color: #4CAF50;
+        }
+        
+        .log-entry.error {
+            color: #f44336;
+        }
+        
+        .log-entry.info {
+            color: #2196F3;
+        }
+        
+        .log-entry.warning {
+            color: #ff9800;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🥊 Test Intégration LaBrute x Phaser 🎮</h1>
+        
+        <div class="test-section">
+            <h2>1️⃣ Test Direct (Sans iframe)</h2>
+            <div class="controls">
+                <button onclick="testDirect()">Lancer Combat Direct</button>
+                <button onclick="testDirectWithData()">Combat avec Données</button>
+                <button class="danger" onclick="resetDirect()">Reset</button>
+            </div>
+            <div id="direct-container" class="game-container"></div>
+        </div>
+        
+        <div class="test-section">
+            <h2>2️⃣ Test Iframe (Comme LaBrute)</h2>
+            <div class="controls">
+                <button onclick="loadIframe()">Charger Iframe</button>
+                <button onclick="sendTestData()">Envoyer Données Test</button>
+                <button onclick="sendRealData()">Envoyer Données Réelles</button>
+                <button class="success" onclick="startFight()">▶️ Démarrer Combat</button>
+                <button onclick="pauseFight()">⏸️ Pause</button>
+                <button onclick="setSpeed(2)">⚡ Vitesse x2</button>
+                <button class="danger" onclick="resetIframe()">Reset Iframe</button>
+            </div>
+            <div id="iframe-container" class="game-container">
+                <div style="padding: 20px; text-align: center; color: #888;">
+                    Cliquez sur "Charger Iframe" pour commencer
+                </div>
+            </div>
+        </div>
+        
+        <div class="test-section">
+            <h2>📊 Statut</h2>
+            <div class="status-panel">
+                <div class="status-item">
+                    <span class="status-label">Serveur Local:</span>
+                    <span id="server-status" class="status-value">En test...</span>
+                </div>
+                <div class="status-item">
+                    <span class="status-label">Moteur Phaser:</span>
+                    <span id="phaser-status" class="status-value">Non chargé</span>
+                </div>
+                <div class="status-item">
+                    <span class="status-label">Plugin Spine:</span>
+                    <span id="spine-status" class="status-value">Non chargé</span>
+                </div>
+                <div class="status-item">
+                    <span class="status-label">Communication:</span>
+                    <span id="comm-status" class="status-value">En attente</span>
+                </div>
+                <div class="status-item">
+                    <span class="status-label">Combat ID:</span>
+                    <span id="fight-id" class="status-value">-</span>
+                </div>
+                <div class="status-item">
+                    <span class="status-label">Étapes:</span>
+                    <span id="fight-steps" class="status-value">0/0</span>
+                </div>
+            </div>
+        </div>
+        
+        <div class="test-section">
+            <h2>📝 Logs</h2>
+            <div id="logs" class="logs"></div>
+        </div>
+    </div>
+    
+    <script type="module">
+        import Phaser from 'phaser';
+        import { SpinePlugin } from '@esotericsoftware/spine-phaser';
+        
+        let directGame = null;
+        let iframeElement = null;
+        let messageHandlerAttached = false;
+        
+        // Fonction de log
+        function log(message, type = 'info') {
+            const logs = document.getElementById('logs');
+            const entry = document.createElement('div');
+            entry.className = `log-entry ${type}`;
+            const time = new Date().toLocaleTimeString();
+            entry.textContent = `[${time}] ${message}`;
+            logs.appendChild(entry);
+            logs.scrollTop = logs.scrollHeight;
+            console.log(`[${type.toUpperCase()}] ${message}`);
+        }
+        
+        // Mettre à jour le statut
+        function updateStatus(element, value, isActive = false) {
+            const el = document.getElementById(element);
+            if (el) {
+                el.textContent = value;
+                el.className = 'status-value';
+                if (isActive) el.classList.add('active');
+                if (value.includes('Erreur') || value.includes('Non')) el.classList.add('error');
+            }
+        }
+        
+        // Test serveur
+        fetch('http://localhost:5176/embed.html')
+            .then(() => {
+                updateStatus('server-status', 'Actif ✓', true);
+                log('Serveur local actif sur :5176', 'success');
+            })
+            .catch(() => {
+                updateStatus('server-status', 'Hors ligne');
+                log('Serveur local non disponible', 'error');
+            });
+        
+        // Test direct (sans iframe)
+        window.testDirect = function() {
+            log('Test direct: Création du jeu Phaser', 'info');
+            
+            if (directGame) {
+                directGame.destroy(true);
+                directGame = null;
+            }
+            
+            const container = document.getElementById('direct-container');
+            container.innerHTML = '';
+            
+            import('./scenes/LaBruteFightScene.js').then(module => {
+                const LaBruteFightScene = module.LaBruteFightScene;
+                
+                const config = {
+                    type: Phaser.AUTO,
+                    width: container.clientWidth,
+                    height: 600,
+                    parent: 'direct-container',
+                    backgroundColor: '#2d2419',
+                    plugins: {
+                        scene: [{
+                            key: 'SpinePlugin',
+                            plugin: SpinePlugin,
+                            mapping: 'spine'
+                        }]
+                    },
+                    scene: [LaBruteFightScene]
+                };
+                
+                directGame = new Phaser.Game(config);
+                updateStatus('phaser-status', 'Chargé ✓', true);
+                updateStatus('spine-status', 'Chargé ✓', true);
+                log('Jeu créé avec succès', 'success');
+            }).catch(error => {
+                log(`Erreur chargement scène: ${error.message}`, 'error');
+                updateStatus('phaser-status', 'Erreur');
+            });
+        };
+        
+        // Test direct avec données
+        window.testDirectWithData = function() {
+            if (!directGame) {
+                testDirect();
+                setTimeout(() => testDirectWithData(), 1000);
+                return;
+            }
+            
+            const testData = {
+                fightId: "direct-test",
+                fighters: [
+                    {
+                        id: "charA",
+                        name: "Guerrier",
+                        team: "L",
+                        hp: 10,
+                        maxHp: 10,
+                        strengthValue: 5,
+                        agilityValue: 4,
+                        speedValue: 3
+                    },
+                    {
+                        id: "charB",
+                        name: "Barbare",
+                        team: "R",
+                        hp: 8,
+                        maxHp: 8,
+                        strengthValue: 6,
+                        agilityValue: 2,
+                        speedValue: 4
+                    }
+                ],
+                steps: [
+                    { type: 1, f: "charA", t: "charB" },
+                    { type: 2, f: "charA", t: "charB", d: 3 },
+                    { type: 1, f: "charB", t: "charA" },
+                    { type: 2, f: "charB", t: "charA", d: 2 },
+                    { type: 1, f: "charA", t: "charB" },
+                    { type: 2, f: "charA", t: "charB", d: 5 },
+                    { type: 5, f: "charB" },
+                    { type: 6, w: "charA" }
+                ]
+            };
+            
+            log('Envoi des données de combat', 'info');
+            window.postMessage({
+                type: 'LOAD_FIGHT_STEPS',
+                data: testData
+            }, '*');
+            
+            updateStatus('fight-id', testData.fightId);
+            updateStatus('fight-steps', `0/${testData.steps.length}`);
+            
+            setTimeout(() => {
+                log('Démarrage automatique du combat', 'info');
+                window.postMessage({ type: 'PLAY_FIGHT' }, '*');
+            }, 500);
+        };
+        
+        // Reset direct
+        window.resetDirect = function() {
+            if (directGame) {
+                directGame.destroy(true);
+                directGame = null;
+                log('Jeu direct réinitialisé', 'warning');
+            }
+            document.getElementById('direct-container').innerHTML = '';
+            updateStatus('phaser-status', 'Non chargé');
+            updateStatus('spine-status', 'Non chargé');
+        };
+        
+        // Charger iframe
+        window.loadIframe = function() {
+            log('Chargement de l\'iframe', 'info');
+            
+            const container = document.getElementById('iframe-container');
+            container.innerHTML = '';
+            
+            iframeElement = document.createElement('iframe');
+            iframeElement.src = 'http://localhost:5176/embed.html';
+            iframeElement.className = 'game-iframe';
+            iframeElement.onload = () => {
+                log('Iframe chargée', 'success');
+                updateStatus('comm-status', 'Prêt ✓', true);
+            };
+            
+            container.appendChild(iframeElement);
+        };
+        
+        // Envoyer données test
+        window.sendTestData = function() {
+            if (!iframeElement) {
+                log('Iframe non chargée', 'error');
+                return;
+            }
+            
+            const testData = {
+                fightId: "iframe-test-" + Date.now(),
+                fighters: [
+                    {
+                        id: "charA",
+                        name: "Hero Test",
+                        team: "L",
+                        hp: 12,
+                        maxHp: 12
+                    },
+                    {
+                        id: "charB",
+                        name: "Enemy Test",
+                        team: "R",
+                        hp: 10,
+                        maxHp: 10
+                    }
+                ],
+                steps: [
+                    { type: 1, f: "charA", t: "charB" },
+                    { type: 2, f: "charA", t: "charB", d: 2 },
+                    { type: 3, f: "charB", t: "charA" },
+                    { type: 1, f: "charA", t: "charB" },
+                    { type: 2, f: "charA", t: "charB", d: 4 },
+                    { type: 4, f: "charB", t: "charA" },
+                    { type: 1, f: "charB", t: "charA" },
+                    { type: 2, f: "charB", t: "charA", d: 3 },
+                    { type: 1, f: "charA", t: "charB" },
+                    { type: 2, f: "charA", t: "charB", d: 6 },
+                    { type: 5, f: "charB" },
+                    { type: 6, w: "charA" }
+                ]
+            };
+            
+            log(`Envoi données test (${testData.steps.length} étapes)`, 'info');
+            iframeElement.contentWindow.postMessage({
+                type: 'LOAD_FIGHT_STEPS',
+                data: testData
+            }, '*');
+            
+            updateStatus('fight-id', testData.fightId);
+            updateStatus('fight-steps', `0/${testData.steps.length}`);
+        };
+        
+        // Envoyer données réelles
+        window.sendRealData = function() {
+            if (!iframeElement) {
+                log('Iframe non chargée', 'error');
+                return;
+            }
+            
+            // Simuler des données plus réalistes de LaBrute
+            const realData = {
+                fightId: "labrute-real-" + Date.now(),
+                fighters: [
+                    {
+                        id: "brute-456",
+                        name: "Brutus",
+                        team: "L",
+                        hp: 20,
+                        maxHp: 20,
+                        strengthValue: 8,
+                        agilityValue: 5,
+                        speedValue: 6,
+                        skills: ["block", "counter"],
+                        weapons: ["sword"]
+                    },
+                    {
+                        id: "brute-789",
+                        name: "Maximus",
+                        team: "R",
+                        hp: 18,
+                        maxHp: 18,
+                        strengthValue: 10,
+                        agilityValue: 3,
+                        speedValue: 4,
+                        skills: ["strongHit"],
+                        weapons: ["hammer"]
+                    }
+                ],
+                steps: [
+                    { type: 1, f: "brute-456", t: "brute-789" },
+                    { type: 2, f: "brute-456", t: "brute-789", d: 4 },
+                    { type: 1, f: "brute-789", t: "brute-456" },
+                    { type: 2, f: "brute-789", t: "brute-456", d: 6 },
+                    { type: 3, f: "brute-456", t: "brute-789" },
+                    { type: 1, f: "brute-456", t: "brute-789" },
+                    { type: 2, f: "brute-456", t: "brute-789", d: 3 },
+                    { type: 1, f: "brute-789", t: "brute-456" },
+                    { type: 2, f: "brute-789", t: "brute-456", d: 8 },
+                    { type: 4, f: "brute-456", t: "brute-789" },
+                    { type: 1, f: "brute-456", t: "brute-789" },
+                    { type: 2, f: "brute-456", t: "brute-789", d: 5 },
+                    { type: 1, f: "brute-789", t: "brute-456" },
+                    { type: 2, f: "brute-789", t: "brute-456", d: 7 },
+                    { type: 5, f: "brute-456" },
+                    { type: 6, w: "brute-789" }
+                ]
+            };
+            
+            log(`Envoi données réelles LaBrute (${realData.steps.length} étapes)`, 'info');
+            iframeElement.contentWindow.postMessage({
+                type: 'LOAD_FIGHT_STEPS',
+                data: realData
+            }, '*');
+            
+            updateStatus('fight-id', realData.fightId);
+            updateStatus('fight-steps', `0/${realData.steps.length}`);
+        };
+        
+        // Contrôles de combat
+        window.startFight = function() {
+            if (!iframeElement) {
+                log('Iframe non chargée', 'error');
+                return;
+            }
+            log('Démarrage du combat', 'info');
+            iframeElement.contentWindow.postMessage({ type: 'PLAY_FIGHT' }, '*');
+        };
+        
+        window.pauseFight = function() {
+            if (!iframeElement) {
+                log('Iframe non chargée', 'error');
+                return;
+            }
+            log('Pause du combat', 'info');
+            iframeElement.contentWindow.postMessage({ type: 'PAUSE_FIGHT' }, '*');
+        };
+        
+        window.setSpeed = function(speed) {
+            if (!iframeElement) {
+                log('Iframe non chargée', 'error');
+                return;
+            }
+            log(`Vitesse définie à x${speed}`, 'info');
+            iframeElement.contentWindow.postMessage({
+                type: 'SET_SPEED',
+                data: { speed: speed }
+            }, '*');
+        };
+        
+        // Reset iframe
+        window.resetIframe = function() {
+            const container = document.getElementById('iframe-container');
+            container.innerHTML = '<div style="padding: 20px; text-align: center; color: #888;">Cliquez sur "Charger Iframe" pour commencer</div>';
+            iframeElement = null;
+            log('Iframe réinitialisée', 'warning');
+            updateStatus('comm-status', 'En attente');
+            updateStatus('fight-id', '-');
+            updateStatus('fight-steps', '0/0');
+        };
+        
+        // Écouter les messages
+        if (!messageHandlerAttached) {
+            window.addEventListener('message', (event) => {
+                if (!event.data || typeof event.data !== 'object') return;
+                
+                const { type, data } = event.data;
+                
+                switch (type) {
+                    case 'READY':
+                        log('Moteur prêt', 'success');
+                        updateStatus('comm-status', 'Connecté ✓', true);
+                        break;
+                        
+                    case 'FIGHT_LOADED':
+                        log(`Combat chargé: ${data.fightId}`, 'success');
+                        updateStatus('fight-id', data.fightId);
+                        updateStatus('fight-steps', `0/${data.totalSteps}`);
+                        break;
+                        
+                    case 'FIGHT_STEP':
+                        updateStatus('fight-steps', `${data.currentStep}/${data.totalSteps}`);
+                        break;
+                        
+                    case 'FIGHT_ENDED':
+                        log(`Combat terminé! Vainqueur: ${data.winner}`, 'success');
+                        break;
+                        
+                    case 'COMBAT_LOG':
+                        log(`[Combat] ${data.message}`, 'info');
+                        break;
+                }
+            });
+            messageHandlerAttached = true;
+        }
+        
+        // Log initial
+        log('Interface de test prête', 'success');
+        log('Utilisez les boutons pour tester l\'intégration', 'info');
+    </script>
+</body>
+</html>

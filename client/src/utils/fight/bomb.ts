@@ -1,7 +1,7 @@
 /* eslint-disable no-void */
 import { BombStep, randomBetween } from '@labrute/core';
 import { Easing, Tweener } from 'pixi-tweener';
-import { AnimatedSprite, Application, filters } from 'pixi.js';
+import { AnimatedSprite, Application, filters } from 'pixi-legacy';
 
 import { sound } from '@pixi/sound';
 import stagger from './stagger';

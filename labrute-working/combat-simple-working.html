@@ -1,0 +1,304 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Combat LaBrute Simple - Version qui MARCHE</title>
+    <!-- EXACTEMENT les mêmes CDN que spine-test-WORKING.html -->
+    <script src="https://cdn.jsdelivr.net/npm/phaser@3.60.0/dist/phaser.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/gh/phaserjs/spine-phaser@main/dist/SpinePlugin.min.js"></script>
+    <style>
+        body { 
+            margin: 0; 
+            padding: 20px; 
+            background: #1a1a1a; 
+            color: white;
+            font-family: Arial;
+        }
+        #game-container {
+            width: 800px;
+            height: 600px;
+            margin: 20px auto;
+            border: 3px solid #4CAF50;
+        }
+        .controls {
+            text-align: center;
+            margin: 20px;
+        }
+        button {
+            background: #4CAF50;
+            color: white;
+            border: none;
+            padding: 12px 24px;
+            margin: 5px;
+            cursor: pointer;
+            font-size: 16px;
+            border-radius: 4px;
+        }
+        button:hover {
+            background: #45a049;
+        }
+    </style>
+</head>
+<body>
+    <h1 style="text-align: center; color: #4CAF50;">⚔️ Combat LaBrute avec Spine</h1>
+    
+    <div class="controls">
+        <button onclick="startCombat()">▶ Démarrer Combat</button>
+        <button onclick="pauseCombat()">⏸ Pause</button>
+        <button onclick="generateNewCombat()">🎲 Nouveau Combat</button>
+    </div>
+    
+    <div id="game-container"></div>
+    
+    <div style="text-align: center; margin: 20px;">
+        <div id="status" style="color: #4CAF50;">Prêt</div>
+    </div>
+    
+    <script>
+        let game = null;
+        let combatScene = null;
+        let isPlaying = false;
+        let currentStep = 0;
+        let steps = [];
+        
+        // MÉCANIQUES LABRUTE SIMPLIFIÉES
+        const BARE_HANDS_DAMAGE = 5;
+        
+        function calculateDamage(strength) {
+            let damage = BARE_HANDS_DAMAGE + strength * 0.5;
+            damage *= (0.8 + Math.random() * 0.4);
+            return Math.floor(damage);
+        }
+        
+        function generateSteps() {
+            const newSteps = [];
+            let f1hp = 100;
+            let f2hp = 100;
+            
+            for (let i = 0; i < 20; i++) {
+                const attacker = i % 2 === 0 ? 1 : 2;
+                const target = attacker === 1 ? 2 : 1;
+                
+                // Attack
+                const damage = calculateDamage(15);
+                newSteps.push({
+                    type: 'attack',
+                    attacker: attacker,
+                    target: target,
+                    damage: damage
+                });
+                
+                if (attacker === 1) {
+                    f2hp -= damage;
+                } else {
+                    f1hp -= damage;
+                }
+                
+                if (f1hp <= 0 || f2hp <= 0) {
+                    newSteps.push({
+                        type: 'end',
+                        winner: f1hp > 0 ? 1 : 2
+                    });
+                    break;
+                }
+            }
+            
+            return newSteps;
+        }
+        
+        class SimpleCombatScene extends Phaser.Scene {
+            constructor() {
+                super({ key: 'SimpleCombatScene' });
+            }
+            
+            preload() {
+                console.log('Preloading...');
+                this.load.setPath('assets/spine/');
+                
+                // Charger Spineboy
+                this.load.spine('spineboy', 'spineboy-pro.json', 'spineboy.atlas', true);
+                
+                this.load.on('loaderror', (file) => {
+                    console.error('Failed to load:', file.key);
+                    document.getElementById('status').innerHTML = 'Erreur: ' + file.key;
+                });
+                
+                this.load.on('filecomplete', (key) => {
+                    console.log('Loaded:', key);
+                });
+            }
+            
+            create() {
+                console.log('Creating scene...');
+                
+                // Background
+                this.add.rectangle(400, 300, 800, 600, 0x2d2419);
+                this.add.text(400, 50, 'Combat LaBrute', {
+                    fontSize: '32px',
+                    color: '#ffffff'
+                }).setOrigin(0.5);
+                
+                try {
+                    // Fighter 1 (gauche)
+                    this.fighter1 = this.add.spine(250, 450, 'spineboy', 'idle', true);
+                    this.fighter1.scale = 0.4;
+                    
+                    // Fighter 2 (droite, miroir)
+                    this.fighter2 = this.add.spine(550, 450, 'spineboy', 'idle', true);
+                    this.fighter2.scale = -0.4; // Miroir horizontal
+                    this.fighter2.scaleY = 0.4;
+                    
+                    console.log('Fighters created!');
+                    document.getElementById('status').innerHTML = '✅ Personnages chargés!';
+                    
+                    // HP bars
+                    this.hp1Bar = this.add.rectangle(250, 350, 100, 10, 0x00ff00);
+                    this.hp2Bar = this.add.rectangle(550, 350, 100, 10, 0x00ff00);
+                    
+                    this.hp1 = 100;
+                    this.hp2 = 100;
+                    
+                } catch (error) {
+                    console.error('Error creating fighters:', error);
+                    document.getElementById('status').innerHTML = '❌ Erreur: ' + error.message;
+                    
+                    // Fallback rectangles
+                    this.fighter1 = this.add.rectangle(250, 450, 80, 150, 0xff0000);
+                    this.fighter2 = this.add.rectangle(550, 450, 80, 150, 0x0000ff);
+                    
+                    this.hp1Bar = this.add.rectangle(250, 350, 100, 10, 0x00ff00);
+                    this.hp2Bar = this.add.rectangle(550, 350, 100, 10, 0x00ff00);
+                    
+                    this.hp1 = 100;
+                    this.hp2 = 100;
+                }
+            }
+            
+            playAttack(attacker, damage) {
+                const attackerSprite = attacker === 1 ? this.fighter1 : this.fighter2;
+                const targetSprite = attacker === 1 ? this.fighter2 : this.fighter1;
+                
+                // Animation d'attaque
+                if (attackerSprite.play) {
+                    try {
+                        attackerSprite.play('walk', false);
+                        this.time.delayedCall(500, () => {
+                            attackerSprite.play('idle', true);
+                        });
+                    } catch (e) {
+                        // Fallback animation
+                    }
+                }
+                
+                // Shake target
+                this.tweens.add({
+                    targets: targetSprite,
+                    x: targetSprite.x + (attacker === 1 ? 10 : -10),
+                    duration: 50,
+                    yoyo: true,
+                    repeat: 2
+                });
+                
+                // Update HP
+                if (attacker === 1) {
+                    this.hp2 -= damage;
+                    this.hp2Bar.displayWidth = Math.max(0, this.hp2);
+                } else {
+                    this.hp1 -= damage;
+                    this.hp1Bar.displayWidth = Math.max(0, this.hp1);
+                }
+                
+                // Damage text
+                const dmgText = this.add.text(targetSprite.x, targetSprite.y - 50, '-' + damage, {
+                    fontSize: '24px',
+                    color: '#ff0000'
+                }).setOrigin(0.5);
+                
+                this.tweens.add({
+                    targets: dmgText,
+                    y: dmgText.y - 30,
+                    alpha: 0,
+                    duration: 1000,
+                    onComplete: () => dmgText.destroy()
+                });
+            }
+            
+            showEnd(winner) {
+                this.add.text(400, 300, 'Fighter ' + winner + ' Wins!', {
+                    fontSize: '48px',
+                    color: '#ffd700',
+                    stroke: '#000000',
+                    strokeThickness: 4
+                }).setOrigin(0.5);
+            }
+        }
+        
+        // Initialisation
+        function initGame() {
+            if (game) {
+                game.destroy(true);
+            }
+            
+            const config = {
+                type: Phaser.WEBGL,
+                width: 800,
+                height: 600,
+                parent: 'game-container',
+                plugins: {
+                    scene: [{
+                        key: 'SpinePlugin',
+                        plugin: window.SpinePlugin,
+                        mapping: 'spine'
+                    }]
+                },
+                scene: SimpleCombatScene
+            };
+            
+            game = new Phaser.Game(config);
+            
+            game.events.once('ready', () => {
+                combatScene = game.scene.getScene('SimpleCombatScene');
+                generateNewCombat();
+            });
+        }
+        
+        function generateNewCombat() {
+            steps = generateSteps();
+            currentStep = 0;
+            isPlaying = false;
+            document.getElementById('status').innerHTML = 'Nouveau combat généré (' + steps.length + ' steps)';
+        }
+        
+        function startCombat() {
+            if (!combatScene) return;
+            
+            isPlaying = true;
+            processNextStep();
+        }
+        
+        function pauseCombat() {
+            isPlaying = false;
+        }
+        
+        function processNextStep() {
+            if (!isPlaying || currentStep >= steps.length || !combatScene) return;
+            
+            const step = steps[currentStep];
+            
+            if (step.type === 'attack') {
+                combatScene.playAttack(step.attacker, step.damage);
+                currentStep++;
+                setTimeout(() => processNextStep(), 1000);
+            } else if (step.type === 'end') {
+                combatScene.showEnd(step.winner);
+                isPlaying = false;
+            }
+        }
+        
+        // Lancer au chargement
+        window.addEventListener('load', () => {
+            console.log('Page loaded, initializing game...');
+            initGame();
+        });
+    </script>
+</body>
+</html>

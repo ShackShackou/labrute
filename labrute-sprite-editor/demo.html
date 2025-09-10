@@ -1,0 +1,213 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>🎮 LaBrute Sprite Editor - Test de Démo</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            color: white;
+        }
+        .demo-container {
+            background: rgba(255, 255, 255, 0.9);
+            border-radius: 12px;
+            padding: 2rem;
+            margin: 2rem 0;
+            color: #333;
+        }
+        .demo-button {
+            background: #667eea;
+            color: white;
+            padding: 1rem 2rem;
+            border: none;
+            border-radius: 8px;
+            font-size: 1.1rem;
+            cursor: pointer;
+            margin: 0.5rem;
+            text-decoration: none;
+            display: inline-block;
+            transition: all 0.3s ease;
+        }
+        .demo-button:hover {
+            background: #5a67d8;
+            transform: translateY(-2px);
+        }
+        .feature-list {
+            list-style: none;
+            padding: 0;
+        }
+        .feature-list li {
+            padding: 0.5rem 0;
+            border-bottom: 1px solid #eee;
+        }
+        .feature-list li:before {
+            content: "✅ ";
+            font-weight: bold;
+        }
+        .config-demo {
+            background: #f8f9fa;
+            padding: 1rem;
+            border-radius: 6px;
+            font-family: monospace;
+            margin: 1rem 0;
+            border: 1px solid #ddd;
+        }
+    </style>
+</head>
+<body>
+    <div class="demo-container">
+        <h1>🎨 LaBrute Sprite Editor - Démo</h1>
+        
+        <p>Outil complet pour gérer et visualiser tous les sprites et assets du jeu LaBrute !</p>
+        
+        <a href="index.html" class="demo-button">🚀 Lancer l'Outil Complet</a>
+        
+        <h2>✨ Fonctionnalités Disponibles</h2>
+        <ul class="feature-list">
+            <li>Éditeur de parties de corps (11 parties modifiables)</li>
+            <li>Gestionnaire de couleurs (16 canaux)</li>
+            <li>Prévisualisation PIXI.js en temps réel</li>
+            <li>Support multi-genre (homme/femme)</li>
+            <li>Navigateur d'assets (skills, armes, sprites)</li>
+            <li>Export de configurations LaBrute</li>
+            <li>Génération de code JavaScript/TypeScript</li>
+            <li>Actions rapides (aléatoire, reset, copie)</li>
+        </ul>
+        
+        <h2>🎯 Test Rapide des Fonctions</h2>
+        
+        <button class="demo-button" onclick="testBodyParts()">Test Body Parts</button>
+        <button class="demo-button" onclick="testColors()">Test Couleurs</button>
+        <button class="demo-button" onclick="testExport()">Test Export</button>
+        
+        <div id="demo-output" class="config-demo" style="display: none;">
+            <!-- Résultats des tests s'afficheront ici -->
+        </div>
+    </div>
+
+    <div class="demo-container">
+        <h2>📖 Guide Rapide</h2>
+        
+        <h3>🎭 Créer une Brute</h3>
+        <ol>
+            <li><strong>Sélectionner le genre</strong> : Homme ou Femme</li>
+            <li><strong>Modifier les parties</strong> : Utiliser les curseurs p1-p8</li>
+            <li><strong>Choisir les couleurs</strong> : Peau, cheveux, vêtements</li>
+            <li><strong>Prévisualiser</strong> : Voir le résultat en temps réel</li>
+            <li><strong>Exporter</strong> : Récupérer les configurations</li>
+        </ol>
+        
+        <h3>📊 Exemple de Configuration</h3>
+        <div class="config-demo">
+// Configuration générée par l'outil
+const bruteConfig = {
+    gender: 'male',
+    body: '01234567890',           // 11 parties de corps
+    colors: '00010203040506070809101112131415'  // 16 couleurs
+};
+
+// Utilisation dans LaBrute
+const brute = new BruteDisplay(
+    bruteConfig.gender,
+    bruteConfig.colors,
+    bruteConfig.body
+);
+        </div>
+        
+        <h3>🔧 Structure des Données</h3>
+        <ul>
+            <li><strong>Body String</strong> : 11 caractères hex (p1,p1a,p1b,p2,p3,p4,p5,p6,p7,p7b,p8)</li>
+            <li><strong>Color String</strong> : 32 caractères décimaux (16 couleurs × 2 chiffres)</li>
+            <li><strong>Genre</strong> : 'male' ou 'female' avec limitations spécifiques</li>
+        </ul>
+    </div>
+
+    <script src="data.js"></script>
+    <script>
+        function testBodyParts() {
+            const { availableBodyParts, generateBodyString } = window.LabruteData;
+            
+            const testParts = {
+                p1: 1, p1a: 0, p1b: 1, p2: 3, p3: 5, 
+                p4: 2, p5: 0, p6: 1, p7: 4, p7b: 1, p8: 2
+            };
+            
+            const bodyString = generateBodyString(testParts);
+            
+            showDemoOutput(`
+🎭 Test Body Parts:
+- Parties configurées: ${JSON.stringify(testParts, null, 2)}
+- Body String générée: "${bodyString}"
+- Longueur: ${bodyString.length} caractères
+- Homme max parts: ${JSON.stringify(availableBodyParts.male)}
+- Femme max parts: ${JSON.stringify(availableBodyParts.female)}
+            `);
+        }
+        
+        function testColors() {
+            const { colors, generateColorString, getColor } = window.LabruteData;
+            
+            const testColors = {
+                col0: 2, col0a: 1, col0c: 3, // Peau
+                col1: 4, col1a: 2, col1b: 1, col1c: 3, col1d: 0, // Cheveux  
+                col2: 5, col2a: 3, col2b: 1, // Vêtements
+                col3: 2, col3b: 4, 
+                col4: 1, col4a: 0, col4b: 2
+            };
+            
+            const colorString = generateColorString(testColors);
+            
+            showDemoOutput(`
+🎨 Test Couleurs:
+- Couleurs configurées: ${JSON.stringify(testColors, null, 2)}
+- Color String générée: "${colorString}"
+- Longueur: ${colorString.length} caractères
+- Exemple couleur peau homme: ${getColor('male', 'skin', 2)}
+- Exemple couleur cheveux femme: ${getColor('female', 'hair', 1)}
+- Total couleurs homme peau: ${colors.male.skin.length}
+- Total couleurs femme cheveux: ${colors.female.hair.length}
+            `);
+        }
+        
+        function testExport() {
+            const { generateRandomBrute } = window.LabruteData;
+            
+            const randomMale = generateRandomBrute('male');
+            const randomFemale = generateRandomBrute('female');
+            
+            showDemoOutput(`
+💾 Test Export:
+
+👨 Brute Homme Aléatoire:
+- Body: "${randomMale.bodyString}"
+- Colors: "${randomMale.colorString}" 
+- Parties: ${JSON.stringify(randomMale.parts)}
+
+👩 Brute Femme Aléatoire:
+- Body: "${randomFemale.bodyString}"
+- Colors: "${randomFemale.colorString}"
+- Parties: ${JSON.stringify(randomFemale.parts)}
+
+🔧 Code JavaScript généré:
+const brute = new BruteDisplay(
+    '${randomMale.gender}',
+    '${randomMale.colorString}',
+    '${randomMale.bodyString}'
+);
+            `);
+        }
+        
+        function showDemoOutput(content) {
+            const output = document.getElementById('demo-output');
+            output.style.display = 'block';
+            output.innerHTML = `<pre>${content}</pre>`;
+        }
+    </script>
+</body>
+</html> 

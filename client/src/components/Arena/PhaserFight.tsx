@@ -44,20 +44,32 @@ class FightScene extends Phaser.Scene {
   preload() {
     this.ui = this.add.text(250, 12, 'Phaser Renderer', { color: '#ccc', fontSize: '12px' }).setOrigin(0.5,0);
     try {
+      // Background(s) from /backgrounds (synced from repo root \backgrounds)
+      const base = String(((this.fight as any)?.background ?? 'background')).split('.')[0];
+      this.load.image('bgPng', `/backgrounds/${base}.png`);
+      this.load.image('bgJpg', `/backgrounds/${base}.jpg`);
+      // Charge les assets Spine 4.2 (json 4.2 + atlas mono-page)
       // @ts-ignore
-      this.load.spineJson('spineboy-data', '/assets/spine/spineboy-pro.json');
+      this.load.spineJson('spineboy42-data', '/assets/spine/spineboy-pro.json');
       // @ts-ignore
-      this.load.spineAtlas('spineboy-atlas', '/assets/spine/spineboy-pro.atlas');
+      this.load.spineAtlas('spineboy42-atlas', '/assets/spine/spineboy.atlas');
     } catch {}
   }
   create() {
     const W = this.scale.width; const H = this.scale.height;
+    // Place background if available
+    try {
+      let bgObj: Phaser.GameObjects.Image | null = null;
+      if (this.textures.exists('bgPng')) { bgObj = this.add.image(0, 0, 'bgPng').setOrigin(0,0); }
+      else if (this.textures.exists('bgJpg')) { bgObj = this.add.image(0, 0, 'bgJpg').setOrigin(0,0); }
+      if (bgObj) { bgObj.setDisplaySize(W, H).setDepth(-10); }
+    } catch {}
     const makeSpine = () => {
       try {
         // @ts-ignore
-        const L = this.add.spine(W*0.25, H*0.75, 'spineboy-data', 'spineboy-atlas');
+        const L = this.add.spine(W*0.25, H*0.75, 'spineboy42-data', 'spineboy42-atlas');
         // @ts-ignore
-        const R = this.add.spine(W*0.75, H*0.75, 'spineboy-data', 'spineboy-atlas');
+        const R = this.add.spine(W*0.75, H*0.75, 'spineboy42-data', 'spineboy42-atlas');
         const s = 0.28; L.setScale(s,s); R.setScale(-s,s);
         return { L,R };
       } catch { return null; }

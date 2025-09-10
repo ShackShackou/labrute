@@ -3,7 +3,7 @@ import { FastForward, FastRewind, Favorite, FavoriteBorder, MusicNote, MusicOff,
 import { Box, IconButton, Stack, Tooltip, useMediaQuery, useTheme } from '@mui/material';
 import { sound } from '@pixi/sound';
 import { Tweener } from 'pixi-tweener';
-import * as PIXI from 'pixi.js';
+import * as PIXI from 'pixi-legacy';
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useAlert } from '../../hooks/useAlert';

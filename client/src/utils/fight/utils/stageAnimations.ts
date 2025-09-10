@@ -1,5 +1,5 @@
 /* eslint-disable no-void */
-import { Application } from 'pixi.js';
+import { Application } from 'pixi-legacy';
 
 // Shake the stage along the Y-axis with decreasing intensity over a duration
 export const shakeStage = async (

@@ -2,7 +2,7 @@
 import { MoveStep } from '@labrute/core';
 import { sound } from '@pixi/sound';
 import { Easing, Tweener } from 'pixi-tweener';
-import { Application } from 'pixi.js';
+import { Application } from 'pixi-legacy';
 import findFighter, { AnimationFighter } from './utils/findFighter';
 import repositionFighters from './utils/repositionFighters';
 import getHitDistance from './utils/getHitDistance';

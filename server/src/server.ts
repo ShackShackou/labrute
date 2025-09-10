@@ -48,8 +48,12 @@ export function main(cx: ServerContext) {
     res.json({ csrfToken });
   });
 
-  // CSRF middleware
-  app.use(doubleCsrfProtection);
+  // CSRF middleware (exclude token endpoint and preflight)
+  app.use((req, res, next) => {
+    if (req.method === 'OPTIONS') return next();
+    if (req.path === '/api/csrf') return next();
+    return doubleCsrfProtection(req, res, next);
+  });
 
   app.use(bodyParser.json());
   app.use(

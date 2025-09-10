@@ -1,6 +1,6 @@
 /* eslint-disable no-void */
 import { RegenerationStep } from '@labrute/core';
-import { Application } from 'pixi.js';
+import { Application } from 'pixi-legacy';
 
 import updateHp from './updateHp';
 import { displayHeal } from './utils/displayHeal';

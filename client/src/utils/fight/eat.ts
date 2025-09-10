@@ -1,7 +1,7 @@
 /* eslint-disable no-void */
 import { EatStep, randomBetween } from '@labrute/core';
 import { Easing, Tweener } from 'pixi-tweener';
-import { Application } from 'pixi.js';
+import { Application } from 'pixi-legacy';
 
 import { sound } from '@pixi/sound';
 import updateHp from './updateHp';

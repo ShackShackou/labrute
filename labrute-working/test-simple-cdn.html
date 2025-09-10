@@ -1,0 +1,360 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Test Simple - Phaser + Spine CDN</title>
+    <style>
+        body {
+            margin: 0;
+            padding: 0;
+            background: #2c3e50;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            min-height: 100vh;
+            font-family: Arial, sans-serif;
+            color: white;
+        }
+
+        #game-container {
+            width: 800px;
+            height: 600px;
+            border: 4px solid #e74c3c;
+            margin: 20px;
+        }
+
+        .controls {
+            display: flex;
+            gap: 10px;
+            margin: 20px;
+        }
+
+        button {
+            background-color: #e74c3c;
+            color: white;
+            border: none;
+            padding: 10px 15px;
+            cursor: pointer;
+            font-size: 16px;
+            border-radius: 4px;
+        }
+
+        button:hover {
+            background-color: #c0392b;
+        }
+        
+        #status {
+            margin: 20px;
+            padding: 10px;
+            background-color: rgba(0, 0, 0, 0.3);
+            border-radius: 4px;
+            min-width: 300px;
+        }
+        
+        .success {
+            color: #2ecc71;
+        }
+        
+        .error {
+            color: #e74c3c;
+        }
+    </style>
+    
+    <!-- CDN Phaser et Spine -->
+    <script src="https://cdn.jsdelivr.net/npm/phaser@3.80.1/dist/phaser.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@esotericsoftware/spine-phaser@4.1.55/dist/spine-phaser.min.js"></script>
+</head>
+<body>
+    <h1>Test Simple - Phaser + Spine CDN</h1>
+    <div id="game-container"></div>
+    
+    <div class="controls">
+        <button id="start">Démarrer</button>
+        <button id="move-left">← Gauche</button>
+        <button id="move-right">Droite →</button>
+        <button id="animate">🏃 Animation</button>
+        <button id="test-combat">⚔️ Test Combat</button>
+    </div>
+    
+    <div id="status">
+        Status: <span id="status-text">Chargement...</span>
+    </div>
+
+    <script>
+        // Variables globales
+        let game;
+        let currentScene;
+        let spineboy;
+        let fighters = [];
+        let isAnimating = false;
+
+        // Utilitaires
+        function updateStatus(message, type = 'info') {
+            const statusText = document.getElementById('status-text');
+            statusText.textContent = message;
+            statusText.className = type;
+            console.log(`[${type.toUpperCase()}] ${message}`);
+        }
+
+        // Test de détection des bibliothèques
+        function testLibraries() {
+            updateStatus('Vérification des bibliothèques...');
+            
+            if (typeof Phaser === 'undefined') {
+                updateStatus('❌ Phaser non détecté', 'error');
+                return false;
+            }
+            
+            if (typeof window.SpinePlugin === 'undefined') {
+                updateStatus('❌ SpinePlugin non détecté', 'error');
+                return false;
+            }
+            
+            updateStatus('✅ Phaser et SpinePlugin détectés', 'success');
+            return true;
+        }
+
+        // Scène de test simple
+        class TestScene extends Phaser.Scene {
+            constructor() {
+                super({ key: 'TestScene' });
+            }
+
+            preload() {
+                updateStatus('Chargement des assets Spine...');
+                
+                try {
+                    this.load.setPath('assets/spine/');
+                    this.load.spine('spineboy', 'spineboy.json', 'spineboy.atlas');
+                    
+                    this.load.on('complete', () => {
+                        updateStatus('✅ Assets chargés avec succès', 'success');
+                    });
+                    
+                    this.load.on('loaderror', (event) => {
+                        updateStatus(`❌ Erreur de chargement: ${event.src}`, 'error');
+                    });
+                    
+                } catch (e) {
+                    updateStatus(`❌ Erreur preload: ${e.message}`, 'error');
+                    console.error('Erreur de preload:', e);
+                }
+            }
+
+            create() {
+                try {
+                    updateStatus('Création de la scène...');
+                    currentScene = this;
+                    
+                    // Background simple
+                    this.add.rectangle(400, 300, 800, 600, 0x4a6e8a);
+                    this.add.text(400, 50, 'Test Phaser + Spine', { 
+                        fontSize: '32px', 
+                        fill: '#ffffff',
+                        originX: 0.5,
+                        originY: 0.5 
+                    }).setOrigin(0.5);
+                    
+                    // Créer le personnage Spine au centre
+                    spineboy = this.add.spine(400, 450, 'spineboy');
+                    
+                    if (spineboy) {
+                        spineboy.setScale(0.5);
+                        spineboy.animationState.setAnimation(0, 'idle', true);
+                        updateStatus('✅ Spineboy créé avec succès!', 'success');
+                        
+                        // Créer des fighters de démonstration
+                        this.createDemoFighters();
+                    } else {
+                        updateStatus('❌ Spineboy n\'a pas pu être créé', 'error');
+                    }
+                    
+                    // Activer les contrôles
+                    this.enableControls();
+                    
+                } catch (e) {
+                    updateStatus(`❌ Erreur création: ${e.message}`, 'error');
+                    console.error('Erreur de création:', e);
+                }
+            }
+            
+            createDemoFighters() {
+                fighters = [];
+                
+                // Fighter 1 (gauche)
+                const fighter1 = this.add.spine(200, 450, 'spineboy');
+                fighter1.setScale(0.4);
+                fighter1.animationState.setAnimation(0, 'idle', true);
+                fighters.push({
+                    sprite: fighter1,
+                    id: 'fighter1',
+                    side: 'left',
+                    baseX: 200,
+                    currentX: 200
+                });
+                
+                // Fighter 2 (droite)
+                const fighter2 = this.add.spine(600, 450, 'spineboy');
+                fighter2.setScale(-0.4, 0.4); // Miroir horizontal
+                fighter2.animationState.setAnimation(0, 'idle', true);
+                fighters.push({
+                    sprite: fighter2,
+                    id: 'fighter2',
+                    side: 'right',
+                    baseX: 600,
+                    currentX: 600
+                });
+                
+                updateStatus('✅ 2 fighters de démo créés');
+            }
+            
+            enableControls() {
+                // Les contrôles sont gérés par les event listeners en bas
+                updateStatus('✅ Contrôles activés - Utilisez les boutons');
+            }
+            
+            // Méthodes de contrôle
+            moveSpineboyLeft() {
+                if (!spineboy) return;
+                spineboy.x = Math.max(50, spineboy.x - 50);
+                updateStatus(`Déplacé à gauche: x=${spineboy.x}`);
+            }
+            
+            moveSpineboyRight() {
+                if (!spineboy) return;
+                spineboy.x = Math.min(750, spineboy.x + 50);
+                updateStatus(`Déplacé à droite: x=${spineboy.x}`);
+            }
+            
+            toggleAnimation() {
+                if (!spineboy) return;
+                
+                isAnimating = !isAnimating;
+                const animName = isAnimating ? 'walk' : 'idle';
+                spineboy.animationState.setAnimation(0, animName, true);
+                updateStatus(`Animation: ${animName}`);
+            }
+            
+            testCombat() {
+                if (fighters.length < 2) {
+                    updateStatus('❌ Pas assez de fighters pour le combat', 'error');
+                    return;
+                }
+                
+                updateStatus('🚀 Démarrage du test de combat...');
+                
+                const fighter1 = fighters[0];
+                const fighter2 = fighters[1];
+                
+                // Animation de combat simple
+                this.tweens.add({
+                    targets: fighter1.sprite,
+                    x: fighter2.currentX - 80,
+                    duration: 800,
+                    ease: 'Power2',
+                    onStart: () => {
+                        fighter1.sprite.animationState.setAnimation(0, 'walk', true);
+                        updateStatus('Fighter 1 avance...');
+                    },
+                    onComplete: () => {
+                        // Attaque
+                        fighter1.sprite.animationState.setAnimation(0, 'attack', false);
+                        updateStatus('Fighter 1 attaque!');
+                        
+                        // Effet sur le défenseur
+                        this.tweens.add({
+                            targets: fighter2.sprite,
+                            alpha: 0.5,
+                            duration: 150,
+                            yoyo: true,
+                            onComplete: () => {
+                                // Retour
+                                this.tweens.add({
+                                    targets: fighter1.sprite,
+                                    x: fighter1.baseX,
+                                    duration: 600,
+                                    ease: 'Power2',
+                                    onStart: () => {
+                                        fighter1.sprite.animationState.setAnimation(0, 'walk', true);
+                                        updateStatus('Fighter 1 retourne en position...');
+                                    },
+                                    onComplete: () => {
+                                        fighter1.sprite.animationState.setAnimation(0, 'idle', true);
+                                        updateStatus('✅ Test de combat terminé!', 'success');
+                                    }
+                                });
+                            }
+                        });
+                    }
+                });
+            }
+        }
+
+        // Configuration Phaser
+        const config = {
+            type: Phaser.AUTO,
+            width: 800,
+            height: 600,
+            backgroundColor: '#4a6e8a',
+            parent: 'game-container',
+            scene: TestScene,
+            plugins: {
+                scene: [
+                    { 
+                        key: 'SpinePlugin', 
+                        plugin: window.SpinePlugin, 
+                        mapping: 'spine' 
+                    }
+                ]
+            }
+        };
+
+        // Initialisation
+        window.onload = function() {
+            updateStatus('Page chargée, initialisation...');
+            
+            // Test des bibliothèques
+            if (!testLibraries()) {
+                return;
+            }
+            
+            // Event listeners pour les contrôles
+            document.getElementById('start').addEventListener('click', startGame);
+            document.getElementById('move-left').addEventListener('click', () => {
+                if (currentScene) currentScene.moveSpineboyLeft();
+            });
+            document.getElementById('move-right').addEventListener('click', () => {
+                if (currentScene) currentScene.moveSpineboyRight();
+            });
+            document.getElementById('animate').addEventListener('click', () => {
+                if (currentScene) currentScene.toggleAnimation();
+            });
+            document.getElementById('test-combat').addEventListener('click', () => {
+                if (currentScene) currentScene.testCombat();
+            });
+            
+            updateStatus('✅ Prêt à démarrer - Cliquez sur "Démarrer"', 'success');
+        };
+
+        function startGame() {
+            if (game) {
+                updateStatus('Jeu déjà démarré');
+                return;
+            }
+            
+            updateStatus('🚀 Démarrage du jeu...');
+            
+            try {
+                game = new Phaser.Game(config);
+                window.game = game;
+                updateStatus('✅ Jeu démarré avec succès!', 'success');
+            } catch (e) {
+                updateStatus(`❌ Erreur de démarrage: ${e.message}`, 'error');
+                console.error('Erreur de démarrage du jeu:', e);
+            }
+        }
+    </script>
+</body>
+</html>

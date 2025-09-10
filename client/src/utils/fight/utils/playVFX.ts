@@ -1,6 +1,6 @@
 /* eslint-disable no-void */
 import { randomBetween } from '@labrute/core';
-import { Application, AnimatedSprite } from 'pixi.js';
+import { Application, AnimatedSprite } from 'pixi-legacy';
 import { AnimationFighter } from './findFighter';
 import getHitDistance from './getHitDistance';
 

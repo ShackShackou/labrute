@@ -1,0 +1,38 @@
+case 19: {
+            if (traceEnabled && !traceOnRef.current) { traceOnRef.current = true; traceT0Ref.current = performance.now()/1000; }
+            
+            // Pré-move vers la cible (DIAGONAL comme dans moveTo.ts officiel)
+            try {
+              const tpos = getPos(tgt.node);
+              const distX = getHitDistance(src, tgt, false, false, actorIdx, targetIdx);
+              const idealX = actorSide === 'L'
+                ? tpos.x - distX  // Je suis à gauche, je me place à gauche de ma cible
+                : tpos.x + distX; // Je suis à droite, je me place à droite de ma cible
+              const idealY = tpos.y; // PRENDRE LE Y DE LA CIBLE pour mouvement diagonal
+              const cur = getPos(src.node);
+              
+              // Calculer la distance totale (diagonale)
+              const travelDist = Math.hypot(idealX - cur.x, idealY - cur.y);
+              
+              // Pré-move seulement si on doit avancer
+              if ((actorSide === 'L' && idealX > cur.x) || (actorSide === 'R' && idealX < cur.x)) {
+                // Mouvement DIAGONAL vers la cible
+                addVector(cur.x, cur.y, idealX, idealY, 0xff66cc);
+                // Durée basée sur la distance totale (comme moveTo.ts ligne 55)
+                const durPre = (Math.max(160, (travelDist / 430) * 1000) * (actorSide === 'R' ? mulR : mulL)) / Math.max(0.001, speed);
+                await tweenTo(src.node, idealX, idealY, durPre); // X ET Y
+              }
+            } catch {}
+            
+            playAnim(src, 'shoot', false);
+            const lungeDist = 18;
+            const durFwd = (100 * (actorSide === 'R' ? mulR : mulL)) / Math.max(0.001, speed);
+            const durBack = (80 * (actorSide === 'R' ? mulR : mulL)) / Math.max(0.001, speed);
+            
+            // Lunge STRICTEMENT HORIZONTAL (pas de composante Y)
+            const cur2 = getPos(src.node);
+            const lungeX = cur2.x + (src===left? +lungeDist : -lungeDist);
+            await tweenTo(src.node, lungeX, cur2.y, durFwd);
+            await tweenTo(src.node, cur2.x, cur2.y, durBack);
+            playAnim(src, 'idle', true);
+            break; }

@@ -1,0 +1,78 @@
+TEMPLATE POUR NOTER LES SYMBOLS DEPUIS JPEXS
+============================================
+
+Date : ___________
+Fichier : mini_perso.swf
+
+PERSONNAGES PRINCIPAUX
+----------------------
+Symbol 460 = Personnage masculin complet
+Symbol 752 = Personnage féminin complet
+
+TÊTES ET CHEVEUX (p3)
+---------------------
+Symbol ___ = Cheveux courts
+Symbol ___ = Cheveux mi-longs
+Symbol ___ = Cheveux longs
+Symbol ___ = Crête iroquoise
+Symbol ___ = Chauve
+Symbol ___ = Afro
+Symbol ___ = Queue de cheval
+Symbol ___ = Dreadlocks
+Symbol ___ = Coupe punk
+Symbol ___ = Cheveux ébouriffés
+Symbol ___ = Coupe classique
+
+BARBES (p4 - homme)
+-------------------
+Symbol ___ = Barbe 3 jours
+Symbol ___ = Bouc
+Symbol ___ = Barbe complète
+Symbol ___ = Moustache
+Symbol ___ = Barbe viking
+
+CORPS/MUSCLES (p2 - homme)
+--------------------------
+Symbol ___ = Très maigre
+Symbol ___ = Maigre
+Symbol ___ = Mince
+Symbol ___ = Normal
+Symbol ___ = Musclé
+Symbol ___ = Costaud
+Symbol ___ = Très costaud
+
+VÊTEMENTS (p7)
+--------------
+Symbol ___ = Armure légère
+Symbol ___ = Tunique
+Symbol ___ = Armure lourde
+Symbol ___ = Tenue de combat
+Symbol ___ = Toge
+Symbol ___ = Tenue barbare
+
+ARMES
+-----
+Symbol ___ = Épée
+Symbol ___ = Hache
+Symbol ___ = Lance
+Symbol ___ = Marteau
+Symbol ___ = Fouet
+Symbol ___ = Couteau
+Symbol ___ = Bouclier
+Symbol ___ = Chope
+Symbol ___ = Éventail
+Symbol ___ = Clavier
+Symbol ___ = Poireau
+Symbol ___ = Poêle
+
+AUTRES
+------
+Symbol ___ = 
+Symbol ___ = 
+Symbol ___ = 
+
+NOTES
+-----
+- 
+- 
+-

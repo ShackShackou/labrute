@@ -1,6 +1,6 @@
 /* eslint-disable no-void */
 import { randomBetween, TreatStep } from '@labrute/core';
-import { Application, Sprite } from 'pixi.js';
+import { Application, Sprite } from 'pixi-legacy';
 import { sound } from '@pixi/sound';
 import { displayHeal } from './utils/displayHeal';
 import findFighter, { AnimationFighter } from './utils/findFighter';

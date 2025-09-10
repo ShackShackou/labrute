@@ -1,6 +1,6 @@
 import { TOKEN_COOKIE, USER_COOKIE, UserWithBrutesBodyColor, Version } from '@labrute/core';
 import { Event, FightModifier } from '@labrute/prisma';
-import React, { useCallback, useContext, useMemo, useState } from 'react';
+import React, { useCallback, useContext, useEffect, useMemo, useState } from 'react';
 import { deleteCookie, getCookie } from '../utils/cookies';
 import Server from '../utils/Server';
 import { useLanguage } from './useLanguage';
@@ -106,6 +106,13 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
     updateData
   }), [authing, currentEvent, modifiers,
     signin, signout, updateData, user]);
+
+  // Auto-signin on mount if cookies are present
+  useEffect(() => {
+    // Delay a tick to let CSRF fetch settle
+    const id = window.setTimeout(() => { try { signin(); } catch {} }, 0);
+    return () => { try { window.clearTimeout(id); } catch {} };
+  }, [signin]);
 
   return (
     <AuthContext.Provider value={methods}>

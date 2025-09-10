@@ -1,5 +1,5 @@
 import { SkillExpireStep, SkillId } from '@labrute/core';
-import { Application } from 'pixi.js';
+import { Application } from 'pixi-legacy';
 
 import { GlowFilter } from '@pixi/filter-glow';
 import { Easing } from 'pixi-tweener';

@@ -1,0 +1,39 @@
+# API Keys - TRÈS IMPORTANT !
+.env
+.env.local
+.env.*.local
+
+# Fichiers extraits
+sprites_extraits/
+extracted_sprites/
+*.swf
+
+# Fichiers de sortie
+mapping.json
+labrute_mapping.json
+mapping_report.csv
+*.csv
+
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+env/
+venv/
+ENV/
+.venv/
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Logs
+*.log

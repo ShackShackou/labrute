@@ -1,0 +1,175 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Test Spine Simple</title>
+    <style>
+        body {
+            margin: 0;
+            padding: 20px;
+            background: #333;
+            color: white;
+            font-family: Arial;
+        }
+        #game-container {
+            width: 800px;
+            height: 600px;
+            margin: 0 auto;
+            border: 2px solid white;
+        }
+        #status {
+            padding: 10px;
+            background: #222;
+            margin: 10px 0;
+            border-radius: 5px;
+        }
+        .success { color: #4CAF50; }
+        .error { color: #f44336; }
+        .info { color: #2196F3; }
+    </style>
+</head>
+<body>
+    <h1>Test de chargement Spine</h1>
+    <div id="status">Initialisation...</div>
+    <div id="game-container"></div>
+    
+    <script type="module">
+        import Phaser from 'phaser';
+        import { SpinePlugin } from '@esotericsoftware/spine-phaser';
+        
+        const statusDiv = document.getElementById('status');
+        
+        function log(message, type = 'info') {
+            const entry = document.createElement('div');
+            entry.className = type;
+            entry.textContent = `[${new Date().toLocaleTimeString()}] ${message}`;
+            statusDiv.appendChild(entry);
+            console.log(message);
+        }
+        
+        class TestSpineScene extends Phaser.Scene {
+            constructor() {
+                super({ key: 'TestSpine' });
+            }
+            
+            preload() {
+                log('Début du preload', 'info');
+                
+                // Chargement avec gestion d'erreurs
+                this.load.on('loaderror', (file) => {
+                    log(`Erreur chargement: ${file.key} - ${file.url}`, 'error');
+                });
+                
+                this.load.on('filecomplete', (key, type, data) => {
+                    log(`Fichier chargé: ${key} (${type})`, 'success');
+                });
+                
+                try {
+                    // Charger les assets Spine
+                    log('Chargement spineboy-pro.json...', 'info');
+                    this.load.spineJson('spineboy-data', 'assets/spine/spineboy-pro.json');
+                    
+                    log('Chargement spineboy.atlas...', 'info');
+                    this.load.spineAtlas('spineboy-atlas', 'assets/spine/spineboy.atlas');
+                    
+                } catch (error) {
+                    log(`Erreur preload: ${error.message}`, 'error');
+                }
+            }
+            
+            create() {
+                log('Début du create', 'info');
+                
+                try {
+                    // Vérifier que les assets sont chargés
+                    if (!this.cache.custom.spine.exists('spineboy-data')) {
+                        log('spineboy-data non trouvé dans le cache!', 'error');
+                        return;
+                    }
+                    
+                    if (!this.cache.custom.spineAtlas.exists('spineboy-atlas')) {
+                        log('spineboy-atlas non trouvé dans le cache!', 'error');
+                        return;
+                    }
+                    
+                    log('Assets trouvés dans le cache', 'success');
+                    
+                    // Créer le personnage Spine
+                    log('Création du personnage Spine...', 'info');
+                    const spineboy = this.add.spine(400, 500, 'spineboy-data', 'spineboy-atlas');
+                    
+                    if (!spineboy) {
+                        log('Échec création personnage Spine', 'error');
+                        return;
+                    }
+                    
+                    log('Personnage créé avec succès!', 'success');
+                    
+                    // Configuration
+                    spineboy.setScale(0.5);
+                    
+                    // Lister les animations disponibles
+                    const anims = spineboy.getAnimationList();
+                    log(`Animations disponibles: ${anims.join(', ')}`, 'info');
+                    
+                    // Jouer l'animation idle
+                    if (anims.includes('idle')) {
+                        spineboy.play('idle', true);
+                        log('Animation idle lancée', 'success');
+                    } else if (anims.length > 0) {
+                        spineboy.play(anims[0], true);
+                        log(`Animation ${anims[0]} lancée`, 'success');
+                    }
+                    
+                    // Test de changement d'animation
+                    this.time.delayedCall(2000, () => {
+                        if (anims.includes('walk')) {
+                            spineboy.play('walk', true);
+                            log('Changement vers animation walk', 'info');
+                        }
+                    });
+                    
+                    this.time.delayedCall(4000, () => {
+                        if (anims.includes('run')) {
+                            spineboy.play('run', true);
+                            log('Changement vers animation run', 'info');
+                        }
+                    });
+                    
+                } catch (error) {
+                    log(`Erreur create: ${error.message}`, 'error');
+                    console.error(error);
+                }
+            }
+        }
+        
+        const config = {
+            type: Phaser.AUTO,
+            width: 800,
+            height: 600,
+            parent: 'game-container',
+            backgroundColor: '#2d2419',
+            plugins: {
+                scene: [
+                    {
+                        key: 'SpinePlugin',
+                        plugin: SpinePlugin,
+                        mapping: 'spine'
+                    }
+                ]
+            },
+            scene: [TestSpineScene]
+        };
+        
+        log('Création du jeu Phaser...', 'info');
+        
+        try {
+            const game = new Phaser.Game(config);
+            log('Jeu créé avec succès', 'success');
+        } catch (error) {
+            log(`Erreur création jeu: ${error.message}`, 'error');
+        }
+    </script>
+</body>
+</html>

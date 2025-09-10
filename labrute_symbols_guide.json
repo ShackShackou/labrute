@@ -1,0 +1,107 @@
+{
+  "personnages_principaux": {
+    "Symbol460": {
+      "nom": "Personnage Masculin Complet",
+      "description": "Container principal pour le personnage masculin",
+      "type": "DefineSprite",
+      "contient": {
+        "p1": "Base du corps",
+        "p1a": "Ceinture basique",
+        "p1b": "Ceinture romaine",
+        "p2": "Taille du corps (7 variantes)",
+        "p3": "Cheveux (11 styles)",
+        "p4": "Barbe (5 styles)",
+        "p5": "Chemise/Haut",
+        "p6": "Bas (shorts/pantalons)",
+        "p7": "Vêtement principal (6 types)",
+        "p7b": "Dessous chaussures",
+        "p8": "Chaussures"
+      }
+    },
+    "Symbol752": {
+      "nom": "Personnage Féminin Complet",
+      "description": "Container principal pour le personnage féminin",
+      "type": "DefineSprite",
+      "contient": {
+        "p1": "Base du corps",
+        "p1a": "Ceinture basique",
+        "p1b": "Ceinture romaine",
+        "p2": "Corps (pas de variation)",
+        "p3": "Cheveux (11 styles)",
+        "p4": "Mèches avant (3 styles)",
+        "p5": "Chemise/Haut",
+        "p6": "Bas (shorts/rien)",
+        "p7": "Vêtement principal (6 types)",
+        "p7b": "Dessous chaussures",
+        "p8": "Chaussures"
+      }
+    }
+  },
+  "estimation_symbols": {
+    "corps_homme": {
+      "description": "Variantes de musculature (p2)",
+      "nombre": 7,
+      "symbols_probables": "Symbol100-Symbol106"
+    },
+    "cheveux": {
+      "description": "Styles de cheveux (p3)",
+      "nombre": 11,
+      "symbols_probables": "Symbol200-Symbol210"
+    },
+    "barbes": {
+      "description": "Styles de barbe (p4 homme)",
+      "nombre": 5,
+      "symbols_probables": "Symbol300-Symbol304"
+    },
+    "vetements": {
+      "description": "Vêtements principaux (p7)",
+      "nombre": 6,
+      "symbols_probables": "Symbol400-Symbol405"
+    }
+  },
+  "armes": {
+    "description": "Les armes ont leurs propres Symbol IDs",
+    "liste": [
+      "sword (épée)",
+      "axe (hache)",
+      "lance",
+      "hammer (marteau)",
+      "whip (fouet)",
+      "knife (couteau)",
+      "baton (gourdin)",
+      "trident",
+      "halbard (hallebarde)",
+      "morningStar (étoile du matin)",
+      "flail (fléau)",
+      "scimitar (cimeterre)",
+      "sai",
+      "hatchet (hachette)",
+      "fryingPan (poêle à frire)",
+      "keyboard (clavier)",
+      "leek (poireau)",
+      "mug (chope)",
+      "mammothBone (os de mammouth)",
+      "fan (éventail)",
+      "racquet (raquette)",
+      "noodleBowl (bol de nouilles)",
+      "piopio",
+      "trombone",
+      "shuriken"
+    ],
+    "symbols_probables": "Symbol500-Symbol525"
+  },
+  "animaux": {
+    "bear": "Ours",
+    "dog": "Chien",
+    "panther": "Panthère",
+    "symbols_probables": "Symbol600-Symbol602"
+  },
+  "instructions_jpexs": {
+    "etape1": "Ouvrez JPEXS Free Flash Decompiler",
+    "etape2": "File > Open > mini_perso.swf",
+    "etape3": "Dans l'arbre à gauche, explorez 'sprites'",
+    "etape4": "Cherchez DefineSprite (460) et DefineSprite (752)",
+    "etape5": "Notez tous les Symbol IDs que vous trouvez",
+    "conseil": "Les Symbol IDs sont dans l'ordre: DefineSprite (XXX)"
+  }
+}
