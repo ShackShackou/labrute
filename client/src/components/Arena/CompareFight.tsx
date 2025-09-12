@@ -23,24 +23,24 @@ const CompareFight: React.FC<Props> = ({ fight }) => {
     return 2; // l'officiel démarre souvent en x2
   });
   // Pixi tunables for quick matching
-  const [pixiScale, setPixiScale] = useState(readNum('compare.pixiScale', 0.22));
+  const [pixiScale, setPixiScale] = useState(readNum('compare.pixiScale', 0.245));
   const [pixiBoost, setPixiBoost] = useState(readNum('compare.pixiBoost', 1.6));
-  const [charPx, setCharPx] = useState(readNum('compare.charPx', 50));
+  const [charPx, setCharPx] = useState(readNum('compare.charPx', 52));
   // Mode outils avancés (cache/affiche les sliders supplémentaires)
   const [advanced, setAdvanced] = useState(localStorage.getItem('compare.advanced') === '1');
   // Movement tuning
-  const [drift, setDrift] = useState(readNum('compare.drift', 20)); // diagonal drift when ΔY small
-  const [contactBias, setContactBias] = useState(readNum('compare.contactBias', 8)); // reduce melee distance to allow closer contact
-  const [returnFactor, setReturnFactor] = useState(readNum('compare.returnFactor', 1.25)); // slow down MoveBack
+  const [drift, setDrift] = useState(readNum('compare.drift', 40)); // diagonal drift when ΔY small
+  const [contactBias, setContactBias] = useState(readNum('compare.contactBias', 5)); // reduce melee distance to allow closer contact
+  const [returnFactor, setReturnFactor] = useState(readNum('compare.returnFactor', 2)); // slow down MoveBack
   const [stageX, setStageX] = useState(readNum('compare.stageX', 0));
   const [stageY, setStageY] = useState(readNum('compare.stageY', 0));
-  const [leftX, setLeftX] = useState(readNum('compare.leftX', 0));
+  const [leftX, setLeftX] = useState(readNum('compare.leftX', -11));
   const [leftY, setLeftY] = useState(readNum('compare.leftY', 0));
   const [rightX, setRightX] = useState(readNum('compare.rightX', 0));
   const [rightY, setRightY] = useState(readNum('compare.rightY', 0));
-  const [clampMin, setClampMin] = useState(readNum('compare.clampMin', 175/300));
-  const [clampMax, setClampMax] = useState(readNum('compare.clampMax', 281/300));
-  const [approachOffset, setApproachOffset] = useState(readNum('compare.approachOffset', 0));
+  const [clampMin, setClampMin] = useState(readNum('compare.clampMin', 0.58));
+  const [clampMax, setClampMax] = useState(readNum('compare.clampMax', 0.98));
+  const [approachOffset, setApproachOffset] = useState(readNum('compare.approachOffset', 1));
   const [preferVideo, setPreferVideo] = useState(localStorage.getItem('compare.preferVideo') === '1');
   const steps = useMemo(() => {
     if (!fight) return [] as any[];
@@ -88,13 +88,13 @@ const CompareFight: React.FC<Props> = ({ fight }) => {
   }, []);
 
   const resetAll = () => {
-    setPixiScale(0.22); setPixiBoost(1.6); setCharPx(50);
+    setPixiScale(0.245); setPixiBoost(1.6); setCharPx(52);
     setAdvanced(false);
-    setDrift(20); setContactBias(8); setReturnFactor(1.25);
+    setDrift(40); setContactBias(5); setReturnFactor(2);
     setStageX(0); setStageY(0);
-    setLeftX(0); setLeftY(0); setRightX(0); setRightY(0);
-    setClampMin(175/300); setClampMax(281/300);
-    setApproachOffset(0); setPreferVideo(false);
+    setLeftX(-11); setLeftY(0); setRightX(0); setRightY(0);
+    setClampMin(0.58); setClampMax(0.98);
+    setApproachOffset(1); setPreferVideo(false);
   };
 
   // Trace/Diag toggles stored in localStorage, consumed by PixiFight

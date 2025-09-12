@@ -55,12 +55,15 @@ export class OAuth {
     res.header('Access-Control-Allow-Origin', '*');
 
     try {
+      console.log('[OAuth] Token request with code:', req.query.code);
+      
       if (!req.query.code || typeof req.query.code !== 'string') {
         throw new ExpectedError('Invalid code');
       }
 
       // ETwin Token
       const token = await this.#oauthClient.getAccessToken(req.query.code);
+      console.log('[OAuth] Got access token:', token.accessToken);
 
       // ETWin User
       const self = await this.#eternaltwinClient.getAuthSelf({ auth: token.accessToken });
