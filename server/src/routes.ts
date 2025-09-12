@@ -13,6 +13,7 @@ import { Fights } from './controllers/Fights.js';
 import { Logs } from './controllers/Logs.js';
 import { Notifications } from './controllers/Notifications.js';
 import { OAuth } from './controllers/OAuth.js';
+import { DevAuth } from './controllers/DevAuth.js';
 import { Tournaments } from './controllers/Tournaments.js';
 import { Users } from './controllers/Users.js';
 import { ServerState } from './utils/ServerState.js';
@@ -34,10 +35,23 @@ export const initRoutes = (app: Express, config: Config, prisma: PrismaClient) =
     });
   });
 
-  // OAuth
+  // OAuth normal avec EternalTwin
   const oauth = new OAuth(config, prisma);
   app.get('/api/oauth/redirect', oauth.redirect.bind(oauth));
   app.get('/api/oauth/token', oauth.token.bind(oauth));
+  
+  // Dev Auth (pour login direct sans OAuth)
+  const devAuth = new DevAuth(prisma);
+  app.get('/api/dev/oauth', devAuth.oauthSimulator.bind(devAuth));
+  app.get('/api/dev/users', devAuth.getUsers.bind(devAuth));
+  app.get('/api/dev/login/:userId', devAuth.directLogin.bind(devAuth));
+  app.get('/api/dev/token', devAuth.devToken.bind(devAuth));
+  
+  // OAuth callback handler - redirect to frontend with code and state
+  app.get('/oauth/callback', (req: Request, res: Response) => {
+    const { code, state } = req.query;
+    res.redirect(`http://localhost:3000/oauth/callback?code=${code}&state=${state}`);
+  });
 
   // Daily job
   app.patch('/api/run-daily-job', Users.runDailyJob(prisma));

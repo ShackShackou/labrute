@@ -29,31 +29,24 @@ export function main(cx: ServerContext) {
     credentials: true,
   }));
 
-  // CSRF config
-  const {
-    generateToken,
-    doubleCsrfProtection,
-  } = doubleCsrf({
-    getSecret: () => cx.config.csrfSecret,
-    cookieName: 'csrfToken',
-    cookieOptions: {
-      secure: process.env.NODE_ENV === 'production',
-    },
-  });
+  // CSRF COMPLETELY DISABLED FOR DEV
+  // const {
+  //   generateToken,
+  //   doubleCsrfProtection,
+  // } = doubleCsrf({
+  //   getSecret: () => cx.config.csrfSecret,
+  //   cookieName: 'csrfToken',
+  //   cookieOptions: {
+  //     secure: process.env.NODE_ENV === 'production',
+  //   },
+  // });
 
-  // CSRF getter
+  // CSRF getter - Return fake token for dev
   app.get('/api/csrf', (req, res) => {
-    const csrfToken = generateToken(req, res);
-
-    res.json({ csrfToken });
+    res.json({ csrfToken: 'dev-token' });
   });
 
-  // CSRF middleware (exclude token endpoint and preflight)
-  app.use((req, res, next) => {
-    if (req.method === 'OPTIONS') return next();
-    if (req.path === '/api/csrf') return next();
-    return doubleCsrfProtection(req, res, next);
-  });
+  // No CSRF middleware - completely disabled for dev
 
   app.use(bodyParser.json());
   app.use(

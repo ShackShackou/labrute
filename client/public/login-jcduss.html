@@ -1,0 +1,189 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <title>Login JCDUSS - SHACKERS</title>
+    <style>
+        body {
+            background: #f4e4c1;
+            font-family: Arial, sans-serif;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            margin: 0;
+        }
+        .container {
+            background: white;
+            padding: 40px;
+            border-radius: 15px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+            max-width: 500px;
+            text-align: center;
+        }
+        h1 {
+            color: #8B4513;
+            margin-bottom: 30px;
+            font-size: 32px;
+        }
+        .info {
+            background: #fffacd;
+            border-left: 5px solid #ffa500;
+            padding: 20px;
+            margin: 20px 0;
+            text-align: left;
+            border-radius: 5px;
+        }
+        .button {
+            display: inline-block;
+            padding: 15px 30px;
+            margin: 10px;
+            background: #4CAF50;
+            color: white;
+            text-decoration: none;
+            border-radius: 8px;
+            font-size: 18px;
+            cursor: pointer;
+            border: none;
+            transition: all 0.3s;
+        }
+        .button:hover {
+            background: #45a049;
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(0,0,0,0.2);
+        }
+        .secondary {
+            background: #2196F3;
+        }
+        .secondary:hover {
+            background: #0b7dda;
+        }
+        .success {
+            color: green;
+            font-weight: bold;
+            margin: 20px 0;
+        }
+        .brute-info {
+            background: #f0f0f0;
+            padding: 15px;
+            margin: 10px 0;
+            border-radius: 5px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🎮 SHACKERS - Connexion JCDUSS</h1>
+        
+        <div class="info">
+            <h3>Ton compte JCDUSS</h3>
+            <p><strong>ID:</strong> e99ab88c-8be2-4fd0-8519-a0c4bf7a3705</p>
+            <p><strong>Token:</strong> 20ea9aaf-005f-4176-8fd7-3115d338004d</p>
+            
+            <div class="brute-info">
+                <h4>🗡️ HerveVenere</h4>
+                <ul>
+                    <li>Niveau 7</li>
+                    <li>18 victoires / 21 défaites</li>
+                    <li>96 HP</li>
+                </ul>
+            </div>
+            
+            <div class="brute-info">
+                <h4>🗡️ Mouguy</h4>
+                <ul>
+                    <li>Niveau 2</li>
+                    <li>2 victoires / 8 défaites</li>
+                </ul>
+            </div>
+            
+            <div class="brute-info">
+                <h4>🗡️ DFF</h4>
+                <ul>
+                    <li>Niveau 3</li>
+                    <li>0 victoires / 5 défaites</li>
+                </ul>
+            </div>
+        </div>
+
+        <button class="button" onclick="loginJCDUSS()">
+            🚀 Se connecter en tant que JCDUSS
+        </button>
+
+        <div id="status"></div>
+
+        <div id="links" style="display:none; margin-top: 30px;">
+            <h3>Tu es maintenant connecté !</h3>
+            <a href="http://localhost:3000" class="button secondary">Accueil</a>
+            <a href="http://localhost:3000/HerveVenere/cell" class="button secondary">HerveVenere</a>
+            <a href="http://localhost:3000/HerveVenere/fight/83eb8efa-45df-4fcc-96b3-58544ed0d785?renderer=compare&pixiDiag=1" class="button secondary">Page Compare</a>
+        </div>
+    </div>
+
+    <script>
+        function setCookie(name, value, days) {
+            const expires = new Date(Date.now() + days * 864e5).toUTCString();
+            document.cookie = `${name}=${value}; expires=${expires}; path=/`;
+        }
+
+        function loginJCDUSS() {
+            const status = document.getElementById('status');
+            const links = document.getElementById('links');
+            
+            // Données du compte JCDUSS
+            const userId = 'e99ab88c-8be2-4fd0-8519-a0c4bf7a3705';
+            const token = '20ea9aaf-005f-4176-8fd7-3115d338004d';
+            
+            // Sauvegarder dans localStorage
+            const userData = {
+                id: userId,
+                name: 'JCDUSS',
+                connexionToken: token,
+                lang: 'fr',
+                gold: 0,
+                bruteLimit: 3,
+                brutes: [
+                    {
+                        id: 'd2a66e12-6b94-4cc5-a886-dd7bc7bafc51',
+                        name: 'HerveVenere',
+                        level: 7,
+                        hp: 96,
+                        victories: 18,
+                        losses: 21
+                    },
+                    {
+                        id: '8d4f05c5-a42f-4aa9-bf0f-c691433b3894',
+                        name: 'Mouguy',
+                        level: 2
+                    },
+                    {
+                        id: '398aaf87-1101-4a57-a2ce-470404fd9ab5',
+                        name: 'DFF',
+                        level: 3
+                    }
+                ]
+            };
+            
+            localStorage.setItem('user', JSON.stringify(userData));
+            localStorage.setItem('language', 'fr');
+            
+            // Sauvegarder dans les cookies
+            setCookie('user', userId, 7);
+            setCookie('token', token, 7);
+            
+            // Créer l'authorization header encodé en base64
+            const authData = `${userId}:${token}`;
+            const authHeader = btoa(authData);
+            localStorage.setItem('authHeader', authHeader);
+            
+            status.innerHTML = '<p class="success">✅ Connexion réussie ! Tu es maintenant connecté en tant que JCDUSS.</p>';
+            links.style.display = 'block';
+            
+            // Redirection automatique après 2 secondes
+            setTimeout(() => {
+                window.location.href = 'http://localhost:3000/HerveVenere/cell';
+            }, 2000);
+        }
+    </script>
+</body>
+</html>
