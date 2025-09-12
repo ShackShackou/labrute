@@ -2,6 +2,14 @@
 ## VERSION QUI MARCHE PARFAITEMENT
 
 ### 🚀 COMMANDES DE DÉMARRAGE
+
+#### OPTION 1 : Tout en une commande (RECOMMANDÉ)
+```bash
+# Lance tout automatiquement (DB, Server, Client, EternalTwin)
+yarn dev
+```
+
+#### OPTION 2 : Séparément (si yarn dev ne marche pas)
 ```bash
 # Terminal 1 - Server
 cd server && yarn start
@@ -12,6 +20,8 @@ cd client && yarn start
 # Terminal 3 - EternalTwin OAuth
 npx @eternaltwin/cli start
 ```
+
+#### ⚠️ IMPORTANT : TOUJOURS UTILISER YARN, PAS NPM !
 
 ### ✅ TRAVAIL EFFECTUÉ AUJOURD'HUI
 
