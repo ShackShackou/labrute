@@ -1,0 +1,169 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Connexion OAuth Directe - JCDUSS</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background: #2a2a2a;
+            color: white;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            margin: 0;
+        }
+        .container {
+            background: #1a1a1a;
+            padding: 40px;
+            border-radius: 10px;
+            border: 3px solid #00ff00;
+            text-align: center;
+            max-width: 600px;
+        }
+        h1 { color: #00ff00; }
+        button {
+            background: #00ff00;
+            color: black;
+            border: none;
+            padding: 20px 40px;
+            font-size: 20px;
+            border-radius: 5px;
+            cursor: pointer;
+            margin: 10px;
+            font-weight: bold;
+        }
+        button:hover {
+            background: #00cc00;
+        }
+        .info {
+            background: #333;
+            padding: 20px;
+            border-radius: 5px;
+            margin: 20px 0;
+            border-left: 5px solid #00ff00;
+        }
+        #log {
+            background: #000;
+            color: #00ff00;
+            padding: 15px;
+            border-radius: 5px;
+            text-align: left;
+            font-family: monospace;
+            max-height: 300px;
+            overflow-y: auto;
+            margin-top: 20px;
+            border: 1px solid #00ff00;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🔓 Connexion OAuth Directe</h1>
+        
+        <div class="info">
+            <strong>✅ JCDUSS existe sur ETwin (port 50320)</strong><br>
+            <strong>❌ Le frontend redirige vers le mauvais port (8080)</strong><br>
+            <strong>🔧 Cette page force la connexion au BON ETwin</strong>
+        </div>
+
+        <button onclick="connectDirect()">
+            🚀 CONNEXION DIRECTE AU BON ETWIN
+        </button>
+
+        <button onclick="testAPI()">
+            🔍 Tester l'API OAuth
+        </button>
+
+        <button onclick="clearCache()">
+            🗑️ Nettoyer le cache
+        </button>
+
+        <div id="log"></div>
+    </div>
+
+    <script>
+        function log(message) {
+            const logDiv = document.getElementById('log');
+            const time = new Date().toLocaleTimeString();
+            logDiv.innerHTML += `[${time}] ${message}\n`;
+            logDiv.scrollTop = logDiv.scrollHeight;
+        }
+
+        function connectDirect() {
+            log('🚀 Redirection vers le BON ETwin (port 50320)...');
+            
+            // URL OAuth correcte avec le bon port
+            const oauthUrl = 'http://localhost:50320/oauth/authorize?' + 
+                'access_type=offline&' +
+                'response_type=code&' +
+                'redirect_uri=' + encodeURIComponent('http://localhost:9000/oauth/callback') + '&' +
+                'client_id=brute_dev@clients&' +
+                'scope=base&' +
+                'state=';
+            
+            log('URL: ' + oauthUrl);
+            log('Ouverture dans 2 secondes...');
+            
+            setTimeout(() => {
+                window.location.href = oauthUrl;
+            }, 2000);
+        }
+
+        async function testAPI() {
+            log('🔍 Test de l\'API /api/oauth/redirect...');
+            
+            try {
+                const response = await fetch('/api/oauth/redirect');
+                const data = await response.json();
+                
+                log('✅ Réponse API:');
+                log(data.url);
+                
+                // Vérifier le port
+                if (data.url.includes(':50320')) {
+                    log('✅ L\'API retourne le BON port (50320)');
+                } else if (data.url.includes(':8080')) {
+                    log('❌ L\'API retourne le MAUVAIS port (8080)');
+                } else {
+                    log('⚠️ Port inconnu dans l\'URL');
+                }
+            } catch (error) {
+                log('❌ Erreur: ' + error.message);
+            }
+        }
+
+        function clearCache() {
+            log('🗑️ Nettoyage du cache...');
+            
+            // Clear localStorage
+            localStorage.clear();
+            log('✅ localStorage vidé');
+            
+            // Clear sessionStorage
+            sessionStorage.clear();
+            log('✅ sessionStorage vidé');
+            
+            // Clear cookies
+            document.cookie.split(";").forEach(function(c) { 
+                document.cookie = c.replace(/^ +/, "").replace(/=.*/, "=;expires=" + new Date().toUTCString() + ";path=/"); 
+            });
+            log('✅ Cookies supprimés');
+            
+            log('🔄 Rechargement de la page dans 2 secondes...');
+            setTimeout(() => {
+                window.location.reload(true);
+            }, 2000);
+        }
+
+        // Log initial
+        window.onload = () => {
+            log('📋 Page chargée');
+            log('🌐 URL actuelle: ' + window.location.href);
+            log('🍪 Cookies: ' + (document.cookie || 'AUCUN'));
+            log('');
+            log('👉 Clique sur "CONNEXION DIRECTE" pour te connecter avec JCDUSS');
+        };
+    </script>
+</body>
+</html>
