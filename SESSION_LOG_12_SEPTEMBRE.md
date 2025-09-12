@@ -93,12 +93,22 @@ Dans CompareFight.tsx ET fonction resetAll() :
 git checkout version-stable-pixi-oauth-12septembre
 git reset --hard
 
-# Si problème avec prisma
-git checkout prisma/
+# Si problème avec prisma (RÉSOLU le 12/09 à 14h50)
+# Le package.json de prisma doit avoir "name": "@labrute/prisma"
+# Sinon faire : git checkout prisma/package.json
+
+# Si erreur "Workspace not found"
+yarn install
 
 # Pour vérifier la branche
 git branch --show-current
 ```
+
+### 🔧 FIX IMPORTANT DU 12/09 À 14H50
+- **Problème** : Erreur "Workspace not found (@labrute/prisma@workspace:*)"
+- **Solution** : Le nom du package prisma était incorrect (hash généré)
+- **Correction** : Changé en `"name": "@labrute/prisma"` dans prisma/package.json
+- **Commit** : 1bc7da55 - Fix workspace prisma
 
 ### 📌 NOTES IMPORTANTES
 1. **TOUJOURS** utiliser `yarn` pas `npm`
