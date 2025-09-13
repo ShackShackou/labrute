@@ -570,7 +570,13 @@ export default class FighterHolder {
 
     // Create Shadow Sprite
     const shadowSprite = new PIXI.Sprite();
-    shadowSprite.texture = app.renderer.generateTexture(shadowGraphics);
+    // Check if renderer exists before generating texture
+    if (app.renderer) {
+      shadowSprite.texture = app.renderer.generateTexture(shadowGraphics);
+    } else {
+      // Fallback to empty texture if renderer not ready
+      shadowSprite.texture = PIXI.Texture.EMPTY;
+    }
     shadowSprite.anchor.set(0.5, 0.5);
     shadowSprite.width = this.baseWidth;
     shadowSprite.height = (this.baseHeight * 30) / this.baseWidth;

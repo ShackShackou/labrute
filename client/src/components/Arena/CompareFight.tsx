@@ -25,7 +25,7 @@ const CompareFight: React.FC<Props> = ({ fight }) => {
   // Pixi tunables for quick matching
   const [pixiScale, setPixiScale] = useState(readNum('compare.pixiScale', 0.245));
   const [pixiBoost, setPixiBoost] = useState(readNum('compare.pixiBoost', 1.6));
-  const [charPx, setCharPx] = useState(readNum('compare.charPx', 52));
+  const [charPx, setCharPx] = useState(readNum('compare.charPx', 50)); // Changed default from 52 to 50
   // Mode outils avancés (cache/affiche les sliders supplémentaires)
   const [advanced, setAdvanced] = useState(localStorage.getItem('compare.advanced') === '1');
   // Movement tuning
@@ -42,6 +42,10 @@ const CompareFight: React.FC<Props> = ({ fight }) => {
   const [clampMax, setClampMax] = useState(readNum('compare.clampMax', 0.98));
   const [approachOffset, setApproachOffset] = useState(readNum('compare.approachOffset', 1));
   const [preferVideo, setPreferVideo] = useState(localStorage.getItem('compare.preferVideo') === '1');
+  const [useCustomBg, setUseCustomBg] = useState(localStorage.getItem('compare.useCustomBg') === '1');
+  const [customBgIndex, setCustomBgIndex] = useState(readNum('compare.customBgIndex', 1));
+  const [bgStretch, setBgStretch] = useState(readNum('compare.bgStretch', 1.15));
+  const [bgScale, setBgScale] = useState(readNum('compare.bgScale', 1.0));
   const steps = useMemo(() => {
     if (!fight) return [] as any[];
     try { return Array.isArray(fight.steps) ? (fight.steps as any[]) : JSON.parse(String(fight.steps)); } catch { return []; }
@@ -73,6 +77,8 @@ const CompareFight: React.FC<Props> = ({ fight }) => {
   useEffect(() => { writeNum('compare.clampMax', clampMax); }, [clampMax]);
   useEffect(() => { writeNum('compare.approachOffset', approachOffset); }, [approachOffset]);
   useEffect(() => { try { localStorage.setItem('compare.preferVideo', preferVideo ? '1' : '0'); } catch {} }, [preferVideo]);
+  useEffect(() => { try { localStorage.setItem('compare.useCustomBg', useCustomBg ? '1' : '0'); } catch {} }, [useCustomBg]);
+  useEffect(() => { writeNum('compare.customBgIndex', customBgIndex); }, [customBgIndex]);
 
   // Follow official x1/x2
   useEffect(() => {
@@ -88,13 +94,13 @@ const CompareFight: React.FC<Props> = ({ fight }) => {
   }, []);
 
   const resetAll = () => {
-    setPixiScale(0.245); setPixiBoost(1.6); setCharPx(52);
+    setPixiScale(0.245); setPixiBoost(1.6); setCharPx(50); // Changed from 52 to 50
     setAdvanced(false);
     setDrift(40); setContactBias(5); setReturnFactor(2);
     setStageX(0); setStageY(0);
     setLeftX(-11); setLeftY(0); setRightX(0); setRightY(0);
     setClampMin(0.58); setClampMax(0.98);
-    setApproachOffset(1); setPreferVideo(false);
+    setApproachOffset(1); setPreferVideo(false); setUseCustomBg(false);
   };
 
   // Trace/Diag toggles stored in localStorage, consumed by PixiFight
@@ -195,6 +201,27 @@ const CompareFight: React.FC<Props> = ({ fight }) => {
           <Text color="text.primary" typo="GameFont" upperCase sx={{ fontSize: 10 }}>Prefer Video BG</Text>
           <Switch size="small" checked={preferVideo} onChange={(_, v) => setPreferVideo(v)} />
         </Box>
+        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, ml: 2 }}>
+          <Text color="text.primary" typo="GameFont" upperCase sx={{ fontSize: 10 }}>Custom BG</Text>
+          <Switch size="small" checked={useCustomBg} onChange={(_, v) => setUseCustomBg(v)} />
+          {useCustomBg && (
+            <>
+              <Button size="small" variant="outlined" onClick={() => setCustomBgIndex(customBgIndex > 1 ? customBgIndex - 1 : 7)} sx={{ minWidth: 30, px: 0.5 }}>←</Button>
+              <Text color="text.primary" typo="GameFont" upperCase sx={{ fontSize: 10 }}>BG{customBgIndex}</Text>
+              <Button size="small" variant="outlined" onClick={() => setCustomBgIndex(customBgIndex < 7 ? customBgIndex + 1 : 1)} sx={{ minWidth: 30, px: 0.5 }}>→</Button>
+            </>
+          )}
+        </Box>
+        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, ml: 2 }}>
+          <Text color="text.primary" typo="GameFont" upperCase sx={{ fontSize: 10 }}>BG Stretch</Text>
+          <Slider size="small" min={1.0} max={1.5} step={0.01} value={bgStretch} onChange={(_, v) => { setBgStretch(v as number); localStorage.setItem('compare.bgStretch', String(v)); }} sx={{ width: 100 }} />
+          <Text color="text.primary" typo="GameFont" upperCase sx={{ fontSize: 10 }}>{bgStretch.toFixed(2)}x</Text>
+        </Box>
+        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, ml: 2 }}>
+          <Text color="text.primary" typo="GameFont" upperCase sx={{ fontSize: 10 }}>BG Scale</Text>
+          <Slider size="small" min={0.8} max={1.3} step={0.01} value={bgScale} onChange={(_, v) => { setBgScale(v as number); localStorage.setItem('compare.bgScale', String(v)); }} sx={{ width: 100 }} />
+          <Text color="text.primary" typo="GameFont" upperCase sx={{ fontSize: 10 }}>{bgScale.toFixed(2)}x</Text>
+        </Box>
         {/* Movement tuning */}
         <Text color="text.primary" typo="GameFont" upperCase sx={{ fontSize: 10, ml: 3 }}>Diag Drift</Text>
         <Slider size="small" min={0} max={40} step={1} value={drift} onChange={(_, v) => setDrift(v as number)} sx={{ width: 120 }} />
@@ -239,6 +266,10 @@ const CompareFight: React.FC<Props> = ({ fight }) => {
             rightOffsetY={rightY}
             approachOffset={approachOffset}
             preferVideoBackground={preferVideo}
+            useCustomBg={useCustomBg}
+            customBgIndex={customBgIndex}
+            bgStretch={bgStretch}
+            bgScale={bgScale}
             charPx={charPx}
             drift={drift}
             contactBias={contactBias}
