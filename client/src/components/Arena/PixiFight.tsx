@@ -1034,19 +1034,19 @@ const PixiFight: React.FC<Props> = ({
         
         weaponGraphics.beginFill(color);
         if (weaponName.includes('hammer') || weaponName.includes('mace')) {
-          weaponGraphics.drawRect(-3, -25, 6, 20);
-          weaponGraphics.drawRect(-6, -30, 12, 8);
+          weaponGraphics.drawRect(-4, -25, 8, 20);  // Thicker: 6 -> 8
+          weaponGraphics.drawRect(-8, -30, 16, 10); // Thicker: 12 -> 16, 8 -> 10
         } else if (weaponName.includes('axe')) {
-          weaponGraphics.drawRect(-2, -25, 4, 20);
-          weaponGraphics.moveTo(-8, -25);
-          weaponGraphics.lineTo(8, -25);
-          weaponGraphics.lineTo(6, -30);
-          weaponGraphics.lineTo(-6, -30);
+          weaponGraphics.drawRect(-3, -25, 6, 20);  // Thicker: 4 -> 6
+          weaponGraphics.moveTo(-10, -25);  // Wider: -8 -> -10
+          weaponGraphics.lineTo(10, -25);   // Wider: 8 -> 10
+          weaponGraphics.lineTo(8, -30);
+          weaponGraphics.lineTo(-8, -30);
           weaponGraphics.closePath();
         } else {
-          weaponGraphics.drawRect(-2, -30, 4, 30);
+          weaponGraphics.drawRect(-3, -30, 6, 30);  // Thicker: 4 -> 6
           if (weaponName.includes('sword')) {
-            weaponGraphics.drawRect(-6, -30, 12, 3);
+            weaponGraphics.drawRect(-8, -30, 16, 4);  // Thicker: 12 -> 16, 3 -> 4
           }
         }
         weaponGraphics.endFill();
@@ -1255,8 +1255,8 @@ const PixiFight: React.FC<Props> = ({
 
       // Duration from distance constants close to legacy v6 renderer
       // Ralenti les déplacements d'attaque (aller) pour plus de lisibilité
-      const durationMoveMs = (px:number) => Math.max(300, (px / 220) * 1000);  // Even slower attack approach
-      const durationMoveBackMs = (px:number) => Math.max(150, (px / 480) * 1000);  // Return stays fast
+      const durationMoveMs = (px:number) => Math.max(300, (px / 170) * 1000);  // Slower approach: 170 pixels/sec
+      const durationMoveBackMs = (px:number) => Math.max(150, (px / 480) * 1000);  // FAST return
 
       // Limites Y corrigées d'après l'analyse CSV
       const minY = 153, maxY = 259;
@@ -1577,61 +1577,8 @@ const PixiFight: React.FC<Props> = ({
             addVector(start.x, start.y, targetX, ty, 0x00cc66);
             const dur = (durationMoveMs(dist) * (actorSide === 'R' ? mulR : mulL)) / Math.max(0.001, speed);
             
-            // CHECK IF WEAPON ANIMATION NEEDED BEFORE MOVEMENT
-            const nextStepIdx = steps.indexOf(s) + 1;
-            const nextStep = steps[nextStepIdx];
-            let weaponAnimPromise: Promise<void> | null = null;
-            
-            if (nextStep && (nextStep.a === 19 || (nextStep.a >= 9 && nextStep.a <= 12))) {
-              const weapon = weaponSpines.get(src);
-              if (weapon && !(weapon as any).animationDone) {
-                // FLAG TO PREVENT ANY OTHER ANIMATION
-                (weapon as any).animationDone = true;
-                
-                const swingDirection = (src === left ? 1 : -1);
-                const originalY = weapon.y;
-                
-                // CREATE WEAPON ANIMATION THAT RUNS IN PARALLEL WITH MOVEMENT
-                weaponAnimPromise = (async () => {
-                  // Calculate timing - animation completes at arrival
-                  const raiseTime = 120;
-                  const swingTime = 80;
-                  const totalAttackTime = raiseTime + swingTime;
-                  
-                  // Start attack BEFORE arrival so it HITS at arrival
-                  const delayBeforeAttack = Math.max(0, dur - totalAttackTime);
-                  
-                  // Wait, then start attack while still moving
-                  if (delayBeforeAttack > 0) {
-                    await delay(delayBeforeAttack);
-                  }
-                  
-                  // RAISE weapon while approaching
-                  await tweenTo(weapon, weapon.x, originalY - 50, raiseTime, {
-                    rotation: -swingDirection * Math.PI / 3
-                  });
-                  
-                  // SWING DOWN - completes RIGHT at arrival
-                  await tweenTo(weapon, weapon.x, originalY + 30, swingTime, {
-                    rotation: swingDirection * Math.PI / 2
-                  });
-                  
-                  // Return to normal position
-                  await tweenTo(weapon, weapon.x, originalY, 80, {
-                    rotation: 0
-                  });
-                  
-                  // Reset flag
-                  (weapon as any).animationDone = false;
-                })();
-              }
-            }
-            
-            // START MOVEMENT AND WEAPON ANIMATION IN PARALLEL
-            await Promise.all([
-              tweenTo(src.node, targetX, ty, dur),
-              weaponAnimPromise
-            ].filter(Boolean));
+            // JUST MOVE - no weapon animation here
+            await tweenTo(src.node, targetX, ty, dur);
             
             // Stop pet movement
             if (petSpine && (petSpine as any).setMoving) {
@@ -1677,15 +1624,38 @@ const PixiFight: React.FC<Props> = ({
             const isFlash = a === 11; // HitFlash  
             const isVersatile = a === 12; // HitVersatile
             
-            // WAIT FOR WEAPON ANIMATION TO HIT BEFORE APPLYING DAMAGE
-            // The weapon animation was started in Move, wait for it to reach the hit point
-            const weapon = weaponSpines.get(src);
-            if (weapon && (weapon as any).animationDone) {
-              // Wait a bit for the weapon to visually hit
-              await delay(100);
+            // WEAPON ANIMATION AND DAMAGE IN PARALLEL
+            // Start animation immediately and apply damage at the right moment
+            
+            // Start weapon animation if weapon equipped
+            let weaponAnimPromise: Promise<void> | null = null;
+            if (typeof s.w !== 'undefined') {
+              const weapon = weaponSpines.get(src);
+              if (weapon) {
+                const originalRotation = weapon.rotation;
+                const originalY = weapon.y;
+                const swingDirection = (src === left ? 1 : -1);
+                
+                weaponAnimPromise = (async () => {
+                  // ULTRA quick raise - 20ms
+                  await tweenTo(weapon, weapon.x, originalY - 40, 20, {
+                    rotation: originalRotation - swingDirection * Math.PI / 4
+                  });
+                  
+                  // Lightning fast swing - 30ms
+                  await tweenTo(weapon, weapon.x, originalY + 20, 30, {
+                    rotation: originalRotation + swingDirection * Math.PI / 3
+                  });
+                  
+                  // Quick return - 50ms
+                  await tweenTo(weapon, weapon.x, originalY, 50, {
+                    rotation: originalRotation
+                  });
+                })();
+              }
             }
             
-            // NOW show damage AFTER weapon hits
+            // Apply damage IMMEDIATELY (animation happens in parallel)
             // If there's damage, someone's HP must decrease
             if (dmg > 0) {
               // Check if target is main fighter by ID
@@ -1767,6 +1737,11 @@ const PixiFight: React.FC<Props> = ({
               await tweenTo(tgt.node, cur.x, cur.y, 60);
             }
             
+            // Wait for weapon animation to complete
+            if (weaponAnimPromise) {
+              await weaponAnimPromise;
+            }
+            
             // Pas de retour base ici (évite micro-déplacements). Le retour se fait au Step MoveBack.
             playAnim(src, 'idle', true);
             // Track last weapon used if provided
@@ -1777,30 +1752,7 @@ const PixiFight: React.FC<Props> = ({
                 // Update weapon visual
                 attachWeaponToFighter(src, wname);
                 
-                // ANIMATE weapon attack with more pronounced motion
-                const weapon = weaponSpines.get(src);
-                if (weapon) {
-                  const originalRotation = weapon.rotation;
-                  const originalY = weapon.y;
-                  const swingDirection = (src === left ? 1 : -1);
-                  
-                  // Anticipation - pull back and raise weapon
-                  weapon.rotation = originalRotation - swingDirection * Math.PI / 6;
-                  weapon.y = originalY - 20; // Raise weapon higher
-                  
-                  // Wait for anticipation
-                  await new Promise(resolve => setTimeout(resolve, 80));
-                  
-                  // Fast powerful swing down
-                  await tweenTo(weapon, weapon.x, originalY + 10, 120, {
-                    rotation: originalRotation + swingDirection * Math.PI / 2.5
-                  });
-                  
-                  // Return to normal position
-                  await tweenTo(weapon, weapon.x, originalY, 100, {
-                    rotation: originalRotation
-                  });
-                }
+                // NO ANIMATION HERE - already done in Move phase with proper timing
                 
                 // DO NOT show weapon icon - weapon stays drawn after attack - LIKE OFFICIAL
                 // The weapon remains in hand, so icon stays hidden
