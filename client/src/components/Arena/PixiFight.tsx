@@ -129,6 +129,13 @@ const PixiFight: React.FC<Props> = ({
       const params = new URLSearchParams(window.location.search);
       const SCALE = Number(params.get('pixiScale') ?? (scale ?? 0.22));
       const BOOST = Number(params.get('pixiBoost') ?? (speedBoost ?? 1));
+      // Multiplicateur pour ralentir/accélérer UNIQUEMENT l'approche (aller)
+      const approachScale = (() => {
+        const u = params.get('pixiApproachScale');
+        const ls = localStorage.getItem('compare.pixiApproachScale');
+        const n = Number(u ?? ls ?? '1.3'); // Par défaut: 1.3 (plus lent)
+        return Number.isFinite(n) && n > 0 ? n : 1;
+      })();
       const scaleFallback = isNaN(SCALE) ? 0.22 : SCALE;
       const boostFallback = isNaN(BOOST) ? 1 : BOOST;
       const clampMin = Number(params.get('pixiClampMin') ?? `${clampYMinRatio}`);
@@ -1575,7 +1582,7 @@ const PixiFight: React.FC<Props> = ({
             if (Math.abs(targetX - start.x) < minDiagX) { break; }
             const dist = Math.hypot(targetX - start.x, ty - start.y);
             addVector(start.x, start.y, targetX, ty, 0x00cc66);
-            const dur = (durationMoveMs(dist) * (actorSide === 'R' ? mulR : mulL)) / Math.max(0.001, speed);
+            const dur = (durationMoveMs(dist) * approachScale * (actorSide === 'R' ? mulR : mulL)) / Math.max(0.001, speed);
             
             // JUST MOVE - no weapon animation here
             await tweenTo(src.node, targetX, ty, dur);
@@ -1600,7 +1607,7 @@ const PixiFight: React.FC<Props> = ({
                   || Number(localStorage.getItem('compare.pixiMinDiagX')) || 60);
                 if (Math.abs(idealX - cur.x) >= minDiag) {
                   // Pré-move diagonal (X et Y ensemble)
-                  const ty2 = clampY(tpos.y);
+                  const ty2 = cur.y;
                   addVector(cur.x, cur.y, idealX, ty2, 0xff66cc);
                   const durPre = (100 * (actorSide === 'R' ? mulR : mulL)) / Math.max(0.001, speed);
                   await tweenTo(src.node, idealX, ty2, durPre);
@@ -1781,7 +1788,7 @@ const PixiFight: React.FC<Props> = ({
             // Jump dodge animation - like official LaBrute
             const cur = getPos(tgt.node);
             const dodgeBack = (targetSide === 'L') ? -25 : 25;
-            const jumpHeight = -30; // Jump up
+            const jumpHeight = 0; // pas de saut vertical hors aller/retour
             
             // Both animations happen simultaneously
             const [dodgePromise, attackPromise] = [
@@ -2583,9 +2590,6 @@ const PixiFight: React.FC<Props> = ({
 };
 
 export default PixiFight;
-
-
-
 
 
 
