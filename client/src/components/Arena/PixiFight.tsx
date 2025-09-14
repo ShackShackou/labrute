@@ -1267,6 +1267,13 @@ const PixiFight: React.FC<Props> = ({
       const returnPps   = (() => { const u=params.get('pixiReturnPps');   const ls=localStorage.getItem('compare.pixiReturnPps');   const n=Number(u ?? ls ?? '600'); return Number.isFinite(n)&&n>0?n:600; })();
       const durationMoveMs = (px:number) => Math.max(80, (px / approachPps) * 1000) * approachScale;
       const durationMoveBackMs = (px:number) => Math.max(50, (px / returnPps) * 1000);
+      // Ecart de mêlée symétrique (en px)
+      const meleeGapPx = (() => {
+        const u = params.get('pixiGap');
+        const ls = localStorage.getItem('compare.pixiGap');
+        const n = Number(u ?? ls ?? '8');
+        return Number.isFinite(n) && n >= 0 ? n : 8;
+      })();
 
       // Limites Y corrigÃ©es d'aprÃ¨s l'analyse CSV
       const minY = 153, maxY = 259;
@@ -1354,8 +1361,19 @@ const PixiFight: React.FC<Props> = ({
       const getHitDistance = (srcObj:any, tgtObj:any, step:any, useCounter=false) => {
         // Same space
         if (step?.s === 1) return 20;
-        const srcW = (srcObj?.width ?? Math.max(40, Math.abs(srcObj?.node?.width ?? 40)));
-        const tgtW = (tgtObj?.width ?? Math.max(40, Math.abs(tgtObj?.node?.width ?? 40)));
+        // Mesure de largeur symétrique (prend en compte l'échelle et le flip)
+        const getScaledWidth = (obj:any) => {
+          try {
+            if (obj === left && (spinesRef.current as any).LWidth) return Math.max(30, (spinesRef.current as any).LWidth);
+            if (obj === right && (spinesRef.current as any).RWidth) return Math.max(30, (spinesRef.current as any).RWidth);
+            const n = obj?.node as any;
+            const bw = Math.abs(n?.bounds?.width ?? n?.width ?? obj?.width ?? 40);
+            const sx = Math.max(0.001, Math.abs(n?.scale?.x ?? 1));
+            return Math.max(30, bw * sx);
+          } catch { return 40; }
+        };
+        const srcW = getScaledWidth(srcObj);
+        const tgtW = getScaledWidth(tgtObj);
         let dist = (srcW * 0.5) + (tgtW * 0.5);
         // reach from known weapon
         let reach = 0;
@@ -1371,6 +1389,8 @@ const PixiFight: React.FC<Props> = ({
           }
         } catch {}
         dist += reach * 16;
+        // Appliquer un écart constant pour éviter un gap asymétrique
+        dist = Math.max(0, dist - meleeGapPx);
         return dist;
       };
 
@@ -1501,7 +1521,7 @@ const PixiFight: React.FC<Props> = ({
           } catch {}
 
           if (onStep) { try { onStep(steps.indexOf(s), s, performance.now() - t0); } catch {} }
-
+          const stepT0 = performance.now();
           switch (a) {
           // Arrive: pick lane using largest-gap strategy (official-like)
           case 2: {
@@ -1558,21 +1578,6 @@ const PixiFight: React.FC<Props> = ({
             
             // Autoriser uniquement les dÃ©placements de mÃªlÃ©e explicites (r=1)
             // (r filter disabled to allow all Move steps)
-            // Skip "loose" moves that don't quickly lead to an AttemptHit for the same actor
-            try {
-              const curIdx = steps.indexOf(s);
-              let willHitSoon = false;
-              for (let k = curIdx + 1; k < steps.length && k <= curIdx + 5; k++) {
-                const nx = steps[k];
-                if (!nx) break;
-                if (nx.a === 26) break; // End
-                if (typeof nx.f === 'number' && nx.f === actorIdx && nx.a === 19) { willHitSoon = true; break; }
-                if (typeof nx.f === 'number' && nx.f === actorIdx && (nx.a === 15 || nx.a === 17)) continue; // neutral
-                // If another action by same actor that is not AttemptHit comes first, treat as not an approach for hit
-                if (typeof nx.f === 'number' && nx.f === actorIdx) break;
-              }
-              if (!willHitSoon) { break; }
-            } catch {}
             playAnim(src, 'walk', true);
             const tpos = getPos(tgt.node);
             const countered = s?.c === 1;
@@ -1580,9 +1585,11 @@ const PixiFight: React.FC<Props> = ({
             const targetX = (targetSide === 'R') ? (tpos.x - meleeDist) : (tpos.x + meleeDist);
             const start = getPos(src.node);
             let ty = clampY(tpos.y); // follow official by default
-            // Avoid pure vertical moves: if horizontal delta is tiny, keep Y
+            // Éviter les diagonales pures: si deltaX est trop petit, on ajuste seulement en X (on conserve Y)
             const minDiagX = (Number(new URLSearchParams(window.location.search).get('pixiMinDiagX')) || Number(localStorage.getItem('compare.pixiMinDiagX')) || 60);
-            if (Math.abs(targetX - start.x) < minDiagX) { break; }
+            if (Math.abs(targetX - start.x) < minDiagX) {
+              ty = start.y; // micro-ajustement horizontal uniquement pour garantir un gap cohérent
+            }
             const dist = Math.hypot(targetX - start.x, ty - start.y);
             addVector(start.x, start.y, targetX, ty, 0x00cc66);
             const dur = (durationMoveMs(dist) * approachScale * (actorSide === 'R' ? mulR : mulL)) / Math.max(0.001, speed);
@@ -2501,7 +2508,12 @@ const PixiFight: React.FC<Props> = ({
             } catch {}
             return; }
         }
-        await delay(Math.max(60, Math.min(260, s.dt ?? 120)) / Math.max(0.001, speed));
+        {
+          const ideal = Math.max(60, Math.min(260, s.dt ?? 120)) / Math.max(0.001, speed);
+          const elapsed = performance.now() - stepT0;
+          const wait = Math.max(0, ideal - elapsed);
+          await delay(wait);
+        }
         if (disposed) return;
         }
       };
