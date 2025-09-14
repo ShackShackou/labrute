@@ -1,0 +1,252 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <title>SHACKERS - Connexion Forcée JCDUSS</title>
+    <style>
+        body {
+            background: linear-gradient(135deg, #1e3c72 0%, #2a5298 100%);
+            color: white;
+            font-family: 'Arial Black', sans-serif;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            margin: 0;
+        }
+        .container {
+            background: rgba(0,0,0,0.8);
+            padding: 40px;
+            border-radius: 20px;
+            border: 3px solid #ff6b6b;
+            text-align: center;
+            max-width: 700px;
+        }
+        .shackers-banner {
+            background: #ff6b6b;
+            color: white;
+            font-size: 36px;
+            padding: 20px;
+            margin: -40px -40px 30px -40px;
+            border-radius: 17px 17px 0 0;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.5);
+            letter-spacing: 5px;
+        }
+        .brute-card {
+            background: rgba(255,255,255,0.1);
+            border: 2px solid #4ecdc4;
+            border-radius: 10px;
+            padding: 15px;
+            margin: 15px 0;
+        }
+        .brute-name {
+            color: #4ecdc4;
+            font-size: 24px;
+            margin-bottom: 10px;
+        }
+        button {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            padding: 20px 40px;
+            font-size: 20px;
+            border-radius: 10px;
+            cursor: pointer;
+            margin: 10px;
+            font-weight: bold;
+            transition: all 0.3s;
+        }
+        button:hover {
+            transform: scale(1.05);
+            box-shadow: 0 10px 30px rgba(0,0,0,0.5);
+        }
+        .success {
+            background: #27ae60;
+            padding: 15px;
+            border-radius: 10px;
+            margin: 20px 0;
+        }
+        .error {
+            background: #e74c3c;
+            padding: 15px;
+            border-radius: 10px;
+            margin: 20px 0;
+        }
+        #status {
+            margin: 20px 0;
+            font-size: 18px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="shackers-banner">🎮 SHACKERS 🎮</div>
+        
+        <h1>Connexion Forcée - JCDUSS</h1>
+        
+        <div class="brute-card">
+            <div class="brute-name">⚔️ HerveVenere</div>
+            <div>Niveau 7 • 18 victoires / 21 défaites</div>
+            <div>ID: d2a66e12-6b94-4cc5-a886-dd7bc7bafc51</div>
+        </div>
+        
+        <div class="brute-card">
+            <div class="brute-name">🛡️ Mouguy</div>
+            <div>Niveau 2</div>
+        </div>
+        
+        <div class="brute-card">
+            <div class="brute-name">🗡️ DFF</div>
+            <div>Niveau 3</div>
+        </div>
+
+        <div id="status"></div>
+
+        <button onclick="forceLogin()">
+            🚀 CONNEXION FORCÉE JCDUSS
+        </button>
+
+        <button onclick="goToHerveVenere()">
+            ⚔️ ALLER DIRECT À HERVEVENERE
+        </button>
+
+        <button onclick="goToCompare()">
+            🔬 PAGE COMPARE AVEC OUTILS
+        </button>
+    </div>
+
+    <script>
+        // Données de JCDUSS depuis PostgreSQL
+        const JCDUSS_DATA = {
+            id: 'e99ab88c-8be2-4fd0-8519-a0c4bf7a3705',
+            name: 'JCDUSS',
+            connexionToken: '20ea9aaf-005f-4176-8fd7-3115d338004d',
+            brutes: [
+                { id: 'd2a66e12-6b94-4cc5-a886-dd7bc7bafc51', name: 'HerveVenere' },
+                { id: '8d4f05c5-a42f-4aa9-bf0f-c691433b3894', name: 'Mouguy' },
+                { id: '398aaf87-1101-4a57-a2ce-470404fd9ab5', name: 'DFF' }
+            ]
+        };
+
+        function showStatus(message, type = 'info') {
+            const status = document.getElementById('status');
+            status.className = type === 'error' ? 'error' : (type === 'success' ? 'success' : '');
+            status.textContent = message;
+        }
+
+        async function forceLogin() {
+            showStatus('⏳ Connexion forcée en cours...');
+            
+            try {
+                // D'abord appeler l'API d'authentification
+                const authResponse = await fetch('http://localhost:9000/api/user/authenticate', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        id: JCDUSS_DATA.id,
+                        token: JCDUSS_DATA.connexionToken
+                    })
+                });
+                
+                if (authResponse.ok) {
+                    const userData = await authResponse.json();
+                    
+                    // Stocker TOUTES les données nécessaires
+                    localStorage.setItem('user', JSON.stringify(userData));
+                    localStorage.setItem('token', userData.connexionToken || JCDUSS_DATA.connexionToken);
+                    
+                    // Créer l'auth header encodé en base64
+                    const authData = `${userData.id}:${userData.connexionToken || JCDUSS_DATA.connexionToken}`;
+                    const authHeader = btoa(authData);
+                    localStorage.setItem('authHeader', authHeader);
+                    
+                    // Stocker aussi dans sessionStorage au cas où
+                    sessionStorage.setItem('user', JSON.stringify(userData));
+                    sessionStorage.setItem('token', userData.connexionToken || JCDUSS_DATA.connexionToken);
+                    sessionStorage.setItem('authHeader', authHeader);
+                    
+                    showStatus('✅ Authentification réussie !', 'success');
+                } else {
+                    // Si l'auth échoue, forcer les données locales
+                    const authData = `${JCDUSS_DATA.id}:${JCDUSS_DATA.connexionToken}`;
+                    const authHeader = btoa(authData);
+                    
+                    localStorage.setItem('user', JSON.stringify(JCDUSS_DATA));
+                    localStorage.setItem('token', JCDUSS_DATA.connexionToken);
+                    localStorage.setItem('authHeader', authHeader);
+                    
+                    sessionStorage.setItem('user', JSON.stringify(JCDUSS_DATA));
+                    sessionStorage.setItem('token', JCDUSS_DATA.connexionToken);
+                    sessionStorage.setItem('authHeader', authHeader);
+                    
+                    showStatus('✅ Connexion forcée avec données locales !', 'success');
+                }
+                
+                // Redirection après 1 seconde
+                setTimeout(() => {
+                    window.location.href = 'http://localhost:3000/HerveVenere/cell';
+                }, 1000);
+                
+            } catch (error) {
+                console.error('Erreur:', error);
+                
+                // En cas d'erreur, forcer quand même la connexion
+                const authData = `${JCDUSS_DATA.id}:${JCDUSS_DATA.connexionToken}`;
+                const authHeader = btoa(authData);
+                
+                localStorage.setItem('user', JSON.stringify(JCDUSS_DATA));
+                localStorage.setItem('token', JCDUSS_DATA.connexionToken);
+                localStorage.setItem('authHeader', authHeader);
+                
+                sessionStorage.setItem('user', JSON.stringify(JCDUSS_DATA));
+                sessionStorage.setItem('token', JCDUSS_DATA.connexionToken);
+                sessionStorage.setItem('authHeader', authHeader);
+                
+                showStatus('✅ Connexion forcée (mode offline) !', 'success');
+                
+                setTimeout(() => {
+                    window.location.href = 'http://localhost:3000/HerveVenere/cell';
+                }, 1000);
+            }
+        }
+
+        function goToHerveVenere() {
+            // Forcer les données d'abord
+            localStorage.setItem('user', JSON.stringify(JCDUSS_DATA));
+            localStorage.setItem('token', JCDUSS_DATA.connexionToken);
+            
+            window.location.href = 'http://localhost:3000/HerveVenere/cell';
+        }
+
+        function goToCompare() {
+            // Forcer les données d'abord
+            localStorage.setItem('user', JSON.stringify(JCDUSS_DATA));
+            localStorage.setItem('token', JCDUSS_DATA.connexionToken);
+            
+            // Aller à la page Compare avec les outils de debug
+            const fightId = prompt('ID du combat (laisser vide pour test):', '83eb8efa-45df-4fcc-96b3-58544ed0d785');
+            window.location.href = `http://localhost:3000/HerveVenere/fight/${fightId || 'test'}?renderer=compare&pixiDiag=1`;
+        }
+
+        // Auto-login au chargement
+        window.addEventListener('load', () => {
+            showStatus('📋 Page SHACKERS chargée - Prêt pour connexion forcée');
+            
+            // Vérifier si déjà connecté
+            const storedUser = localStorage.getItem('user');
+            if (storedUser) {
+                try {
+                    const user = JSON.parse(storedUser);
+                    if (user.name === 'JCDUSS') {
+                        showStatus('✅ Déjà connecté en tant que JCDUSS');
+                    }
+                } catch (e) {
+                    // Ignorer les erreurs de parsing
+                }
+            }
+        });
+    </script>
+</body>
+</html>

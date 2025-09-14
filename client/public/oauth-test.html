@@ -1,0 +1,313 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <title>Test OAuth - SHACKERS</title>
+    <style>
+        body {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            margin: 0;
+            color: white;
+        }
+        .container {
+            background: rgba(255, 255, 255, 0.95);
+            color: #333;
+            padding: 50px;
+            border-radius: 20px;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+            max-width: 600px;
+            width: 90%;
+            text-align: center;
+        }
+        h1 {
+            color: #764ba2;
+            margin-bottom: 10px;
+            font-size: 36px;
+        }
+        .subtitle {
+            color: #999;
+            margin-bottom: 40px;
+            font-size: 18px;
+        }
+        .status {
+            background: #f8f9fa;
+            border-radius: 10px;
+            padding: 20px;
+            margin: 20px 0;
+            min-height: 60px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 16px;
+        }
+        .success {
+            background: #d4edda;
+            color: #155724;
+            border: 1px solid #c3e6cb;
+        }
+        .error {
+            background: #f8d7da;
+            color: #721c24;
+            border: 1px solid #f5c6cb;
+        }
+        .info {
+            background: #d1ecf1;
+            color: #0c5460;
+            border: 1px solid #bee5eb;
+        }
+        .button {
+            display: inline-block;
+            padding: 15px 40px;
+            margin: 10px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            text-decoration: none;
+            border-radius: 50px;
+            font-size: 18px;
+            font-weight: 600;
+            cursor: pointer;
+            border: none;
+            transition: all 0.3s;
+            box-shadow: 0 4px 15px rgba(118, 75, 162, 0.4);
+        }
+        .button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(118, 75, 162, 0.5);
+        }
+        .button:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+        .secondary {
+            background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+        }
+        .user-list {
+            text-align: left;
+            margin: 20px 0;
+        }
+        .user-item {
+            background: white;
+            border: 2px solid #e0e0e0;
+            border-radius: 10px;
+            padding: 15px;
+            margin: 10px 0;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+        .user-item:hover {
+            border-color: #764ba2;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+            transform: translateX(5px);
+        }
+        .user-name {
+            font-weight: bold;
+            font-size: 18px;
+            color: #333;
+        }
+        .user-id {
+            font-size: 12px;
+            color: #666;
+            margin-top: 5px;
+        }
+        .brutes {
+            margin-top: 10px;
+            color: #888;
+            font-size: 14px;
+        }
+        .loading {
+            display: inline-block;
+            width: 20px;
+            height: 20px;
+            border: 3px solid #f3f3f3;
+            border-top: 3px solid #764ba2;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+        }
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🎮 SHACKERS OAuth</h1>
+        <div class="subtitle">Système d'authentification simplifié</div>
+        
+        <div id="status" class="status">
+            <span>Prêt à se connecter</span>
+        </div>
+
+        <div id="step1">
+            <h2>Étape 1: Récupérer les comptes</h2>
+            <button class="button" onclick="loadUsers()">
+                📋 Charger les comptes
+            </button>
+        </div>
+
+        <div id="userListContainer" style="display:none;">
+            <h2>Étape 2: Choisir un compte</h2>
+            <div id="userList" class="user-list"></div>
+        </div>
+
+        <div id="step3" style="display:none;">
+            <h2>Étape 3: Connecté!</h2>
+            <div id="userInfo"></div>
+            <button class="button secondary" onclick="goToGame()">
+                🚀 Aller au jeu
+            </button>
+        </div>
+    </div>
+
+    <script>
+        let currentUser = null;
+
+        async function loadUsers() {
+            const status = document.getElementById('status');
+            status.className = 'status info';
+            status.innerHTML = '<div class="loading"></div> <span style="margin-left: 10px;">Chargement des comptes...</span>';
+            
+            try {
+                const response = await fetch('http://localhost:9000/api/dev/users');
+                const users = await response.json();
+                
+                if (users.error) {
+                    throw new Error(users.error);
+                }
+                
+                displayUsers(users);
+                status.className = 'status success';
+                status.innerHTML = `✅ ${users.length} compte(s) trouvé(s)`;
+                
+                document.getElementById('step1').style.display = 'none';
+                document.getElementById('userListContainer').style.display = 'block';
+            } catch (error) {
+                status.className = 'status error';
+                status.innerHTML = `❌ Erreur: ${error.message}<br>Assurez-vous que le serveur est démarré sur le port 9000`;
+            }
+        }
+
+        function displayUsers(users) {
+            const container = document.getElementById('userList');
+            container.innerHTML = '';
+            
+            users.forEach(user => {
+                const item = document.createElement('div');
+                item.className = 'user-item';
+                item.onclick = () => selectUser(user);
+                
+                const brutesText = user.brutes.length > 0 
+                    ? user.brutes.map(b => `${b.name} (Niv ${b.level})`).join(', ')
+                    : 'Aucune brute';
+                
+                item.innerHTML = `
+                    <div class="user-name">${user.name}</div>
+                    <div class="user-id">ID: ${user.id}</div>
+                    <div class="brutes">🗡️ ${brutesText}</div>
+                `;
+                
+                container.appendChild(item);
+            });
+            
+            // Mettre JCDUSS en premier si présent
+            const jcdussItem = Array.from(container.children).find(item => 
+                item.querySelector('.user-name').textContent === 'JCDUSS'
+            );
+            if (jcdussItem) {
+                container.insertBefore(jcdussItem, container.firstChild);
+            }
+        }
+
+        async function selectUser(user) {
+            const status = document.getElementById('status');
+            status.className = 'status info';
+            status.innerHTML = `<div class="loading"></div> <span style="margin-left: 10px;">Connexion en cours pour ${user.name}...</span>`;
+            
+            try {
+                // Simuler le flux OAuth
+                const code = `dev-code-${user.id}`;
+                
+                // Appeler le endpoint token
+                const response = await fetch(`http://localhost:9000/api/oauth/token?code=${code}`);
+                const userData = await response.json();
+                
+                if (userData.error) {
+                    throw new Error(userData.error);
+                }
+                
+                currentUser = userData;
+                
+                // Sauvegarder dans localStorage
+                localStorage.setItem('user', JSON.stringify(userData));
+                localStorage.setItem('language', userData.lang || 'fr');
+                
+                // Créer l'authorization header
+                const authData = `${userData.id}:${userData.connexionToken}`;
+                const authHeader = btoa(authData);
+                localStorage.setItem('authHeader', authHeader);
+                
+                // Afficher le succès
+                status.className = 'status success';
+                status.innerHTML = `✅ Connecté en tant que ${userData.name}!`;
+                
+                document.getElementById('userListContainer').style.display = 'none';
+                document.getElementById('step3').style.display = 'block';
+                
+                const mainBrute = userData.brutes && userData.brutes[0];
+                document.getElementById('userInfo').innerHTML = `
+                    <div style="background: #f8f9fa; padding: 20px; border-radius: 10px; margin: 20px 0;">
+                        <h3 style="color: #764ba2; margin-top: 0;">${userData.name}</h3>
+                        <p style="color: #666; font-size: 14px;">ID: ${userData.id}</p>
+                        ${mainBrute ? `
+                            <p style="color: #333;">Brute principale: <strong>${mainBrute.name}</strong></p>
+                            <button class="button" onclick="window.location.href='http://localhost:3000/${mainBrute.name}/cell'">
+                                Voir ${mainBrute.name}
+                            </button>
+                        ` : '<p style="color: #999;">Aucune brute créée</p>'}
+                    </div>
+                `;
+                
+                // Redirection automatique après 3 secondes
+                setTimeout(() => {
+                    if (mainBrute) {
+                        window.location.href = `http://localhost:3000/${mainBrute.name}/cell`;
+                    } else {
+                        window.location.href = 'http://localhost:3000';
+                    }
+                }, 3000);
+                
+            } catch (error) {
+                status.className = 'status error';
+                status.innerHTML = `❌ Erreur de connexion: ${error.message}`;
+            }
+        }
+
+        function goToGame() {
+            window.location.href = 'http://localhost:3000';
+        }
+
+        // Auto-charger les comptes si le serveur est disponible
+        window.addEventListener('load', () => {
+            fetch('http://localhost:9000/api/is-ready')
+                .then(response => response.json())
+                .then(data => {
+                    if (data.ready) {
+                        const status = document.getElementById('status');
+                        status.className = 'status success';
+                        status.innerHTML = '✅ Serveur prêt - Cliquez pour charger les comptes';
+                    }
+                })
+                .catch(() => {
+                    const status = document.getElementById('status');
+                    status.className = 'status error';
+                    status.innerHTML = '❌ Serveur non disponible sur le port 9000';
+                });
+        });
+    </script>
+</body>
+</html>

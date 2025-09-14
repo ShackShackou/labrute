@@ -1,0 +1,262 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>SOLUTION FINALE - ACCÈS HERVEVENERE</title>
+    <meta charset="utf-8">
+    <style>
+        body {
+            background: #1a1a1a;
+            color: #0f0;
+            font-family: 'Courier New', monospace;
+            padding: 20px;
+        }
+        h1 { color: #ff0000; text-shadow: 0 0 10px #ff0000; }
+        .btn {
+            background: #ff6b6b;
+            color: white;
+            padding: 20px 40px;
+            font-size: 24px;
+            border: none;
+            cursor: pointer;
+            margin: 10px;
+            border-radius: 10px;
+        }
+        .btn:hover { background: #ff0000; }
+        #log {
+            background: #000;
+            border: 1px solid #0f0;
+            padding: 20px;
+            margin: 20px 0;
+            height: 400px;
+            overflow-y: auto;
+            white-space: pre-wrap;
+        }
+    </style>
+</head>
+<body>
+    <h1>🔥 SOLUTION FINALE - FORCER L'ACCÈS À HERVEVENERE 🔥</h1>
+    
+    <button class="btn" onclick="solution1()">
+        SOLUTION 1: Cookies + localStorage + Redirect
+    </button>
+    
+    <button class="btn" onclick="solution2()">
+        SOLUTION 2: Auth API + Cookies forcés
+    </button>
+    
+    <button class="btn" onclick="solution3()">
+        SOLUTION 3: Direct Override tout
+    </button>
+    
+    <button class="btn" style="background: #00ff00; color: black;" onclick="directCompare()">
+        🎯 DIRECT COMPARE (skip tout)
+    </button>
+    
+    <div id="log"></div>
+
+    <script>
+        const JCDUSS = {
+            id: 'e99ab88c-8be2-4fd0-8519-a0c4bf7a3705',
+            token: '20ea9aaf-005f-4176-8fd7-3115d338004d',
+            name: 'JCDUSS'
+        };
+        
+        const HERVEVENERE = {
+            id: 'd2a66e12-6b94-4cc5-a886-dd7bc7bafc51',
+            name: 'HerveVenere'
+        };
+
+        function log(msg) {
+            const logEl = document.getElementById('log');
+            logEl.textContent += `[${new Date().toLocaleTimeString()}] ${msg}\n`;
+            logEl.scrollTop = logEl.scrollHeight;
+        }
+
+        function setCookie(name, value) {
+            // IMPORTANT: Pas de quotes autour de la valeur !
+            document.cookie = `${name}=${value}; path=/; max-age=604800; SameSite=Lax`;
+            log(`✅ Cookie défini: ${name}=${value}`);
+        }
+
+        async function solution1() {
+            log('=== SOLUTION 1: Cookies + localStorage ===');
+            
+            // 1. Définir les cookies EXACTEMENT comme le frontend les attend
+            setCookie('x-brute-user', JCDUSS.id);
+            setCookie('x-brute-token', JCDUSS.token);
+            
+            // 2. Récupérer le CSRF token
+            try {
+                const csrfResp = await fetch('/api/csrf', {
+                    headers: { 'Accept': 'application/json' },
+                    credentials: 'include'
+                });
+                const csrf = await csrfResp.json();
+                localStorage.setItem('csrfToken', csrf.csrfToken);
+                log(`✅ CSRF token: ${csrf.csrfToken}`);
+            } catch (e) {
+                log(`⚠️ CSRF error: ${e.message}`);
+            }
+            
+            // 3. Appeler authenticate pour récupérer les données user
+            try {
+                const authResp = await fetch('/api/user/authenticate', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Accept': 'application/json',
+                        'x-csrf-token': localStorage.getItem('csrfToken'),
+                        'Authorization': `Basic ${btoa(JCDUSS.id + ':' + JCDUSS.token)}`
+                    },
+                    credentials: 'include',
+                    body: JSON.stringify({})
+                });
+                
+                if (authResp.ok) {
+                    const userData = await authResp.json();
+                    localStorage.setItem('user', JSON.stringify(userData));
+                    log(`✅ User data stocké: ${userData.name}`);
+                    log(`✅ Brutes: ${userData.brutes.map(b => b.name).join(', ')}`);
+                } else {
+                    log(`❌ Auth failed: ${authResp.status}`);
+                }
+            } catch (e) {
+                log(`❌ Auth error: ${e.message}`);
+            }
+            
+            // 4. Redirection
+            log('🚀 Redirection dans 2 secondes...');
+            setTimeout(() => {
+                window.location.href = '/HerveVenere/cell';
+            }, 2000);
+        }
+
+        async function solution2() {
+            log('=== SOLUTION 2: Cookies forcés SEULEMENT ===');
+            
+            // 1. Définir TOUS les cookies nécessaires
+            setCookie('x-brute-user', JCDUSS.id);
+            setCookie('x-brute-token', JCDUSS.token);
+            
+            log('✅ Cookies définis');
+            
+            // 2. Récupérer et stocker le CSRF token
+            try {
+                const csrfResp = await fetch('/api/csrf', {
+                    headers: { 'Accept': 'application/json' },
+                    credentials: 'include'
+                });
+                
+                if (csrfResp.ok) {
+                    const csrf = await csrfResp.json();
+                    localStorage.setItem('csrfToken', csrf.csrfToken);
+                    log(`✅ CSRF token récupéré`);
+                }
+            } catch (e) {
+                log(`⚠️ Pas de CSRF, on continue quand même`);
+                localStorage.setItem('csrfToken', 'bypass-token');
+            }
+            
+            // 3. Créer un objet user minimal pour le localStorage
+            const minimalUser = {
+                id: JCDUSS.id,
+                name: JCDUSS.name,
+                connexionToken: JCDUSS.token,
+                lang: 'fr',
+                brutes: [{
+                    id: HERVEVENERE.id,
+                    name: HERVEVENERE.name,
+                    level: 7
+                }]
+            };
+            
+            localStorage.setItem('user', JSON.stringify(minimalUser));
+            log('✅ User data forcé dans localStorage');
+            
+            // 4. Redirection directe
+            log('🚀 Redirection dans 2 secondes...');
+            setTimeout(() => {
+                window.location.href = '/HerveVenere/cell';
+            }, 2000);
+        }
+
+        async function solution3() {
+            log('=== SOLUTION 3: Override TOTAL ===');
+            
+            // 1. Forcer TOUS les cookies possibles
+            setCookie('x-brute-user', JCDUSS.id);
+            setCookie('x-brute-token', JCDUSS.token);
+            setCookie('user', JCDUSS.id);
+            setCookie('token', JCDUSS.token);
+            setCookie('auth', btoa(JCDUSS.id + ':' + JCDUSS.token));
+            
+            // 2. Forcer localStorage avec données complètes
+            const fakeUser = {
+                id: JCDUSS.id,
+                name: JCDUSS.name,
+                connexionToken: JCDUSS.token,
+                lang: 'fr',
+                gold: 1000,
+                fightSpeed: 2,
+                backgroundMusic: true,
+                dinorpgDone: '2025-09-12T00:00:00.000Z',
+                lastSeen: '2025-09-12T00:00:00.000Z',
+                brutes: [
+                    {
+                        id: HERVEVENERE.id,
+                        name: HERVEVENERE.name,
+                        level: 7,
+                        xp: 9,
+                        hp: 96,
+                        ranking: 11,
+                        userId: JCDUSS.id
+                    }
+                ],
+                following: [],
+                notifications: []
+            };
+            
+            localStorage.setItem('user', JSON.stringify(fakeUser));
+            localStorage.setItem('csrfToken', 'fake-csrf-token');
+            localStorage.setItem('language', 'fr');
+            
+            // 3. Forcer sessionStorage aussi
+            sessionStorage.setItem('user', JSON.stringify(fakeUser));
+            sessionStorage.setItem('auth', 'true');
+            
+            log('✅ Tout forcé !');
+            log('🚀 Redirection forcée...');
+            
+            // 4. Redirect direct
+            setTimeout(() => {
+                window.location.href = '/HerveVenere/cell';
+            }, 1000);
+        }
+
+        function directCompare() {
+            log('=== DIRECT COMPARE ===');
+            
+            // Forcer les cookies minimum
+            setCookie('x-brute-user', JCDUSS.id);
+            setCookie('x-brute-token', JCDUSS.token);
+            
+            // Direct vers la page Compare
+            const fightId = 'fdb86a8a-54a8-4520-bacb-a8305d1840b4';
+            const url = `/HerveVenere/fight/${fightId}?renderer=compare&pixiDiag=1`;
+            
+            log(`🎯 Direct: ${url}`);
+            window.location.href = url;
+        }
+
+        // Au chargement
+        window.onload = () => {
+            log('🔥 SOLUTION FINALE CHARGÉE');
+            log(`📍 User ID: ${JCDUSS.id}`);
+            log(`🔑 Token: ${JCDUSS.token}`);
+            log(`⚔️ Brute: ${HERVEVENERE.name}`);
+            log('');
+            log('👉 Choisis une solution !');
+        };
+    </script>
+</body>
+</html>

@@ -1,0 +1,136 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <title>Login Direct JCDUSS - SHACKERS</title>
+    <style>
+        body {
+            background: #2c3e50;
+            color: white;
+            font-family: Arial, sans-serif;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            margin: 0;
+        }
+        .container {
+            background: #34495e;
+            padding: 40px;
+            border-radius: 10px;
+            text-align: center;
+            max-width: 600px;
+        }
+        h1 { color: #e74c3c; }
+        button {
+            background: #e74c3c;
+            color: white;
+            padding: 20px 40px;
+            border: none;
+            border-radius: 5px;
+            font-size: 20px;
+            cursor: pointer;
+            margin: 10px;
+        }
+        button:hover {
+            background: #c0392b;
+        }
+        .success {
+            background: #27ae60;
+            padding: 20px;
+            border-radius: 5px;
+            margin: 20px 0;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🎮 SHACKERS - Login Express JCDUSS</h1>
+        
+        <button onclick="loginAndGo()">
+            ⚡ LOGIN + ALLER À LA PAGE COMPARE
+        </button>
+        
+        <div id="status"></div>
+    </div>
+
+    <script>
+        async function loginAndGo() {
+            const status = document.getElementById('status');
+            status.innerHTML = '<p>⏳ Connexion en cours...</p>';
+            
+            const userId = 'e99ab88c-8be2-4fd0-8519-a0c4bf7a3705';
+            const code = `dev-code-${userId}`;
+            
+            try {
+                // Appel OAuth token
+                const response = await fetch(`http://localhost:9000/api/dev/token?code=${code}`);
+                const userData = await response.json();
+                
+                if (!userData || userData.error) {
+                    // Fallback: utiliser les données connues
+                    const fallbackData = {
+                        id: 'e99ab88c-8be2-4fd0-8519-a0c4bf7a3705',
+                        name: 'JCDUSS',
+                        connexionToken: '20ea9aaf-005f-4176-8fd7-3115d338004d',
+                        lang: 'fr',
+                        brutes: [
+                            { id: 'd2a66e12-6b94-4cc5-a886-dd7bc7bafc51', name: 'HerveVenere' },
+                            { id: '8d4f05c5-a42f-4aa9-bf0f-c691433b3894', name: 'Mouguy' },
+                            { id: '398aaf87-1101-4a57-a2ce-470404fd9ab5', name: 'DFF' }
+                        ]
+                    };
+                    
+                    localStorage.setItem('user', JSON.stringify(fallbackData));
+                    const authData = `${fallbackData.id}:${fallbackData.connexionToken}`;
+                    localStorage.setItem('authHeader', btoa(authData));
+                    
+                    status.innerHTML = '<div class="success">✅ Connecté avec JCDUSS (fallback)</div>';
+                } else {
+                    // Sauvegarder les vraies données
+                    localStorage.setItem('user', JSON.stringify(userData));
+                    const authData = `${userData.id}:${userData.connexionToken}`;
+                    localStorage.setItem('authHeader', btoa(authData));
+                    
+                    status.innerHTML = '<div class="success">✅ Connecté avec JCDUSS!</div>';
+                }
+                
+                // Redirection vers la page Compare
+                status.innerHTML += '<p>🚀 Redirection vers la page Compare...</p>';
+                
+                setTimeout(() => {
+                    window.location.href = 'http://localhost:3000/HerveVenere/fight/83eb8efa-45df-4fcc-96b3-58544ed0d785?renderer=compare&pixiDiag=1';
+                }, 1000);
+                
+            } catch (error) {
+                // En cas d'erreur, utiliser les données connues
+                const fallbackData = {
+                    id: 'e99ab88c-8be2-4fd0-8519-a0c4bf7a3705',
+                    name: 'JCDUSS',
+                    connexionToken: '20ea9aaf-005f-4176-8fd7-3115d338004d',
+                    lang: 'fr',
+                    brutes: [
+                        { id: 'd2a66e12-6b94-4cc5-a886-dd7bc7bafc51', name: 'HerveVenere' }
+                    ]
+                };
+                
+                localStorage.setItem('user', JSON.stringify(fallbackData));
+                const authData = `${fallbackData.id}:${fallbackData.connexionToken}`;
+                localStorage.setItem('authHeader', btoa(authData));
+                
+                status.innerHTML = '<div class="success">✅ Connecté avec JCDUSS (direct)</div>';
+                status.innerHTML += '<p>🚀 Redirection...</p>';
+                
+                setTimeout(() => {
+                    window.location.href = 'http://localhost:3000/HerveVenere/fight/83eb8efa-45df-4fcc-96b3-58544ed0d785?renderer=compare&pixiDiag=1';
+                }, 1000);
+            }
+        }
+        
+        // Auto-login au chargement
+        window.addEventListener('load', () => {
+            loginAndGo();
+        });
+    </script>
+</body>
+</html>

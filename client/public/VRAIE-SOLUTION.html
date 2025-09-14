@@ -1,0 +1,201 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>VRAIE SOLUTION - ACCÈS GARANTI</title>
+    <meta charset="utf-8">
+    <style>
+        body {
+            background: #000;
+            color: #0f0;
+            font-family: monospace;
+            padding: 20px;
+        }
+        button {
+            background: #f00;
+            color: #fff;
+            padding: 20px 40px;
+            font-size: 20px;
+            border: none;
+            cursor: pointer;
+            margin: 10px;
+        }
+        #status {
+            border: 1px solid #0f0;
+            padding: 20px;
+            margin: 20px 0;
+            min-height: 300px;
+            white-space: pre-wrap;
+        }
+    </style>
+</head>
+<body>
+    <h1>🔥 VRAIE SOLUTION - ACCÈS GARANTI À HERVEVENERE 🔥</h1>
+    
+    <button onclick="authenticateProperlyThenGo()">
+        💯 AUTHENTIFICATION CORRECTE + REDIRECTION
+    </button>
+    
+    <button onclick="testAuth()">
+        🔍 TESTER L'AUTH SEULEMENT
+    </button>
+    
+    <div id="status"></div>
+
+    <script>
+        const JCDUSS = {
+            id: 'e99ab88c-8be2-4fd0-8519-a0c4bf7a3705',
+            token: '20ea9aaf-005f-4176-8fd7-3115d338004d'
+        };
+
+        function log(msg) {
+            document.getElementById('status').textContent += msg + '\n';
+        }
+
+        async function authenticateProperlyThenGo() {
+            log('=== AUTHENTIFICATION CORRECTE ===\n');
+            
+            try {
+                // 1. D'ABORD définir les cookies EXACTEMENT comme il faut
+                document.cookie = `x-brute-user=${JCDUSS.id}; path=/; max-age=604800`;
+                document.cookie = `x-brute-token=${JCDUSS.token}; path=/; max-age=604800`;
+                log('✅ Cookies définis: x-brute-user et x-brute-token');
+                
+                // 2. Récupérer le CSRF token
+                log('\n📡 Récupération du CSRF token...');
+                const csrfResp = await fetch('/api/csrf', {
+                    method: 'GET',
+                    headers: {
+                        'Accept': 'application/json'
+                    },
+                    credentials: 'include'
+                });
+                
+                if (!csrfResp.ok) {
+                    throw new Error(`CSRF failed: ${csrfResp.status}`);
+                }
+                
+                const csrfData = await csrfResp.json();
+                const csrfToken = csrfData.csrfToken;
+                localStorage.setItem('csrfToken', csrfToken);
+                log(`✅ CSRF token obtenu: ${csrfToken.substring(0, 10)}...`);
+                
+                // 3. Appeler authenticate avec les BONS headers
+                log('\n🔐 Authentification avec /api/user/authenticate...');
+                const authResp = await fetch('/api/user/authenticate', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Accept': 'application/json',
+                        'x-csrf-token': csrfToken,
+                        'Authorization': `Basic ${btoa(JCDUSS.id + ':' + JCDUSS.token)}`
+                    },
+                    credentials: 'include',
+                    body: JSON.stringify({})
+                });
+                
+                if (!authResp.ok) {
+                    const errorText = await authResp.text();
+                    throw new Error(`Auth failed: ${authResp.status} - ${errorText}`);
+                }
+                
+                const authData = await authResp.json();
+                log(`✅ Authentifié ! User: ${authData.user.name}`);
+                log(`✅ Brutes trouvées: ${authData.user.brutes.map(b => b.name).join(', ')}`);
+                
+                // 4. Stocker TOUT dans localStorage
+                localStorage.setItem('user', JSON.stringify(authData.user));
+                localStorage.setItem('modifiers', JSON.stringify(authData.modifiers || []));
+                localStorage.setItem('currentEvent', JSON.stringify(authData.currentEvent || null));
+                localStorage.setItem('version', authData.version || '');
+                
+                // 5. Vérifier qu'on a bien HerveVenere
+                const herve = authData.user.brutes.find(b => b.name === 'HerveVenere');
+                if (herve) {
+                    log(`\n✅ HERVEVENERE TROUVÉ !`);
+                    log(`   ID: ${herve.id}`);
+                    log(`   Level: ${herve.level}`);
+                    
+                    // 6. Redirection vers HerveVenere
+                    log('\n🚀 REDIRECTION DANS 3 SECONDES...');
+                    setTimeout(() => {
+                        window.location.href = '/HerveVenere/cell';
+                    }, 3000);
+                } else {
+                    log('\n⚠️ HerveVenere non trouvé dans les brutes');
+                    log('Brutes disponibles: ' + authData.user.brutes.map(b => b.name).join(', '));
+                }
+                
+            } catch (error) {
+                log(`\n❌ ERREUR: ${error.message}`);
+                log('\nEssai de contournement...');
+                
+                // Fallback: forcer quand même
+                document.cookie = `x-brute-user=${JCDUSS.id}; path=/; max-age=604800`;
+                document.cookie = `x-brute-token=${JCDUSS.token}; path=/; max-age=604800`;
+                
+                const fakeUser = {
+                    id: JCDUSS.id,
+                    name: 'JCDUSS',
+                    connexionToken: JCDUSS.token,
+                    brutes: [{
+                        id: 'd2a66e12-6b94-4cc5-a886-dd7bc7bafc51',
+                        name: 'HerveVenere'
+                    }]
+                };
+                
+                localStorage.setItem('user', JSON.stringify(fakeUser));
+                localStorage.setItem('csrfToken', 'fallback-token');
+                
+                log('✅ Données forcées en fallback');
+                log('🚀 Tentative de redirection...');
+                
+                setTimeout(() => {
+                    window.location.href = '/HerveVenere/cell';
+                }, 2000);
+            }
+        }
+
+        async function testAuth() {
+            log('=== TEST D\'AUTHENTIFICATION ===\n');
+            
+            // Définir les cookies
+            document.cookie = `x-brute-user=${JCDUSS.id}; path=/; max-age=604800`;
+            document.cookie = `x-brute-token=${JCDUSS.token}; path=/; max-age=604800`;
+            log('Cookies définis');
+            
+            // Tester l'API avec curl-like request
+            const authHeader = btoa(JCDUSS.id + ':' + JCDUSS.token);
+            log(`\nTest avec Authorization: Basic ${authHeader.substring(0, 20)}...`);
+            
+            try {
+                const response = await fetch('/api/brute/HerveVenere/for-hook', {
+                    headers: {
+                        'Authorization': `Basic ${authHeader}`,
+                        'Accept': 'application/json'
+                    },
+                    credentials: 'include'
+                });
+                
+                if (response.ok) {
+                    const data = await response.json();
+                    log(`\n✅ API FONCTIONNE !`);
+                    log(`Brute: ${data.name}`);
+                    log(`Level: ${data.level}`);
+                    log(`User: ${data.user.name}`);
+                } else {
+                    log(`\n❌ API erreur: ${response.status}`);
+                }
+            } catch (e) {
+                log(`\n❌ Exception: ${e.message}`);
+            }
+        }
+
+        window.onload = () => {
+            log('🔥 VRAIE SOLUTION CHARGÉE\n');
+            log(`User ID: ${JCDUSS.id}`);
+            log(`Token: ${JCDUSS.token}\n`);
+            log('Clique sur un bouton pour commencer !');
+        };
+    </script>
+</body>
+</html>

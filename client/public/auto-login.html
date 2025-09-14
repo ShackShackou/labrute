@@ -1,0 +1,64 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Auto Login JCDUSS - SHACKERS</title>
+    <meta charset="utf-8">
+    <script>
+        // AUTO-LOGIN IMMÉDIAT AVEC JCDUSS
+        window.onload = function() {
+            const userData = {
+                id: 'e99ab88c-8be2-4fd0-8519-a0c4bf7a3705',
+                name: 'JCDUSS',
+                connexionToken: '20ea9aaf-005f-4176-8fd7-3115d338004d',
+                lang: 'fr',
+                gold: 0,
+                bruteLimit: 3,
+                admin: false,
+                moderator: false,
+                backgroundMusic: true,
+                fightSpeed: 2,
+                displayVersusPage: true,
+                displayOpponentDetails: false,
+                brutes: [
+                    {
+                        id: 'd2a66e12-6b94-4cc5-a886-dd7bc7bafc51',
+                        name: 'HerveVenere',
+                        level: 7
+                    },
+                    {
+                        id: '8d4f05c5-a42f-4aa9-bf0f-c691433b3894',
+                        name: 'Mouguy',
+                        level: 2
+                    },
+                    {
+                        id: '398aaf87-1101-4a57-a2ce-470404fd9ab5',
+                        name: 'DFF',
+                        level: 3
+                    }
+                ],
+                following: [],
+                notifications: []
+            };
+            
+            // Sauvegarder dans localStorage
+            localStorage.setItem('user', JSON.stringify(userData));
+            localStorage.setItem('language', 'fr');
+            
+            // Créer l'authorization header
+            const authData = `${userData.id}:${userData.connexionToken}`;
+            const authHeader = btoa(authData);
+            localStorage.setItem('authHeader', authHeader);
+            
+            // REDIRECTION IMMÉDIATE vers la page Compare HerveVenere vs Mouguy
+            window.location.href = 'http://localhost:3000/HerveVenere/fight/fdb86a8a-54a8-4520-bacb-a8305d1840b4?renderer=compare&pixiDiag=1';
+        };
+    </script>
+</head>
+<body style="background: #2c3e50; color: white; display: flex; justify-content: center; align-items: center; height: 100vh; font-family: Arial;">
+    <div style="text-align: center;">
+        <h1>⚡ AUTO-LOGIN JCDUSS</h1>
+        <p>Connexion automatique en cours...</p>
+        <p>Redirection vers la page Compare...</p>
+    </div>
+</body>
+</html>

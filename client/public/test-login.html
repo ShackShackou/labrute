@@ -1,0 +1,120 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <title>Test Direct Login - SHACKERS</title>
+    <style>
+        body {
+            background: #1a1a1a;
+            color: white;
+            font-family: monospace;
+            padding: 20px;
+        }
+        button {
+            background: #4CAF50;
+            color: white;
+            padding: 10px 20px;
+            border: none;
+            cursor: pointer;
+            font-size: 16px;
+            margin: 10px;
+        }
+        button:hover {
+            background: #45a049;
+        }
+        .log {
+            background: #2a2a2a;
+            padding: 10px;
+            margin: 10px 0;
+            border-radius: 5px;
+        }
+        .error {
+            color: #ff6b6b;
+        }
+        .success {
+            color: #51cf66;
+        }
+    </style>
+</head>
+<body>
+    <h1>Test Direct OAuth - SHACKERS</h1>
+    
+    <button onclick="testOAuth()">Test OAuth Redirect</button>
+    <button onclick="goDirectly()">Aller directement à la page OAuth</button>
+    <button onclick="loginJCDUSS()">Login direct JCDUSS</button>
+    
+    <div id="logs"></div>
+
+    <script>
+        function log(message, type = '') {
+            const logs = document.getElementById('logs');
+            const div = document.createElement('div');
+            div.className = `log ${type}`;
+            div.innerHTML = `[${new Date().toLocaleTimeString()}] ${message}`;
+            logs.insertBefore(div, logs.firstChild);
+        }
+
+        async function testOAuth() {
+            log('Appel de /api/oauth/redirect...');
+            
+            try {
+                const response = await fetch('http://localhost:9000/api/oauth/redirect');
+                const data = await response.json();
+                
+                log(`Réponse reçue: ${JSON.stringify(data)}`, 'success');
+                
+                if (data.url) {
+                    log(`URL OAuth: ${data.url}`, 'success');
+                    
+                    if (confirm(`Rediriger vers: ${data.url} ?`)) {
+                        window.location.href = data.url;
+                    }
+                }
+            } catch (error) {
+                log(`Erreur: ${error.message}`, 'error');
+            }
+        }
+
+        function goDirectly() {
+            const url = 'http://localhost:9000/api/dev/oauth?action=authorize';
+            log(`Redirection directe vers: ${url}`, 'success');
+            window.location.href = url;
+        }
+
+        async function loginJCDUSS() {
+            const userId = 'e99ab88c-8be2-4fd0-8519-a0c4bf7a3705';
+            const code = `dev-code-${userId}`;
+            
+            log(`Login direct avec JCDUSS...`);
+            log(`Code OAuth: ${code}`);
+            
+            try {
+                const response = await fetch(`http://localhost:9000/api/oauth/token?code=${code}`);
+                const userData = await response.json();
+                
+                if (userData.error) {
+                    throw new Error(userData.error);
+                }
+                
+                log(`Connexion réussie: ${userData.name}`, 'success');
+                log(`Token: ${userData.connexionToken}`, 'success');
+                
+                // Sauvegarder dans localStorage
+                localStorage.setItem('user', JSON.stringify(userData));
+                const authData = `${userData.id}:${userData.connexionToken}`;
+                localStorage.setItem('authHeader', btoa(authData));
+                
+                log('Données sauvegardées dans localStorage', 'success');
+                
+                setTimeout(() => {
+                    log('Redirection vers HerveVenere...', 'success');
+                    window.location.href = 'http://localhost:3000/HerveVenere/cell';
+                }, 2000);
+                
+            } catch (error) {
+                log(`Erreur: ${error.message}`, 'error');
+            }
+        }
+    </script>
+</body>
+</html>

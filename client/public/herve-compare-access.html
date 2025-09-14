@@ -1,0 +1,265 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Accès HerveVenere COMPARE - SHACKERS</title>
+    <meta charset="utf-8">
+    <style>
+        body {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            font-family: Arial, sans-serif;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            margin: 0;
+            overflow: hidden;
+        }
+        .container {
+            text-align: center;
+            background: rgba(0, 0, 0, 0.3);
+            padding: 30px;
+            border-radius: 15px;
+            box-shadow: 0 8px 32px rgba(31, 38, 135, 0.37);
+            backdrop-filter: blur(4px);
+            border: 1px solid rgba(255, 255, 255, 0.18);
+        }
+        .status {
+            font-size: 18px;
+            margin: 15px 0;
+        }
+        .success { color: #4CAF50; }
+        .error { color: #f44336; }
+        .info { color: #2196F3; }
+        .warning { color: #ff9800; }
+        .step {
+            margin: 10px 0;
+            padding: 5px 0;
+        }
+        .loading {
+            display: inline-block;
+            animation: spin 1s linear infinite;
+        }
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🎯 Accès HerveVenere COMPARE</h1>
+        <div id="status" class="status info">Initialisation...</div>
+        <div id="steps"></div>
+        <div id="details" style="margin-top: 20px; font-size: 14px; opacity: 0.8;"></div>
+    </div>
+
+    <script>
+        const JCDUSS_ID = 'e99ab88c-8be2-4fd0-8519-a0c4bf7a3705';
+        const JCDUSS_TOKEN = '20ea9aaf-005f-4176-8fd7-3115d338004d';
+        const HERVE_VENERE_ID = 'd2a66e12-6b94-4cc5-a886-dd7bc7bafc51';
+        
+        // Cookie management functions
+        function setCookie(name, value, days = 7) {
+            const maxAge = days * 24 * 60 * 60;
+            document.cookie = `${name}=${value}; path=/; max-age=${maxAge}; SameSite=Lax`;
+        }
+
+        function getCookie(name) {
+            const value = `; ${document.cookie}`;
+            const parts = value.split(`; ${name}=`);
+            if (parts.length === 2) return parts.pop().split(';').shift();
+            return null;
+        }
+
+        function updateStatus(message, type = 'info') {
+            const statusEl = document.getElementById('status');
+            statusEl.textContent = message;
+            statusEl.className = `status ${type}`;
+        }
+
+        function addStep(message, type = 'info') {
+            const stepsEl = document.getElementById('steps');
+            const stepEl = document.createElement('div');
+            stepEl.className = `step ${type}`;
+            stepEl.textContent = `✓ ${message}`;
+            stepsEl.appendChild(stepEl);
+        }
+
+        function addDetails(message) {
+            const detailsEl = document.getElementById('details');
+            detailsEl.innerHTML += `<div>${message}</div>`;
+        }
+
+        async function checkBruteExists() {
+            try {
+                updateStatus('🔍 Vérification de l\'existence d\'HerveVenere...', 'info');
+                
+                const response = await fetch(`/api/brute/HerveVenere/for-hook`);
+                
+                if (response.ok) {
+                    const bruteData = await response.json();
+                    addStep('HerveVenere trouvé dans la base', 'success');
+                    addDetails(`ID confirmé: ${bruteData.id}`);
+                    return true;
+                } else {
+                    addStep('HerveVenere non trouvé', 'error');
+                    addDetails(`Erreur HTTP: ${response.status}`);
+                    return false;
+                }
+            } catch (error) {
+                addStep('Erreur lors de la vérification', 'error');
+                addDetails(`Erreur: ${error.message}`);
+                return false;
+            }
+        }
+
+        async function setupAuthentication() {
+            try {
+                updateStatus('🔐 Configuration de l\'authentification...', 'info');
+                
+                // 1. D'abord récupérer le CSRF token
+                const csrfResponse = await fetch('/api/csrf', {
+                    headers: { 'Accept': 'application/json' },
+                    credentials: 'include'
+                });
+                
+                if (!csrfResponse.ok) {
+                    throw new Error('Impossible de récupérer le CSRF token');
+                }
+                
+                const csrfData = await csrfResponse.json();
+                localStorage.setItem('csrfToken', csrfData.csrfToken);
+                addStep('CSRF token obtenu', 'success');
+
+                // 2. Définir les cookies d'authentification
+                setCookie('x-brute-user', JCDUSS_ID);
+                setCookie('x-brute-token', JCDUSS_TOKEN);
+                addStep('Cookies d\'authentification définis', 'success');
+                
+                // 3. Tester l'authentification avec l'API
+                const authHeader = btoa(`${JCDUSS_ID}:${JCDUSS_TOKEN}`);
+                const authResponse = await fetch('/api/user/authenticate', {
+                    method: 'POST',
+                    headers: {
+                        'Accept': 'application/json',
+                        'Content-Type': 'application/json',
+                        'x-csrf-token': csrfData.csrfToken,
+                        'Authorization': `Basic ${authHeader}`
+                    },
+                    credentials: 'include'
+                });
+
+                if (authResponse.ok) {
+                    const userData = await authResponse.json();
+                    addStep('Authentification API validée', 'success');
+                    addDetails(`User: ${userData.name} (${userData.brutes.length} brutes)`);
+                    
+                    // 4. Sauvegarder les données utilisateur dans localStorage pour le frontend
+                    localStorage.setItem('user', JSON.stringify(userData));
+                    localStorage.setItem('language', 'fr');
+                    addStep('Données utilisateur sauvegardées', 'success');
+                    
+                    return true;
+                } else {
+                    const errorData = await authResponse.json();
+                    addStep('Échec authentification API', 'error');
+                    addDetails(`Erreur: ${JSON.stringify(errorData)}`);
+                    return false;
+                }
+                
+            } catch (error) {
+                addStep('Erreur lors de l\'authentification', 'error');
+                addDetails(`Erreur: ${error.message}`);
+                return false;
+            }
+        }
+
+        async function findFightId() {
+            try {
+                updateStatus('🥊 Recherche d\'un combat pour la comparaison...', 'info');
+                
+                // Essayer de récupérer les combats récents d'HerveVenere
+                const authHeader = btoa(`${JCDUSS_ID}:${JCDUSS_TOKEN}`);
+                const response = await fetch(`/api/brute/HerveVenere/fights?limit=5`, {
+                    headers: {
+                        'Accept': 'application/json',
+                        'x-csrf-token': localStorage.getItem('csrfToken'),
+                        'Authorization': `Basic ${authHeader}`
+                    },
+                    credentials: 'include'
+                });
+
+                if (response.ok) {
+                    const fights = await response.json();
+                    if (fights.length > 0) {
+                        const fightId = fights[0].id;
+                        addStep('Combat trouvé pour la comparaison', 'success');
+                        addDetails(`Combat ID: ${fightId}`);
+                        return fightId;
+                    }
+                }
+                
+                // Combat par défaut si pas trouvé
+                const defaultFightId = 'fdb86a8a-54a8-4520-bacb-a8305d1840b4';
+                addStep('Utilisation d\'un combat par défaut', 'warning');
+                addDetails(`Combat ID par défaut: ${defaultFightId}`);
+                return defaultFightId;
+                
+            } catch (error) {
+                addStep('Utilisation d\'un combat par défaut', 'warning');
+                addDetails(`Combat par défaut car erreur: ${error.message}`);
+                return 'fdb86a8a-54a8-4520-bacb-a8305d1840b4';
+            }
+        }
+
+        async function redirectToCompare(fightId) {
+            updateStatus('🚀 Redirection vers la page COMPARE...', 'success');
+            addStep('Redirection en cours', 'success');
+            
+            // Délai court pour voir le message
+            setTimeout(() => {
+                const compareUrl = `http://localhost:3000/HerveVenere/fight/${fightId}?renderer=compare&pixiDiag=1`;
+                addDetails(`URL: ${compareUrl}`);
+                window.location.href = compareUrl;
+            }, 1000);
+        }
+
+        // Main execution
+        async function main() {
+            try {
+                addDetails(`🔧 JCDUSS ID: ${JCDUSS_ID}`);
+                addDetails(`🔧 Token: ${JCDUSS_TOKEN.substring(0, 8)}...`);
+                addDetails(`🎯 HerveVenere ID: ${HERVE_VENERE_ID}`);
+                
+                // Étape 1: Vérifier que HerveVenere existe
+                const bruteExists = await checkBruteExists();
+                if (!bruteExists) {
+                    updateStatus('❌ HerveVenere introuvable - Arrêt', 'error');
+                    return;
+                }
+
+                // Étape 2: Configurer l'authentification
+                const authSuccess = await setupAuthentication();
+                if (!authSuccess) {
+                    updateStatus('❌ Échec authentification - Arrêt', 'error');
+                    return;
+                }
+
+                // Étape 3: Trouver un combat pour la comparaison
+                const fightId = await findFightId();
+
+                // Étape 4: Redirection
+                await redirectToCompare(fightId);
+
+            } catch (error) {
+                updateStatus(`❌ Erreur critique: ${error.message}`, 'error');
+                addDetails(`Stack: ${error.stack}`);
+            }
+        }
+
+        // Démarrer automatiquement
+        window.onload = main;
+    </script>
+</body>
+</html>
