@@ -1263,10 +1263,10 @@ const PixiFight: React.FC<Props> = ({
       // Duration from distance constants close to legacy v6 renderer
       // Ralenti les dÃ©placements d'attaque (aller) pour plus de lisibilitÃ©
       // Vitesse paramétrable via URL/localStorage
-      const approachPps = (() => { const u=params.get('pixiApproachPps'); const ls=localStorage.getItem('compare.pixiApproachPps'); const n=Number(u ?? ls ?? '260'); return Number.isFinite(n)&&n>0?n:260; })();
-      const returnPps   = (() => { const u=params.get('pixiReturnPps');   const ls=localStorage.getItem('compare.pixiReturnPps');   const n=Number(u ?? ls ?? '420'); return Number.isFinite(n)&&n>0?n:420; })();
-      const durationMoveMs = (px:number) => Math.max(150, (px / approachPps) * 1000) * approachScale;
-      const durationMoveBackMs = (px:number) => Math.max(80, (px / returnPps) * 1000);
+      const approachPps = (() => { const u=params.get('pixiApproachPps'); const ls=localStorage.getItem('compare.pixiApproachPps'); const n=Number(u ?? ls ?? '320'); return Number.isFinite(n)&&n>0?n:320; })();
+      const returnPps   = (() => { const u=params.get('pixiReturnPps');   const ls=localStorage.getItem('compare.pixiReturnPps');   const n=Number(u ?? ls ?? '520'); return Number.isFinite(n)&&n>0?n:520; })();
+      const durationMoveMs = (px:number) => Math.max(90, (px / approachPps) * 1000) * approachScale;
+      const durationMoveBackMs = (px:number) => Math.max(60, (px / returnPps) * 1000);
 
       // Limites Y corrigÃ©es d'aprÃ¨s l'analyse CSV
       const minY = 153, maxY = 259;
