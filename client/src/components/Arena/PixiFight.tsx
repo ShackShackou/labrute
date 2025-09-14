@@ -133,7 +133,7 @@ const PixiFight: React.FC<Props> = ({
       const approachScale = (() => {
         const u = params.get('pixiApproachScale');
         const ls = localStorage.getItem('compare.pixiApproachScale');
-        const n = Number(u ?? ls ?? '1.3'); // Par défaut: 1.3 (plus lent)
+        const n = Number(u ?? ls ?? '1.6'); // Par défaut: 1.6 (plus lent)
         return Number.isFinite(n) && n > 0 ? n : 1;
       })();
       const scaleFallback = isNaN(SCALE) ? 0.22 : SCALE;
@@ -1554,7 +1554,7 @@ const PixiFight: React.FC<Props> = ({
             }
             
             // Autoriser uniquement les déplacements de mêlée explicites (r=1)
-            try { if ((s as any)?.r !== 1) { break; } } catch {}
+            // (r filter disabled to allow all Move steps)
             // Skip "loose" moves that don't quickly lead to an AttemptHit for the same actor
             try {
               const curIdx = steps.indexOf(s);
@@ -2590,8 +2590,6 @@ const PixiFight: React.FC<Props> = ({
 };
 
 export default PixiFight;
-
-
 
 
 
