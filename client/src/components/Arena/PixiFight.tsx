@@ -1263,10 +1263,10 @@ const PixiFight: React.FC<Props> = ({
       // Duration from distance constants close to legacy v6 renderer
       // Ralenti les dÃ©placements d'attaque (aller) pour plus de lisibilitÃ©
       // Vitesse paramétrable via URL/localStorage
-      const approachPps = (() => { const u=params.get('pixiApproachPps'); const ls=localStorage.getItem('compare.pixiApproachPps'); const n=Number(u ?? ls ?? '200'); return Number.isFinite(n)&&n>0?n:200; })();
-      const returnPps   = (() => { const u=params.get('pixiReturnPps');   const ls=localStorage.getItem('compare.pixiReturnPps');   const n=Number(u ?? ls ?? '340'); return Number.isFinite(n)&&n>0?n:340; })();
-      const durationMoveMs = (px:number) => Math.max(220, (px / approachPps) * 1000) * approachScale;
-      const durationMoveBackMs = (px:number) => Math.max(120, (px / returnPps) * 1000);
+      const approachPps = (() => { const u=params.get('pixiApproachPps'); const ls=localStorage.getItem('compare.pixiApproachPps'); const n=Number(u ?? ls ?? '260'); return Number.isFinite(n)&&n>0?n:260; })();
+      const returnPps   = (() => { const u=params.get('pixiReturnPps');   const ls=localStorage.getItem('compare.pixiReturnPps');   const n=Number(u ?? ls ?? '420'); return Number.isFinite(n)&&n>0?n:420; })();
+      const durationMoveMs = (px:number) => Math.max(150, (px / approachPps) * 1000) * approachScale;
+      const durationMoveBackMs = (px:number) => Math.max(80, (px / returnPps) * 1000);
 
       // Limites Y corrigÃ©es d'aprÃ¨s l'analyse CSV
       const minY = 153, maxY = 259;
@@ -1615,6 +1615,16 @@ const PixiFight: React.FC<Props> = ({
                   const dx = Math.abs(idealX - cur.x);
                   const durPre = Math.max(90, (dx / approachPps) * 1000) * approachScale / Math.max(0.001, speed);
                   await tweenTo(src.node, idealX, ty2, durPre);
+                }
+                // Fallback: réaligner en Y si pas de Move juste avant et gros écart Y
+                const curIdx = steps.indexOf(s);
+                const prev = steps[curIdx - 1];
+                const prevIsMoveSameActor = prev && typeof prev.f === 'number' && prev.f === actorIdx && prev.a === StepType.Move;
+                const tyTarget = getPos(tgt.node).y;
+                if (!prevIsMoveSameActor && Math.abs(tyTarget - cur.y) > 6) {
+                  const dist2 = Math.abs(tyTarget - cur.y);
+                  const durPre2 = Math.max(60, (dist2 / approachPps) * 1000) * approachScale / Math.max(0.001, speed);
+                  await tweenTo(src.node, idealX, tyTarget, durPre2);
                 }
               }
             } catch {}
