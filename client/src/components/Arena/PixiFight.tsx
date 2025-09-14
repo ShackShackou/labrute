@@ -1262,8 +1262,11 @@ const PixiFight: React.FC<Props> = ({
 
       // Duration from distance constants close to legacy v6 renderer
       // Ralenti les dÃ©placements d'attaque (aller) pour plus de lisibilitÃ©
-      const durationMoveMs = (px:number) => Math.max(300, (px / 170) * 1000);  // Slower approach: 170 pixels/sec
-      const durationMoveBackMs = (px:number) => Math.max(150, (px / 480) * 1000);  // FAST return
+      // Vitesse paramétrable via URL/localStorage
+      const approachPps = (() => { const u=params.get('pixiApproachPps'); const ls=localStorage.getItem('compare.pixiApproachPps'); const n=Number(u ?? ls ?? '170'); return Number.isFinite(n)&&n>0?n:170; })();
+      const returnPps   = (() => { const u=params.get('pixiReturnPps');   const ls=localStorage.getItem('compare.pixiReturnPps');   const n=Number(u ?? ls ?? '300'); return Number.isFinite(n)&&n>0?n:300; })();
+      const durationMoveMs = (px:number) => Math.max(300, (px / approachPps) * 1000) * approachScale;
+      const durationMoveBackMs = (px:number) => Math.max(150, (px / returnPps) * 1000);
 
       // Limites Y corrigÃ©es d'aprÃ¨s l'analyse CSV
       const minY = 153, maxY = 259;
@@ -1609,15 +1612,16 @@ const PixiFight: React.FC<Props> = ({
                   // PrÃ©-move diagonal (X et Y ensemble)
                   const ty2 = cur.y;
                   addVector(cur.x, cur.y, idealX, ty2, 0xff66cc);
-                  const durPre = (100 * approachScale * (actorSide === 'R' ? mulR : mulL)) / Math.max(0.001, speed);
+                  const dx = Math.abs(idealX - cur.x);
+                  const durPre = Math.max(90, (dx / approachPps) * 1000) * approachScale / Math.max(0.001, speed);
                   await tweenTo(src.node, idealX, ty2, durPre);
                 }
               }
             } catch {}
             playAnim(src, 'shoot', false);
             const lungeDist = 18;
-            const durFwd = (100 * approachScale * (actorSide === 'R' ? mulR : mulL)) / Math.max(0.001, speed);
-            const durBack = (80 * approachScale * (actorSide === 'R' ? mulR : mulL)) / Math.max(0.001, speed);
+            const durFwd = Math.max(80, (lungeDist / approachPps) * 1000) * approachScale / Math.max(0.001, speed);
+            const durBack = Math.max(70, (lungeDist / returnPps) * 1000) / Math.max(0.001, speed);
             // Lunge horizontal depuis position actuelle (garde le Y actuel)
             const curPos = getPos(src.node);
             await tweenTo(src.node, curPos.x + (src===left? +lungeDist : -lungeDist), curPos.y, durFwd);
