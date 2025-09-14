@@ -1628,14 +1628,7 @@ const PixiFight: React.FC<Props> = ({
                 }
               }
             } catch {}
-            playAnim(src, 'shoot', false);
-            const lungeDist = 18;
-            const durFwd = Math.max(80, (lungeDist / approachPps) * 1000) * approachScale / Math.max(0.001, speed);
-            const durBack = Math.max(70, (lungeDist / returnPps) * 1000) / Math.max(0.001, speed);
-            // Lunge horizontal depuis position actuelle (garde le Y actuel)
-            const curPos = getPos(src.node);
-            await tweenTo(src.node, curPos.x + (src===left? +lungeDist : -lungeDist), curPos.y, durFwd);
-            await tweenTo(src.node, curPos.x, curPos.y, durBack);
+            // Ne pas simuler un coup avant le Hit réel
             playAnim(src, 'idle', true);
             break; }
           // Hit / variants - EXACT LIKE OFFICIAL LABRUTE
