@@ -1,4 +1,4 @@
-/* eslint-disable unicode-bom, quotes, @typescript-eslint/ban-ts-comment, @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-member-access, @typescript-eslint/no-unsafe-call, max-len, lines-between-class-members, one-var, one-var-declaration-per-line, no-empty, comma-spacing, space-infix-ops, key-spacing, arrow-spacing, arrow-parens, object-curly-spacing, block-spacing, space-before-function-paren, default-case, no-promise-executor-return, @typescript-eslint/no-floating-promises */
+﻿/* eslint-disable unicode-bom, quotes, @typescript-eslint/ban-ts-comment, @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-member-access, @typescript-eslint/no-unsafe-call, max-len, lines-between-class-members, one-var, one-var-declaration-per-line, no-empty, comma-spacing, space-infix-ops, key-spacing, arrow-spacing, arrow-parens, object-curly-spacing, block-spacing, space-before-function-paren, default-case, no-promise-executor-return, @typescript-eslint/no-floating-promises */
 import React, { useEffect, useRef } from 'react';
 import { Application, Container, Graphics, Text, Assets, Sprite } from 'pixi.js';
 // @ts-ignore - official Spine v8 runtime for Pixi v8
@@ -173,7 +173,7 @@ const PixiFight: React.FC<Props> = ({
                 v.g.visible = false; 
                 v.g.alpha = 0; 
               } catch {}
-              // Marquer pour suppression ultérieure
+              // Marquer pour suppression ult├⌐rieure
               (v as any).toRemove = true;
               debugVectorsRef.current.splice(i, 1);
             }
@@ -297,7 +297,7 @@ const PixiFight: React.FC<Props> = ({
         }
       } catch {}
 
-      // Positions corrigées d'après l'analyse CSV du 10 septembre
+      // Positions corrig├⌐es d'apr├¿s l'analyse CSV du 10 septembre
       const baseLX = 43 + leftOffsetX; const baseLY = 223 + leftOffsetY;
       const baseRX = 520 + rightOffsetX; const baseRY = 223 + rightOffsetY;
       // Placeholders (not visible) to avoid debug circles
@@ -328,7 +328,7 @@ const PixiFight: React.FC<Props> = ({
         Assets.add({ alias: 'spineboyData', src: '/assets/spine/spineboy-pro.json' });
         Assets.add({ alias: 'spineboyAtlas', src: '/assets/spine/spineboy.atlas' });
         await Assets.load(['spineboyData', 'spineboyAtlas']);
-        // Crée sans échelle, puis calibre sur une largeur cible (pour matcher l'officiel)
+        // Cr├⌐e sans ├⌐chelle, puis calibre sur une largeur cible (pour matcher l'officiel)
         const L = Spine.from({ skeleton: 'spineboyData', atlas: 'spineboyAtlas', scale: 1 });
         L.x = baseLX; L.y = baseLY; scene.addChild(L);
         const R = Spine.from({ skeleton: 'spineboyData', atlas: 'spineboyAtlas', scale: 1 });
@@ -540,7 +540,7 @@ const PixiFight: React.FC<Props> = ({
           
           barContainer.position.set(0, 18);
           
-          // Portrait just below bar (collé verticalement)
+          // Portrait just below bar (coll├⌐ verticalement)
           portraitContainer.position.set(0, 32);  // Reduced from 36 to be closer
           if (redX) portraitContainer.addChild(redX);
           
@@ -556,7 +556,7 @@ const PixiFight: React.FC<Props> = ({
           
           barContainer.position.set(0, 18);
           
-          // Portrait just below bar (collé verticalement)
+          // Portrait just below bar (coll├⌐ verticalement)
           portraitContainer.position.set(barW - portraitSize, 32);  // Reduced from 36 to be closer
           
           // Weapon icons aligned left of portrait for right fighter, growing leftward
@@ -574,11 +574,10 @@ const PixiFight: React.FC<Props> = ({
         
         const set = (ratio: number) => {
           currentHp = Math.max(0, Math.min(1, ratio));
-
+          
           // Animate HP bar
-          // Ancien comportement forçait un minimum visuel de ~10% causant un "blocage" visuel en bas HP.
-          // Nouveau: min très faible (2px) pour que la barre jaune descende jusqu’au bout.
-          const minVisibleWidth = currentHp > 0 ? 2 : 0;
+          // Ensure minimum visible width - at least 10% of bar width for visibility
+          const minVisibleWidth = currentHp > 0 ? Math.max(35, barW * 0.1) : 0;
           const targetWidth = currentHp > 0 ? Math.max(minVisibleWidth, barW * currentHp) : 0;
           
           // Update HP bar graphics safely
@@ -593,17 +592,17 @@ const PixiFight: React.FC<Props> = ({
             if (currentHp > 0) {
               // Don't subtract anything from targetWidth - use it directly
               const drawWidth = targetWidth;
-
+              
               // Always yellow HP bar - like official LaBrute
               hpBar.beginFill(0xFFD700); // Gold/yellow
-
+              
               if (isL) {
                 // Left bar fills from left to right with rounded corners
-                hpBar.drawRoundedRect(1, 1, Math.max(1, drawWidth - 2), barH - 2, 3);
+                hpBar.drawRoundedRect(1, 1, drawWidth - 2, barH - 2, 3);
               } else {
                 // Right bar fills from right to left with rounded corners
                 const startX = barW - drawWidth + 1;
-                hpBar.drawRoundedRect(startX, 1, Math.max(1, drawWidth - 2), barH - 2, 3);
+                hpBar.drawRoundedRect(startX, 1, drawWidth - 2, barH - 2, 3);
               }
               hpBar.endFill();
             }
@@ -928,15 +927,15 @@ const PixiFight: React.FC<Props> = ({
       };
       // Small pooled float text to reduce allocations
       const textPool: Text[] = [];
-      const allTexts: Text[] = []; // Garder une référence à tous les textes créés
+      const allTexts: Text[] = []; // Garder une r├⌐f├⌐rence ├á tous les textes cr├⌐├⌐s
       
-      // Pré-créer un pool de textes
+      // Pr├⌐-cr├⌐er un pool de textes
       for (let i = 0; i < 10; i++) {
         const preText = new Text('', { fill: 0xffffff as any, fontSize: 12 } as any);
         preText.anchor.set(0.5);
         preText.visible = false;
         preText.renderable = false;
-        scene.addChild(preText); // Ajouter à la scène une fois pour toutes
+        scene.addChild(preText); // Ajouter ├á la sc├¿ne une fois pour toutes
         textPool.push(preText);
         allTexts.push(preText);
       }
@@ -944,13 +943,13 @@ const PixiFight: React.FC<Props> = ({
       const getText = () => {
         let t = textPool.pop();
         if (!t) {
-          // Créer un nouveau texte si le pool est vide
+          // Cr├⌐er un nouveau texte si le pool est vide
           t = new Text('', { fill: 0xffffff as any, fontSize: 12 } as any);
           t.anchor.set(0.5);
-          scene.addChild(t); // Ajouter directement à la scène
+          scene.addChild(t); // Ajouter directement ├á la sc├¿ne
           allTexts.push(t);
         }
-        // Réinitialiser l'état du texte
+        // R├⌐initialiser l'├⌐tat du texte
         t.visible = true;
         t.renderable = true;
         t.alpha = 1;
@@ -971,7 +970,7 @@ const PixiFight: React.FC<Props> = ({
         t.position.set(x, y - 60); 
         t.visible = true;
         t.renderable = true;
-        // Le texte est déjà dans la scène grâce au pool pré-créé
+        // Le texte est d├⌐j├á dans la sc├¿ne gr├óce au pool pr├⌐-cr├⌐├⌐
         let a = 0;
         const duration = 650 / Math.max(0.001, speed);
         const tick = (tk:any) => {
@@ -988,11 +987,11 @@ const PixiFight: React.FC<Props> = ({
           t.y = (y - 60) - 20 * p;
           if (p >= 1) { 
             app.ticker.remove(tick); 
-            // Batcher safety: NE PAS retirer de la scène pendant le tick
+            // Batcher safety: NE PAS retirer de la sc├¿ne pendant le tick
             // Juste masquer et marquer pour recyclage
             t.visible = false; 
             t.renderable = false;
-            // Recycler sans retirer de la scène
+            // Recycler sans retirer de la sc├¿ne
             recycleText(t); 
           }
         };
@@ -1255,13 +1254,11 @@ const PixiFight: React.FC<Props> = ({
       const setPos = (o:any, x:number, y:number) => { if ('position' in o) { o.position.set(x,y); } else { o.x = x; o.y = y; } };
 
       // Duration from distance constants close to legacy v6 renderer
-      // Ralenti les déplacements d'attaque (aller) pour plus de lisibilité
-      // Approche plus lente (ralentie par rapport à l'original perçu)
-      // Ancien: 170 px/s. Nouveau: 120 px/s pour mieux coller au rythme souhaité.
-      const durationMoveMs = (px:number) => Math.max(300, (px / 120) * 1000);
+      // Ralenti les d├⌐placements d'attaque (aller) pour plus de lisibilit├⌐
+      const durationMoveMs = (px:number) => Math.max(300, (px / 170) * 1000);  // Slower approach: 170 pixels/sec
       const durationMoveBackMs = (px:number) => Math.max(150, (px / 480) * 1000);  // FAST return
 
-      // Limites Y corrigées d'après l'analyse CSV
+      // Limites Y corrig├⌐es d'apr├¿s l'analyse CSV
       const minY = 153, maxY = 259;
       const minLX = 40, maxLX = 125, minRX = W - maxLX, maxRX = W - minLX;
       const occY: Record<'L'|'R', number[]> = { L: [], R: [] };
@@ -1549,7 +1546,7 @@ const PixiFight: React.FC<Props> = ({
               (petSpine as any).setMoving(true);
             }
             
-            // Autoriser uniquement les déplacements de mêlée explicites (r=1)
+            // Autoriser uniquement les d├⌐placements de m├¬l├⌐e explicites (r=1)
             try { if ((s as any)?.r !== 1) { break; } } catch {}
             // Skip "loose" moves that don't quickly lead to an AttemptHit for the same actor
             try {
@@ -1602,7 +1599,7 @@ const PixiFight: React.FC<Props> = ({
                 const minDiag = (Number(new URLSearchParams(window.location.search).get('pixiMinDiagX'))
                   || Number(localStorage.getItem('compare.pixiMinDiagX')) || 60);
                 if (Math.abs(idealX - cur.x) >= minDiag) {
-                  // Pré-move diagonal (X et Y ensemble)
+                  // Pr├⌐-move diagonal (X et Y ensemble)
                   const ty2 = clampY(tpos.y);
                   addVector(cur.x, cur.y, idealX, ty2, 0xff66cc);
                   const durPre = (100 * (actorSide === 'R' ? mulR : mulL)) / Math.max(0.001, speed);
@@ -1745,7 +1742,7 @@ const PixiFight: React.FC<Props> = ({
               await weaponAnimPromise;
             }
             
-            // Pas de retour base ici (évite micro-déplacements). Le retour se fait au Step MoveBack.
+            // Pas de retour base ici (├⌐vite micro-d├⌐placements). Le retour se fait au Step MoveBack.
             playAnim(src, 'idle', true);
             // Track last weapon used if provided
             try {
@@ -2423,32 +2420,46 @@ const PixiFight: React.FC<Props> = ({
             addTick(flashTick);
             break; }
           
-          // Treat (healing skill)
-          case StepType.Treat: {
-            // cible = 't' (pet soigné) dans la plupart des cas
+          // Poison / Treat (healing)
+          case 33: case 34: {
+            const isPoison = a === 33;
             const targetPos = getPos(tgt.node);
-            floatText(targetPos.x, targetPos.y, 'HEAL!', 0x6efc9a);
-
-            // Particules simples de soin
+            
+            // Create particle effect
             const particlesContainer = new Container();
             const particles: {g: Graphics, vx: number, vy: number, life: number}[] = [];
-            for (let i = 0; i < 18; i++) {
+            
+            // Create particles
+            for (let i = 0; i < 20; i++) {
               const particle = new Graphics();
-              particle.beginFill(0x6efc9a, 0.9);
+              particle.beginFill(isPoison ? 0x00FF00 : 0xFF69B4, 0.8);
               particle.drawCircle(0, 0, 2 + Math.random() * 2);
               particle.endFill();
-              particles.push({ g: particle, vx: (Math.random() - 0.5) * 2, vy: -Math.random() * 2 - 0.6, life: 1 });
+              
+              particles.push({
+                g: particle,
+                vx: (Math.random() - 0.5) * 3,
+                vy: -Math.random() * 3 - 1,
+                life: 1
+              });
+              
               particlesContainer.addChild(particle);
             }
+            
             particlesContainer.position.set(targetPos.x, targetPos.y);
             scene.addChild(particlesContainer);
+            
+            floatText(targetPos.x, targetPos.y, isPoison ? 'POISONED!' : 'HEALED!', isPoison ? 0x00FF00 : 0xFF69B4);
+            
+            // Animate particles
             const particleTick = (tk: any) => {
               const dt = (tk.deltaMS || 16.7) * 0.001;
+              
               let allDead = true;
               particles.forEach(p => {
                 if (p.life > 0) {
                   allDead = false;
-                  p.vy += 9.8 * dt;
+                  p.vy += 9.8 * dt; // gravity
                   p.g.x += p.vx;
                   p.g.y += p.vy;
                   p.life -= dt;
@@ -2456,6 +2467,7 @@ const PixiFight: React.FC<Props> = ({
                   p.g.scale.set(p.life);
                 }
               });
+              
               if (allDead) {
                 app.ticker.remove(particleTick);
                 scene.removeChild(particlesContainer);
@@ -2463,85 +2475,6 @@ const PixiFight: React.FC<Props> = ({
               }
             };
             addTick(particleTick);
-            break; }
-
-          // DropShield (perte de bouclier)
-          case StepType.DropShield: {
-            // La cible est dans 'b' (brute dont le bouclier tombe). Ici, 'actor' pointe déjà sur l’entité
-            const pos = getPos(src.node);
-            floatText(pos.x, pos.y, 'SHIELD BROKEN!', 0xFFD700);
-            // Petit effet visuel d’éclats
-            const burst = new Graphics();
-            burst.lineStyle(2, 0xFFD700, 0.9).drawStar(0, 0, 8, 24, 10);
-            burst.position.set(pos.x, pos.y - 20);
-            scene.addChild(burst);
-            let t = 0;
-            const burstTick = (tk: any) => {
-              t += tk.deltaMS || 16.7;
-              const p = Math.min(1, t / 300);
-              burst.alpha = 1 - p;
-              burst.scale.set(1 + p * 0.6);
-              if (p >= 1) {
-                app.ticker.remove(burstTick);
-                scene.removeChild(burst);
-                setTimeout(() => { try { burst.destroy(); } catch {} }, 0);
-              }
-            };
-            addTick(burstTick);
-            break; }
-
-          // Regeneration (auto‑heal)
-          case StepType.Regeneration: {
-            // L’acteur est le bénéficiaire; on lit s.h (heal)
-            const heal = typeof (s as any).h === 'number' ? (s as any).h : 0;
-            const pos = getPos(src.node);
-            floatText(pos.x, pos.y, 'REGEN +'+heal, 0x6efc9a);
-
-            // Si c’est une des brutes principales, mettre à jour les barres
-            if (actorIdx === leftMainIdx) {
-              hpL = Math.min(maxL, hpL + heal);
-              barL.set(hpL / maxL);
-              barL.follow();
-            } else if (actorIdx === rightMainIdx) {
-              hpR = Math.min(maxR, hpR + heal);
-              barR.set(hpR / maxR);
-              barR.follow();
-            }
-
-            // Effet de particules léger
-            const particlesContainer = new Container();
-            const particles: {g: Graphics, vx: number, vy: number, life: number}[] = [];
-            for (let i = 0; i < 12; i++) {
-              const g = new Graphics();
-              g.beginFill(0x6efc9a, 0.85);
-              g.drawCircle(0, 0, 2);
-              g.endFill();
-              particles.push({ g, vx: (Math.random() - 0.5) * 1.2, vy: -Math.random() * 1.5 - 0.4, life: 0.9 });
-              particlesContainer.addChild(g);
-            }
-            particlesContainer.position.set(pos.x, pos.y);
-            scene.addChild(particlesContainer);
-            const regenTick = (tk: any) => {
-              const dt = (tk.deltaMS || 16.7) * 0.001;
-              let allDead = true;
-              particles.forEach(p => {
-                if (p.life > 0) {
-                  allDead = false;
-                  p.vy += 9.8 * dt;
-                  p.g.x += p.vx;
-                  p.g.y += p.vy;
-                  p.life -= dt;
-                  p.g.alpha = Math.max(0, p.life);
-                  p.g.scale.set(Math.max(0.1, p.life));
-                }
-              });
-              if (allDead) {
-                app.ticker.remove(regenTick);
-                scene.removeChild(particlesContainer);
-                setTimeout(() => { try { particlesContainer.destroy(); } catch {} }, 0);
-              }
-            };
-            addTick(regenTick);
             break; }
             
           // End
@@ -2650,6 +2583,9 @@ const PixiFight: React.FC<Props> = ({
 };
 
 export default PixiFight;
+
+
+
 
 
 
