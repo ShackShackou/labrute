@@ -130,13 +130,15 @@ const PixiFight: React.FC<Props> = ({
       const SCALE = Number(params.get('pixiScale') ?? (scale ?? 0.22));
       const BOOST = Number(params.get('pixiBoost') ?? (speedBoost ?? 1));
       // Multiplicateur pour ralentir/accÃ©lÃ©rer UNIQUEMENT l'approche (aller)
-      const approachScale = (() => {
+      // Mode strict: rejoue les steps sans tolérances visuelles
+      const STRICT = (params.get('pixiStrict') === '1') || (localStorage.getItem('compare.pixiStrict') === '1');
+      let approachScale = (() => {
         const u = params.get('pixiApproachScale');
         const ls = localStorage.getItem('compare.pixiApproachScale');
-        const n = Number(u ?? ls ?? '1'); // Par dÃ©faut: 1.0 (fidÃ¨le)
+        const n = Number(u ?? ls ?? '1');
         return Number.isFinite(n) && n > 0 ? n : 1;
       })();
-      const scaleFallback = isNaN(SCALE) ? 0.22 : SCALE;
+      if (STRICT) { approachScale = 1; }
       const boostFallback = isNaN(BOOST) ? 1 : BOOST;
       const clampMin = Number(params.get('pixiClampMin') ?? `${clampYMinRatio}`);
       const clampMax = Number(params.get('pixiClampMax') ?? `${clampYMaxRatio}`);
@@ -1263,11 +1265,22 @@ const PixiFight: React.FC<Props> = ({
       // Duration from distance constants close to legacy v6 renderer
       // Ralenti les dÃ©placements d'attaque (aller) pour plus de lisibilitÃ©
       // Vitesse paramétrable via URL/localStorage
-      const approachPps = (() => { const u=params.get('pixiApproachPps'); const ls=localStorage.getItem('compare.pixiApproachPps'); const n=Number(u ?? ls ?? '380'); return Number.isFinite(n)&&n>0?n:380; })();
-      const returnPps   = (() => { const u=params.get('pixiReturnPps');   const ls=localStorage.getItem('compare.pixiReturnPps');   const n=Number(u ?? ls ?? '600'); return Number.isFinite(n)&&n>0?n:600; })();
-      const durationMoveMs = (px:number) => Math.max(80, (px / approachPps) * 1000) * approachScale;
+      let approachPps = (() => { const u=params.get('pixiApproachPps'); const ls=localStorage.getItem('compare.pixiApproachPps'); const n=Number(u ?? ls ?? '380'); return Number.isFinite(n)&&n>0?n:380; })();
+      let returnPps   = (() => { const u=params.get('pixiReturnPps');   const ls=localStorage.getItem('compare.pixiReturnPps');   const n=Number(u ?? ls ?? '600'); return Number.isFinite(n)&&n>0?n:600; })();
+      if (STRICT) {
+        approachPps = Number(params.get('pixiApproachPps') ?? localStorage.getItem('compare.pixiApproachPps') ?? '300');
+        returnPps = Number(params.get('pixiReturnPps') ?? localStorage.getItem('compare.pixiReturnPps') ?? '480');
+      }
       const durationMoveBackMs = (px:number) => Math.max(50, (px / returnPps) * 1000);
       // Ecart de mêlée symétrique (en px)
+      // Ecart de mêlée symétrique (en px)
+      const meleeGapPx = (() => {
+        const u = params.get('pixiGap');
+        const ls = localStorage.getItem('compare.pixiGap');
+        const n = Number(u ?? ls ?? '8');
+        const base = (Number.isFinite(n) && n >= 0) ? n : 8;
+        return STRICT ? 0 : base;
+      })();
       const meleeGapPx = (() => {
         const u = params.get('pixiGap');
         const ls = localStorage.getItem('compare.pixiGap');
