@@ -68,6 +68,11 @@ const PixiFight: React.FC<Props> = ({
   const traceRowsRef = useRef<{ t:number, who:'L'|'R', rootX:number, rootY:number, anim:string, trackTime:number }[]>([]);
   const traceT0Ref = useRef<number | null>(null);
   const debugVectorsRef = useRef<{ g: Graphics, life: number }[]>([]);
+  // Overlay A/B trace comparison refs
+  const overlayRefData = useRef<{ L: {t:number,x:number,y:number}[], R: {t:number,x:number,y:number}[] } | null>(null);
+  const overlayOnRef = useRef<boolean>(false);
+  const overlayStartRef = useRef<number | null>(null);
+  const overlayGraphicsRef = useRef<{ L: Graphics, R: Graphics, text: Text } | null>(null);
 
   useEffect(() => {
     if (!containerRef.current || !fight) return undefined;
@@ -107,6 +112,7 @@ const PixiFight: React.FC<Props> = ({
 
       // Fixed UI overlay for non-scene elements (e.g., HP bars)
       const ui = new Container();
+      try { (ui as any).eventMode = 'passive'; } catch {}
       // @ts-ignore
       (ui as any).zIndex = 999;
       app.stage.addChild(ui);
@@ -149,6 +155,29 @@ const PixiFight: React.FC<Props> = ({
       // Calibration multipliers per side (R often needs to be slowed down)
       const mulL = (() => { const u = params.get('pixiMulL'); const ls = localStorage.getItem('compare.pixiMulL'); const n = Number(u ?? ls ?? '1'); return isNaN(n) ? 1 : n; })();
       const mulR = (() => { const u = params.get('pixiMulR'); const ls = localStorage.getItem('compare.pixiMulR'); const n = Number(u ?? ls ?? '1'); return isNaN(n) ? 1 : n; })();
+
+      // Deterministic RNG (for lanes/arrive) when strict or explicitly enabled
+      const DETERMINISTIC = STRICT || (params.get('pixiDeterministic') === '1' || localStorage.getItem('compare.pixiDeterministic') === '1');
+      const hash32 = (str: string) => {
+        let h = 2166136261 >>> 0;
+        for (let i = 0; i < str.length; i++) {
+          h ^= str.charCodeAt(i);
+          h = Math.imul(h, 16777619);
+        }
+        return h >>> 0;
+      };
+      let rngState = hash32(String((fight as any)?.id ?? 'fight')) || 123456789;
+      const rand = () => {
+        if (!DETERMINISTIC) return Math.random();
+        // LCG: Numerical Recipes
+        rngState = (Math.imul(1664525, rngState) + 1013904223) | 0;
+        return ((rngState >>> 0) / 4294967296);
+      };
+
+      // Arrival jump tunables
+      const arriveMs = (() => { const u=params.get('pixiArriveMs'); const n=Number(u ?? '420'); return Number.isFinite(n) && n>0 ? n : 420; })();
+      const arriveArc = (() => { const u=params.get('pixiArriveArc'); const n=Number(u ?? '28'); return Number.isFinite(n) ? n : 28; })();
+      const arriveBounce = (params.get('pixiArriveBounce') ?? '1') === '1';
       const addVector = (x1:number,y1:number,x2:number,y2:number,color=0x00ff88) => {
         if (!debugDiag) return;
         try {
@@ -276,7 +305,7 @@ const PixiFight: React.FC<Props> = ({
             }
           }
         }
-        if (loaded) {
+      if (loaded) {
           if (loaded instanceof Sprite) {
             const spr = loaded as Sprite; spr.zIndex = -10; spr.width = W; spr.height = H; 
             spr.y = -12; // Lower by 4px more (was -16, now -12)
@@ -303,6 +332,86 @@ const PixiFight: React.FC<Props> = ({
             bg.y = -12; // Lower by 4px more (was -16, now -12)
             scene.addChildAt(bg, 0);
           }
+        }
+      } catch {}
+
+      // UI helpers (trace overlay)
+      try {
+        if (traceEnabled) {
+          const makeBtn = (text:string, x:number, y:number, onTap:()=>void) => {
+            const c = new Container();
+            const g = new Graphics(); g.beginFill(0x333333, 0.85).drawRoundedRect(0, 0, 86, 18, 5).endFill();
+            // Enable events on the graphic shape (reliable hit area)
+            // @ts-ignore
+            g.eventMode = 'static';
+            // @ts-ignore
+            g.cursor = 'pointer';
+            g.on('pointertap', onTap);
+            const t = new Text(text, { fontSize: 11, fill: 0xffffff } as any); t.position.set(6, 2);
+            c.addChild(g, t); c.position.set(x,y); // @ts-ignore
+            (c as any).zIndex = 1000; ui.addChild(c); return c;
+          };
+          makeBtn('Save Trace', 6, 6, () => { try { (window as any).pixiTraceDownload?.(); } catch {} });
+          makeBtn('Load Ref CSV', 98, 6, () => {
+            try { const input = document.createElement('input'); input.type='file'; input.accept='.csv,.txt';
+              input.onchange = () => {
+                const f = (input.files && input.files[0]) || null; if (!f) return;
+                const rdr=new FileReader(); rdr.onload=()=>{
+                  try {
+                    const txt = String(rdr.result||''); const lines = txt.split(/\r?\n/).filter(Boolean);
+                    const L: {t:number,x:number,y:number}[]=[]; const R: {t:number,x:number,y:number}[]=[];
+                    const header = lines[0] || '';
+                    const start = header.startsWith('t') ? 1 : 0;
+                    for (let i=start;i<lines.length;i++){
+                      const line = lines[i] || '';
+                      const parts = line.split(','); if (parts.length<4) continue; const who=(parts[1]||'').trim();
+                      const row = { t: Number(parts[0])||0, x: Number(parts[2])||0, y: Number(parts[3])||0 };
+                      if (who==='L') L.push(row); else if (who==='R') R.push(row);
+                    }
+                    overlayRefData.current = { L, R }; overlayOnRef.current = true; overlayStartRef.current = performance.now()/1000;
+                  } catch {} };
+                rdr.readAsText(f);
+              };
+              input.click(); } catch {} });
+          makeBtn('Overlay On/Off', 200, 6, () => {
+            overlayOnRef.current = !overlayOnRef.current;
+            if (!overlayOnRef.current) {
+              try {
+                const og = overlayGraphicsRef.current;
+                if (og) { og.L.clear(); og.R.clear(); og.text.text = ''; }
+              } catch {}
+            }
+          });
+          // overlay graphics + tick
+          const gL = new Graphics(); const gR = new Graphics();
+          const info = new Text('', { fontSize: 10, fill: 0xffffff, stroke: 0x000000, strokeThickness: 2 } as any);
+          info.position.set(W/2 - 60, 6);
+          // @ts-ignore
+          (gL as any).zIndex = 999; (gR as any).zIndex = 999; (info as any).zIndex = 999;
+          ui.addChild(gL, gR, info);
+          overlayGraphicsRef.current = { L: gL, R: gR, text: info };
+          const errBufL:number[]=[]; const errBufR:number[]=[];
+          const sampleAt = (arr:{t:number,x:number,y:number}[], t:number) => {
+            if (!arr || arr.length===0) return null;
+            let lo=0, hi=arr.length-1; while (lo<hi){ const mid=(lo+hi)>>1; if(arr[mid] && arr[mid].t < t) lo=mid+1; else hi=mid; }
+            return arr[lo] || null;
+          };
+          const tickOverlay = () => {
+            try {
+              if (!overlayOnRef.current || !overlayRefData.current || !overlayGraphicsRef.current) return;
+              const t = (performance.now()/1000) - (overlayStartRef.current || 0);
+              const refL = sampleAt(overlayRefData.current.L, t);
+              const refR = sampleAt(overlayRefData.current.R, t);
+              const og = overlayGraphicsRef.current; og.L.clear(); og.R.clear();
+              if (refL) { og.L.lineStyle(0).beginFill(0xff2222, 0.8).drawCircle(refL.x, refL.y, 3).endFill(); }
+              if (refR) { og.R.lineStyle(0).beginFill(0x22aaff, 0.8).drawCircle(refR.x, refR.y, 3).endFill(); }
+              let maeL=0, maeR=0; let nL=0,nR=0;
+              if (spinesRef.current.L && refL) { const p = getPos(spinesRef.current.L); const d=Math.hypot((p.x-refL.x),(p.y-refL.y)); errBufL.push(d); if (errBufL.length>60) errBufL.shift(); maeL=errBufL.reduce((a,b)=>a+b,0)/errBufL.length; nL=errBufL.length; }
+              if (spinesRef.current.R && refR) { const p = getPos(spinesRef.current.R); const d=Math.hypot((p.x-refR.x),(p.y-refR.y)); errBufR.push(d); if (errBufR.length>60) errBufR.shift(); maeR=errBufR.reduce((a,b)=>a+b,0)/errBufR.length; nR=errBufR.length; }
+              og.text.text = `MAE L:${maeL.toFixed(1)}px (${nL})  R:${maeR.toFixed(1)}px (${nR})`;
+            } catch {}
+          };
+          addTick(tickOverlay);
         }
       } catch {}
 
@@ -404,6 +513,11 @@ const PixiFight: React.FC<Props> = ({
         shadowL?.destroy(); shadowR?.destroy();
         shadowL = addShadow(left);
         shadowR = addShadow(right);
+        // Hide fighters and shadows until their Arrive step to avoid first-frame flicker
+        try { L.visible = false; } catch {}
+        try { R.visible = false; } catch {}
+        try { (shadowL as any).visible = false; } catch {}
+        try { (shadowR as any).visible = false; } catch {}
       } catch {
         // keep circles fallback if assets/runtimes unavailable
       }
@@ -955,7 +1069,15 @@ const PixiFight: React.FC<Props> = ({
       const fighters: any[] = parseArr(fight.fighters);
 
       const byIndex = new Map<number, any>();
-      for (const f of fighters) { if (typeof f?.index === 'number') byIndex.set(f.index, f); }
+      const hpByIndex = new Map<number, { cur: number, max: number }>();
+      for (const f of fighters) {
+        if (typeof f?.index === 'number') {
+          byIndex.set(f.index, f);
+          const max = Number(f?.maxHp ?? f?.hp ?? 100) || 100;
+          const cur = Number(f?.hp ?? max) || max;
+          hpByIndex.set(f.index, { cur: Math.max(0, cur), max: Math.max(1, max) });
+        }
+      }
       // Track last known weapon by actor (from Hit steps)
       const lastWeaponByActor = new Map<number, string>();
       // Track which weapons are currently drawn (in hand) vs sheathed
@@ -1023,6 +1145,24 @@ const PixiFight: React.FC<Props> = ({
         allTexts.push(preText);
       }
       
+      // Trace UI button (if tracing enabled)
+      try {
+        if (traceEnabled) {
+          const btn = new Container();
+          btn.eventMode = 'static';
+          const bg = new Graphics();
+          bg.beginFill(0x333333, 0.85).drawRoundedRect(0, 0, 76, 18, 5).endFill();
+          const label = new Text('Save Trace', { fontSize: 11, fill: 0xffffff } as any);
+          label.position.set(6, 2);
+          btn.addChild(bg, label);
+          btn.position.set(6, 6);
+          // @ts-ignore
+          (btn as any).zIndex = 1000;
+          ui.addChild(btn);
+          btn.on('pointertap', () => { try { (window as any).pixiTraceDownload?.(); } catch {} });
+        }
+      } catch {}
+
       const getText = () => {
         let t = textPool.pop();
         if (!t) {
@@ -1096,6 +1236,47 @@ const PixiFight: React.FC<Props> = ({
       // Weapon and Pet Spine Animated Placeholders
       const weaponSpines = new Map<any, any>();
       const petSpines = new Map<number, any>();
+      const petHudByIndex = new Map<number, { cont: Container, set: (r:number)=>void }>();
+      let petHudTickStarted = false;
+
+      const ensurePetHudTick = () => {
+        if (petHudTickStarted) return;
+        petHudTickStarted = true;
+        const tick = () => {
+          try {
+            petHudByIndex.forEach((hud, idx) => {
+              const pet = petSpines.get(idx);
+              if (!pet) return;
+              const pos = getPos(pet);
+              hud.cont.position.set(pos.x, pos.y - 22);
+            });
+          } catch {}
+        };
+        addTick(tick);
+      };
+
+      const ensurePetHud = (idx:number) => {
+        if (petHudByIndex.has(idx)) return petHudByIndex.get(idx)!;
+        const cont = new Container();
+        ui.addChild(cont);
+        const bg = new Graphics();
+        bg.lineStyle(1, 0xB8860B, 1);
+        bg.beginFill(0x000000, 0.9).drawRoundedRect(-16, -6, 32, 5, 2).endFill();
+        const fill = new Graphics();
+        cont.addChild(bg, fill);
+        const set = (ratio:number) => {
+          try { fill.clear(); } catch {}
+          const r = Math.max(0, Math.min(1, ratio));
+          if (r <= 0) return;
+          fill.beginFill(0xFFD700).drawRoundedRect(-15, -5, Math.max(1, Math.floor(30*r)), 3, 1).endFill();
+        };
+        const entry = { cont, set } as const;
+        petHudByIndex.set(idx, entry);
+        ensurePetHudTick();
+        const hp = hpByIndex.get(idx);
+        if (hp) set(hp.cur / hp.max);
+        return entry;
+      };
       
       // Create animated weapon using Spine runtime
       const createWeaponSpine = (weaponName: string) => {
@@ -1370,7 +1551,7 @@ const PixiFight: React.FC<Props> = ({
         }
         let pick: {start:number,end:number};
         if (comfortable.length > 0) {
-          pick = comfortable[Math.floor(Math.random()*comfortable.length)]!;
+          pick = comfortable[Math.floor(rand()*comfortable.length)]!;
         } else if (largest) {
           pick = largest;
         } else {
@@ -1379,7 +1560,7 @@ const PixiFight: React.FC<Props> = ({
         const space = pick.end - pick.start - comfort*2;
         let y: number;
         if (space <= 0) y = (pick.start + pick.end)/2; else {
-          y = pick.start + comfort + space*0.15 + Math.random()*(space*0.8);
+          y = pick.start + comfort + space*0.15 + rand()*(space*0.8);
         }
         if (y <= minY + comfort && pick.start === minY) y = minY + 1;
         if (y >= maxY - comfort && pick.end === maxY) y = maxY - 1;
@@ -1390,7 +1571,7 @@ const PixiFight: React.FC<Props> = ({
         const minX = side === 'L' ? minLX : minRX;
         const maxX = side === 'L' ? maxLX : maxRX;
         // Official-like X factor with weapon/skills influence
-        let factor = 0.4 + Math.random() * 0.6;
+        let factor = 0.4 + rand() * 0.6;
         try {
           let wname: string | undefined;
           try { if (actor && typeof actor.index === 'number') wname = lastWeaponByActor.get(actor.index); } catch {}
@@ -1425,7 +1606,7 @@ const PixiFight: React.FC<Props> = ({
         const minShift = Math.max(60, (maxX - minX) * 0.6);
         let tries = 0;
         while (typeof currX === 'number' && Math.abs(x - currX) < minShift && tries < 5) {
-          factor = Math.random();
+          factor = rand();
           x = minX + factor * (maxX - minX);
           tries++;
         }
@@ -1509,6 +1690,26 @@ const PixiFight: React.FC<Props> = ({
           barL.follow(); barR.follow();
           shadowL.follow(); shadowR.follow();
           if (p >= 1) { app.ticker.remove(tick); resolve(); }
+        };
+        addTick(tick);
+      });
+
+      // Jump (parabolic) to target (used for entry "bond")
+      const jumpTo = (obj:any, tx:number, ty:number, duration=380, arc=26) => new Promise<void>((resolve)=>{
+        if (disposed) { resolve(); return; }
+        const start = getPos(obj);
+        const startAlpha = typeof (obj as any).alpha === 'number' ? (obj as any).alpha : 1;
+        let t=0; const total = Math.max(1, duration / Math.max(0.001, speed));
+        const tick = (tk:any)=>{
+          if (disposed) { try{app.ticker.remove(tick);}catch{} resolve(); return; }
+          const dm = typeof tk?.deltaMS === 'number' ? tk.deltaMS : 16.7; t+=dm; const p=Math.min(1, t/total);
+          const x = start.x + (tx - start.x) * p;
+          const y = start.y + (ty - start.y) * p - Math.sin(p*Math.PI) * arc;
+          setPos(obj, x, y);
+          try { if (startAlpha < 1) { (obj as any).alpha = Math.min(1, startAlpha + (1 - startAlpha) * p); } } catch {}
+          // @ts-ignore
+          if ('zIndex' in obj) (obj as any).zIndex = y;
+          if (p>=1){ try{app.ticker.remove(tick);}catch{} resolve(); }
         };
         addTick(tick);
       });
@@ -1604,13 +1805,30 @@ const PixiFight: React.FC<Props> = ({
           case 2: {
             try {
               if (actorSide === 'L') {
-                const x = minLX + Math.random() * (maxLX - minLX);
+                const x = minLX + rand() * (maxLX - minLX);
                 const y = chooseLaneY('L'); occY.L.push(y);
-                setPos(src.node, x, y); src.baseX = x; src.baseY = y;
+                // Start off-screen and jump in
+                setPos(src.node, -60, y + 12); src.baseX = x; src.baseY = y;
+                try { src.node.visible = true; } catch {}
+                try { (shadowL as any).visible = true; } catch {}
+                try { (src.node as any).alpha = 0; } catch {}
+                await jumpTo(src.node, x, y, arriveMs, arriveArc);
+                if (arriveBounce) {
+                  await tweenTo(src.node, x, y + Math.max(4, arriveArc*0.18), Math.max(60, arriveMs*0.18));
+                  await tweenTo(src.node, x, y, Math.max(80, arriveMs*0.22));
+                }
               } else {
-                const x = minRX + Math.random() * (maxRX - minRX);
+                const x = minRX + rand() * (maxRX - minRX);
                 const y = chooseLaneY('R'); occY.R.push(y);
-                setPos(src.node, x, y); src.baseX = x; src.baseY = y;
+                setPos(src.node, W + 60, y + 12); src.baseX = x; src.baseY = y;
+                try { src.node.visible = true; } catch {}
+                try { (shadowR as any).visible = true; } catch {}
+                try { (src.node as any).alpha = 0; } catch {}
+                await jumpTo(src.node, x, y, arriveMs, arriveArc);
+                if (arriveBounce) {
+                  await tweenTo(src.node, x, y + Math.max(4, arriveArc*0.18), Math.max(60, arriveMs*0.18));
+                  await tweenTo(src.node, x, y, Math.max(80, arriveMs*0.22));
+                }
               }
               
               // Check if this is a pet arrival
@@ -1642,6 +1860,7 @@ const PixiFight: React.FC<Props> = ({
                 } else {
                   right = { node: pet, baseX: pet.x, baseY: pet.y, type: 'pet', width: 30 };
                 }
+                try { ensurePetHud(actorIdx); } catch {}
               }
             } catch {}
             break; }
@@ -1756,6 +1975,13 @@ const PixiFight: React.FC<Props> = ({
             // Apply damage IMMEDIATELY (animation happens in parallel)
             // If there's damage, someone's HP must decrease
             if (dmg > 0) {
+              const targetPet = (targetIdx !== null) && (petSpines.has(targetIdx) || (target && ((target as any).type === 'pet' || (target as any).master)));
+              if (targetPet && targetIdx !== null) {
+                const hp = hpByIndex.get(targetIdx) || { cur: (target?.hp ?? 1), max: (target?.maxHp ?? 1) };
+                hp.cur = Math.max(0, (hp.cur ?? 0) - dmg);
+                hpByIndex.set(targetIdx, hp);
+                try { const hud = ensurePetHud(targetIdx); hud.set(hp.cur / Math.max(1, hp.max)); } catch {}
+              } else {
               // Check if target is main fighter by ID
               if (target?.id === fight.brute1Id) {
                 hpL = Math.max(0, hpL - dmg);
@@ -1796,12 +2022,14 @@ const PixiFight: React.FC<Props> = ({
                 setTimeout(() => barR.set(hpR / maxR), 50);
                 try { (hudR as any)?.hitShake?.(); } catch {}
               }
+              }
             }
             
             // Update pet HP if target is pet
             const petSpine = petSpines.get(targetIdx ?? -1);
-            if (petSpine && target) {
-              const petHpRatio = Math.max(0, (target.hp - dmg) / (target.maxHp || 100));
+            if (petSpine && targetIdx !== null) {
+              const hp = hpByIndex.get(targetIdx) || { cur: (target?.hp ?? 0), max: (target?.maxHp ?? 100) };
+              const petHpRatio = Math.max(0, (hp.cur ?? 0) / Math.max(1, hp.max ?? 100));
               if (petHpRatio <= 0) {
                 // Pet death animation - stop animation and fade
                 petSpine.alpha = 0.3;
@@ -1966,6 +2194,7 @@ const PixiFight: React.FC<Props> = ({
               petSpine.rotation = Math.PI / 2;
               petSpine.y += 10;
               floatText(petSpine.x, petSpine.y, 'PET DEAD', 0x8B0000);
+              try { const hud = petHudByIndex.get(diedIdx!); if (hud) hud.set(0); } catch {}
             }
             break; }
           // Throw (projectile weapon)
@@ -2601,7 +2830,7 @@ const PixiFight: React.FC<Props> = ({
             try {
               const winnerName = winnerSide === 'L' ? (leftMain?.name ?? 'GAUCHE') : winnerSide === 'R' ? (rightMain?.name ?? 'DROITE') : '';
               if (winnerName) {
-                const t = new Text(`VICTOIRE: ${winnerName.toUpperCase()}`, {
+                const t = new Text(`${winnerName.toUpperCase()} WON THE FIGHT`, {
                   fill: 0xFFFFFF,
                   stroke: 0x000000,
                   strokeThickness: 3,
@@ -2609,10 +2838,9 @@ const PixiFight: React.FC<Props> = ({
                   fontWeight: '900'
                 } as any);
                 t.anchor.set(0.5, 1);
-                t.position.set(W / 2, H - 18);
+                t.position.set(W / 2, H - 28);
                 ui.addChild(t);
-                const id = window.setTimeout(() => { try { ui.removeChild(t); t.destroy(); } catch {} }, 3200);
-                timeouts.add(id);
+                // Do not auto-remove the victory banner; keep it visible until view unmounts
               }
             } catch {}
 
