@@ -1,4 +1,4 @@
-﻿/* eslint-disable unicode-bom, quotes, @typescript-eslint/ban-ts-comment, @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-member-access, @typescript-eslint/no-unsafe-call, max-len, lines-between-class-members, one-var, one-var-declaration-per-line, no-empty, comma-spacing, space-infix-ops, key-spacing, arrow-spacing, arrow-parens, object-curly-spacing, block-spacing, space-before-function-paren, default-case, no-promise-executor-return, @typescript-eslint/no-floating-promises */
+/* eslint-disable unicode-bom, quotes, @typescript-eslint/ban-ts-comment, @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-member-access, @typescript-eslint/no-unsafe-call, max-len, lines-between-class-members, one-var, one-var-declaration-per-line, no-empty, comma-spacing, space-infix-ops, key-spacing, arrow-spacing, arrow-parens, object-curly-spacing, block-spacing, space-before-function-paren, default-case, no-promise-executor-return, @typescript-eslint/no-floating-promises */
 import React, { useEffect, useRef } from 'react';
 import { Application, Container, Graphics, Text, Assets, Sprite } from 'pixi.js';
 // @ts-ignore - official Spine v8 runtime for Pixi v8
@@ -432,42 +432,103 @@ const PixiFight: React.FC<Props> = ({
         const portraitContainer = new Container();
         portraitContainer.addChild(portraitBg, portrait);
         
-        // Try to add actual Spineboy portrait
+        // PFP image in portrait (masked), with URL params override
+        const p = new URLSearchParams(window.location.search);
+        const urlDefault = '/images/viewport.png';
+        const url = (isL ? (p.get('pixiPfpL') || p.get('pixiPfp')) : (p.get('pixiPfpR') || p.get('pixiPfp'))) || urlDefault;
+        const pScale = Number(p.get('pixiPfpScale') ?? '1');
+        const offX = Number(p.get('pixiPfpOffX') ?? '0');
+        const offY = Number(p.get('pixiPfpOffY') ?? '0');
+
+        // Mask to keep sprite inside the frame
+        const mask = new Graphics();
+        mask.beginFill(0xFFFFFF);
+        mask.drawRect(2, 2, portraitSize - 4, portraitSize - 4);
+        mask.endFill();
+        portraitContainer.addChild(mask);
+
+        // Red X overlay for loser — two filled bars (centered over PFP)
+        let redX: Container | null = null;
         try {
-          // Create a mini Spineboy for the portrait
-          const miniSpine = new Spine(Assets.cache.get('spineboy-data'));
-          miniSpine.scale.set(0.08 * (isL ? 1 : -1), 0.08);  // Very small scale
-          miniSpine.position.set(portraitSize/2, portraitSize - 5);
-          
-          // Set idle animation
-          if (miniSpine.state) {
-            miniSpine.state.setAnimation(0, 'idle', true);
+          const cross = new Container();
+          const size = Math.round(portraitSize * 1.28); // slightly larger than portrait
+          const thick = Math.max(6, Math.round(portraitSize * 0.26));
+          const barA = new Graphics();
+          barA.beginFill(0xFF0000).drawRect(-size / 2, -thick / 2, size, thick).endFill();
+          barA.rotation = Math.PI / 4;
+          const barB = new Graphics();
+          barB.beginFill(0xFF0000).drawRect(-size / 2, -thick / 2, size, thick).endFill();
+          barB.rotation = -Math.PI / 4;
+          cross.addChild(barA, barB);
+          // Center the cross over the PFP (slight inward bias if needed later)
+          const cx = portraitSize / 2;
+          const cy = portraitSize / 2;
+          cross.position.set(cx, cy);
+          cross.visible = false;
+          portraitContainer.addChild(cross);
+          redX = cross;
+        } catch {}
+
+        const addPfpFromUrl = async (u: string) => {
+          try {
+            const tex = await Assets.load(u);
+            if (!tex) throw new Error('No texture');
+            const spr = new Sprite(tex as any);
+            // Center the head in the square to avoid being too high
+            spr.anchor.set(0.5, 0.5);
+            // Auto-fit inside portrait (contain), then allow only downscale via pScale
+            const baseScale = Number.isFinite(pScale) ? pScale : 1;
+            const tw = ((spr as any).texture?.width ?? (spr as any).width ?? 1);
+            const th = ((spr as any).texture?.height ?? (spr as any).height ?? 1);
+            const maxW = portraitSize - 6;
+            const maxH = portraitSize - 6;
+            const fit = Math.min(maxW / Math.max(1, tw), maxH / Math.max(1, th));
+            const eff = fit * Math.min(1, baseScale); // n’agrandit pas au-delà du fit
+            // Flip on right so both look towards center
+            spr.scale.set((isL ? 1 : -1) * eff, eff);
+            spr.position.set(portraitSize / 2 + offX, portraitSize / 2 + offY);
+            (spr as any).mask = mask;
+            portraitContainer.addChild(spr);
+            // Ensure red X stays on top if it exists
+            try { if (redX) portraitContainer.addChild(redX); } catch {}
+          } catch {
+            // Fallback to logo if loading fails
+            try {
+              const tex2 = await Assets.load('/logo192.png');
+              const spr2 = new Sprite(tex2 as any);
+              spr2.anchor.set(0.5, 0.5);
+              const baseScale2 = Number.isFinite(pScale) ? pScale : 1;
+              const tw2 = ((spr2 as any).texture?.width ?? (spr2 as any).width ?? 1);
+              const th2 = ((spr2 as any).texture?.height ?? (spr2 as any).height ?? 1);
+              const maxW2 = portraitSize - 6;
+              const maxH2 = portraitSize - 6;
+              const fit2 = Math.min(maxW2 / Math.max(1, tw2), maxH2 / Math.max(1, th2));
+              const eff2 = fit2 * Math.min(1, baseScale2);
+              spr2.scale.set((isL ? 1 : -1) * eff2, eff2);
+              spr2.position.set(portraitSize / 2 + offX, portraitSize / 2 + offY);
+              (spr2 as any).mask = mask;
+              portraitContainer.addChild(spr2);
+              try { if (redX) portraitContainer.addChild(redX); } catch {}
+            } catch {
+              // Last resort: initial letter
+              const initialText = String(name ?? '?')[0];
+              const initial = new Text(initialText ? initialText.toUpperCase() : '?', {
+                fontSize: 18,
+                fill: 0xFFDDCC,
+                fontWeight: 'bold',
+                stroke: 0x2A1810,
+                strokeThickness: 2
+              } as any);
+              initial.anchor.set(0.5);
+              initial.position.set(portraitSize/2, portraitSize/2);
+              portraitContainer.addChild(initial);
+              try { if (redX) portraitContainer.addChild(redX); } catch {}
+            }
           }
-          
-          // Add mask to keep within portrait bounds
-          const mask = new Graphics();
-          mask.beginFill(0xFFFFFF);
-          mask.drawRect(2, 2, portraitSize - 4, portraitSize - 4);
-          mask.endFill();
-          miniSpine.mask = mask;
-          portraitContainer.addChild(mask);
-          
-          portraitContainer.addChild(miniSpine);
-        } catch {
-          // Fallback to initial if Spine fails
-          const initialText = String(name ?? '?')[0];
-          const initial = new Text(initialText ? initialText.toUpperCase() : '?', {
-            fontSize: 18,
-            fill: 0xFFDDCC,
-            fontWeight: 'bold',
-            stroke: 0x2A1810,
-            strokeThickness: 2
-          } as any);
-          initial.anchor.set(0.5);
-          initial.position.set(portraitSize/2, portraitSize/2);
-          portraitContainer.addChild(initial);
-        }
-        
+        };
+        // Start loading PFP (non-blocking)
+        addPfpFromUrl(url);
+
         // Name text - bigger, whiter and bolder
         const nameText = new Text(String(name ?? '').toUpperCase(), {
           fill: '#FFFFFF',  // Pure white
@@ -527,17 +588,7 @@ const PixiFight: React.FC<Props> = ({
         // Weapon icon (small, next to portrait)
         const weaponContainer = new Container();
         
-        // Add red X for left player (like original)
-        let redX: Graphics | null = null;
-        if (isL) {
-          redX = new Graphics();
-          redX.lineStyle(4, 0xFF0000);
-          redX.moveTo(5, 5);
-          redX.lineTo(portraitSize - 5, portraitSize - 5);
-          redX.moveTo(portraitSize - 5, 5);
-          redX.lineTo(5, portraitSize - 5);
-          redX.visible = false; // Hidden initially
-        }
+        
         
         // Create the full HUD layout
         const fullBar = new Container();
@@ -549,9 +600,8 @@ const PixiFight: React.FC<Props> = ({
           
           barContainer.position.set(0, 18);
           
-          // Portrait just below bar (collÃ© verticalement)
-          portraitContainer.position.set(0, 32);  // Reduced from 36 to be closer
-          if (redX) portraitContainer.addChild(redX);
+          // Portrait just below bar
+          portraitContainer.position.set(0, 32);
           
           // Weapon icon next to portrait (same position as right side)
           weaponContainer.position.set(portraitSize + 4, 34);
@@ -565,8 +615,8 @@ const PixiFight: React.FC<Props> = ({
           
           barContainer.position.set(0, 18);
           
-          // Portrait just below bar (collÃ© verticalement)
-          portraitContainer.position.set(barW - portraitSize, 32);  // Reduced from 36 to be closer
+          // Portrait just below bar
+          portraitContainer.position.set(barW - portraitSize, 32);
           
           // Weapon icons aligned left of portrait for right fighter, growing leftward
           weaponContainer.position.set(barW - portraitSize - 130, 34);  // Space for weapons to grow left
@@ -868,12 +918,36 @@ const PixiFight: React.FC<Props> = ({
         };
         
         const follow = () => {};
-        
-        const showDeathX = () => {
-          if (redX) redX.visible = true;
+
+        // Small HUD shake (used when taking a hit)
+        const hitShake = (mag=2, dur=200) => {
+          const base = { x: portraitContainer.x, y: portraitContainer.y };
+          let t = 0;
+          const tick = (tk:any) => {
+            const dm = typeof tk?.deltaMS === 'number' ? tk.deltaMS : 16.7;
+            t += dm;
+            const p = Math.min(1, t / dur);
+            const jx = (Math.random()*2-1) * mag * (1 - p);
+            portraitContainer.position.set(base.x + jx, base.y);
+            if (p >= 1) {
+              try { portraitContainer.position.set(base.x, base.y); } catch {}
+              try { app.ticker.remove(tick); } catch {}
+            }
+          };
+          addTick(tick);
         };
         
-        return { set, follow, nameText, updateWeapon, removeWeapon, clearWeapons, showDeathX, fullBar };
+        const showDeathX = () => {
+          try {
+            if (redX) {
+              redX.visible = true;
+              // Ensure it renders on top
+              portraitContainer.addChild(redX);
+            }
+          } catch {}
+        };
+        
+        return { set, follow, nameText, updateWeapon, removeWeapon, clearWeapons, showDeathX, fullBar, hitShake };
       };
 
       const parseArr = (x: any) => { try { return Array.isArray(x) ? x : JSON.parse(x); } catch { return []; } };
@@ -1267,25 +1341,15 @@ const PixiFight: React.FC<Props> = ({
       // Vitesse paramétrable via URL/localStorage
       let approachPps = (() => { const u=params.get('pixiApproachPps'); const ls=localStorage.getItem('compare.pixiApproachPps'); const n=Number(u ?? ls ?? '380'); return Number.isFinite(n)&&n>0?n:380; })();
       let returnPps   = (() => { const u=params.get('pixiReturnPps');   const ls=localStorage.getItem('compare.pixiReturnPps');   const n=Number(u ?? ls ?? '600'); return Number.isFinite(n)&&n>0?n:600; })();
-      if (STRICT) {
-        approachPps = Number(params.get('pixiApproachPps') ?? localStorage.getItem('compare.pixiApproachPps') ?? '300');
-        returnPps = Number(params.get('pixiReturnPps') ?? localStorage.getItem('compare.pixiReturnPps') ?? '480');
-      }
-      const durationMoveBackMs = (px:number) => Math.max(50, (px / returnPps) * 1000);
-      // Ecart de mêlée symétrique (en px)
+      const durationMoveMs = (px:number) => Math.max(80, (px / (approachPps||380)) * 1000) * (approachScale||1);
+      const durationMoveBackMs = (px:number) => Math.max(50, (px / (returnPps||600)) * 1000);
       // Ecart de mêlée symétrique (en px)
       const meleeGapPx = (() => {
         const u = params.get('pixiGap');
         const ls = localStorage.getItem('compare.pixiGap');
-        const n = Number(u ?? ls ?? '8');
-        const base = (Number.isFinite(n) && n >= 0) ? n : 8;
-        return STRICT ? 0 : base;
-      })();
-      const meleeGapPx = (() => {
-        const u = params.get('pixiGap');
-        const ls = localStorage.getItem('compare.pixiGap');
-        const n = Number(u ?? ls ?? '8');
-        return Number.isFinite(n) && n >= 0 ? n : 8;
+        const def = STRICT ? '0' : '8';
+        const n = Number(u ?? ls ?? def);
+        return Number.isFinite(n) && n >= 0 ? n : Number(def);
       })();
 
       // Limites Y corrigÃ©es d'aprÃ¨s l'analyse CSV
@@ -1699,32 +1763,38 @@ const PixiFight: React.FC<Props> = ({
                 barL.set(hpL / maxL);
                 // Also schedule update after a small delay to ensure it sticks
                 setTimeout(() => barL.set(hpL / maxL), 50);
+                try { (hudL as any)?.hitShake?.(); } catch {}
               } else if (target?.id === fight.brute2Id) {
                 hpR = Math.max(0, hpR - dmg);
                 // Immediate update
                 barR.set(hpR / maxR);
                 // Also schedule update after a small delay to ensure it sticks
                 setTimeout(() => barR.set(hpR / maxR), 50);
+                try { (hudR as any)?.hitShake?.(); } catch {}
               }
               // Fallback: check by index
               else if (targetIdx === leftMainIdx) {
                 hpL = Math.max(0, hpL - dmg);
                 barL.set(hpL / maxL);
                 setTimeout(() => barL.set(hpL / maxL), 50);
+                try { (hudL as any)?.hitShake?.(); } catch {}
               } else if (targetIdx === rightMainIdx) {
                 hpR = Math.max(0, hpR - dmg);
                 barR.set(hpR / maxR);
                 setTimeout(() => barR.set(hpR / maxR), 50);
+                try { (hudR as any)?.hitShake?.(); } catch {}
               }
               // Last resort: use visual position
               else if (tgt === left) {
                 hpL = Math.max(0, hpL - dmg);
                 barL.set(hpL / maxL);
                 setTimeout(() => barL.set(hpL / maxL), 50);
+                try { (hudL as any)?.hitShake?.(); } catch {}
               } else if (tgt === right) {
                 hpR = Math.max(0, hpR - dmg);
                 barR.set(hpR / maxR);
                 setTimeout(() => barR.set(hpR / maxR), 50);
+                try { (hudR as any)?.hitShake?.(); } catch {}
               }
             }
             
@@ -1881,7 +1951,7 @@ const PixiFight: React.FC<Props> = ({
             } else if (diedFighter?.id === fight.brute2Id || actorIdx === rightMainIdx) { 
               right.node.alpha = 0.2; 
               hpR = 0; 
-              barR.set(0); 
+              try { (hudR as any)?.showDeathX?.(); } catch {}
               playAnim(right, 'death', false);
               floatText(right.node.x, right.node.y, 'DEAD', 0x8B0000);
             }
@@ -2515,10 +2585,79 @@ const PixiFight: React.FC<Props> = ({
           case 26: {
             try {
               const qp = new URLSearchParams(window.location.search);
-              const auto = (qp.get('pixiTraceAuto') === '1' || localStorage.getItem('compare.pixiTraceAuto') === '1');
-              const enabled = (qp.get('pixiTrace') === '1' || localStorage.getItem('compare.pixiTrace') === '1');
+              const auto = (qp.get("pixiTraceAuto") === "1" || localStorage.getItem("compare.pixiTraceAuto") === "1");
+              const enabled = (qp.get("pixiTrace") === "1" || localStorage.getItem("compare.pixiTrace") === "1");
               if (auto && enabled) { try { (window as any).pixiTraceDownload?.(); } catch {} }
             } catch {}
+
+            // Determine winner/loser and show red X on loser
+            let winnerSide: 'L'|'R' | null = null;
+            try {
+              if (hpL > hpR) { (hudR as any)?.showDeathX?.(); winnerSide = 'L'; }
+              else if (hpR > hpL) { (hudL as any)?.showDeathX?.(); winnerSide = 'R'; }
+            } catch {}
+
+            // Victory banner (sobre)
+            try {
+              const winnerName = winnerSide === 'L' ? (leftMain?.name ?? 'GAUCHE') : winnerSide === 'R' ? (rightMain?.name ?? 'DROITE') : '';
+              if (winnerName) {
+                const t = new Text(`VICTOIRE: ${winnerName.toUpperCase()}`, {
+                  fill: 0xFFFFFF,
+                  stroke: 0x000000,
+                  strokeThickness: 3,
+                  fontSize: 20,
+                  fontWeight: '900'
+                } as any);
+                t.anchor.set(0.5, 1);
+                t.position.set(W / 2, H - 18);
+                ui.addChild(t);
+                const id = window.setTimeout(() => { try { ui.removeChild(t); t.destroy(); } catch {} }, 3200);
+                timeouts.add(id);
+              }
+            } catch {}
+
+            // Confettis au-dessus du HUD du gagnant
+            try {
+              if (winnerSide) {
+                const baseX = winnerSide === 'L' ? 5 + 80 : W - 5 - 80;
+                const baseY = 10;
+                const confContainer = new Container();
+                ui.addChild(confContainer);
+                const colors: number[] = [0xFFD700, 0xFF69B4, 0x00FFFF, 0xADFF2F, 0xFFA500, 0xFFFFFF];
+                const parts: { g: Graphics, vy: number, vx: number, rot: number, life: number }[] = [];
+                for (let i = 0; i < 28; i++) {
+                  const g = new Graphics();
+                  const col = colors[i % colors.length] ?? 0xFFFFFF;
+                  g.beginFill(col as any);
+                  if (i % 3 === 0) g.drawRect(-2, -2, 4, 4);
+                  else if (i % 3 === 1) g.drawCircle(0, 0, 2);
+                  else g.drawPolygon([0,0, 3,0, 1.5,3]);
+                  g.endFill();
+                  g.position.set(baseX + (Math.random()*60 - 30), baseY + Math.random()*10);
+                  confContainer.addChild(g);
+                  parts.push({ g, vy: 0.5 + Math.random()*1.0, vx: (Math.random()*1.2 - 0.6), rot: (Math.random()*0.1 - 0.05), life: 3000 });
+                }
+                const confTick = (tk:any) => {
+                  const dt = typeof tk?.deltaMS === 'number' ? tk.deltaMS : 16.7;
+                  let anyAlive = false;
+                  for (const p of parts) {
+                    p.vy += 0.002 * dt; // gravity
+                    p.g.y += p.vy * (dt/16.7) * 2.0;
+                    p.g.x += p.vx * (dt/16.7) * 2.0;
+                    p.g.rotation += p.rot * (dt/16.7) * 2.0;
+                    p.life -= dt;
+                    if (p.life > 0) anyAlive = true; else p.g.alpha = Math.max(0, p.life/300);
+                  }
+                  if (!anyAlive) {
+                    try { app.ticker.remove(confTick); ui.removeChild(confContainer); confContainer.destroy({ children: true }); } catch {}
+                  }
+                };
+                addTick(confTick);
+                const id = window.setTimeout(() => { try { app.ticker.remove(confTick); ui.removeChild(confContainer); confContainer.destroy({ children: true }); } catch {} }, 3200);
+                timeouts.add(id);
+              }
+            } catch {}
+
             return; }
         }
         {
@@ -2622,6 +2761,7 @@ const PixiFight: React.FC<Props> = ({
 };
 
 export default PixiFight;
+
 
 
 

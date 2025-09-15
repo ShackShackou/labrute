@@ -1,0 +1,6 @@
+h = (weapons.find((ww)=> ww.name === wname)?.reach ?? 0);
+          }
+        } catch {}
+        dist += reach * 16;
+        // Appliquer un �cart constant pour �viter un gap asym�trique
+  
