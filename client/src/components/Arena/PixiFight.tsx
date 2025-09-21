@@ -21,9 +21,12 @@ const SKILL_CATEGORIES = {
     34, // hypnosis
     35, // flashFlood
     36, // tamer
-    48, // vampirism (ID 48, not 49!)
-    50, // haste (ID 50, not 51!)
-    51, // treat (ID 51, not 52!)
+    48, // vampirism
+    50, // haste
+    51, // treat
+    // NOTE: ID 49 (chaining) is PASSIVE, not super!
+    // NOTE: ID 52 (repulse) is PASSIVE, not super!
+    // NOTE: ID 53 (fastMetabolism) is PASSIVE, not super!
   ],
   // Type 'talent' - Special abilities (shown in "Supers" section in UI)
   TALENTS: [
@@ -35,7 +38,8 @@ const SKILL_CATEGORIES = {
     46, // hideaway
     47, // monk
   ],
-  // Type 'passive' - All other passive skills
+  // Type 'passive' - All other passive skills including:
+  // ID 49 (chaining), ID 52 (repulse), ID 53 (fastMetabolism), etc.
   // Type 'booster' - Stat boosters (herculeanStrength, etc.)
 };
 
