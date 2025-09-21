@@ -6,6 +6,44 @@ import { Application, Container, Graphics, Text, Assets, Sprite, Rectangle, Blur
 import { Spine } from '@esotericsoftware/spine-pixi-v8';
 import { FightGetResponse, WeaponById, WeaponId, weapons, StepType, WeaponType, SkillId, SkillById, skills } from '@labrute/core';
 
+// SKILL CATEGORIZATION - Based on core/src/brute/skills.ts
+// This is the OFFICIAL categorization from LaBrute source
+const SKILL_CATEGORIES = {
+  // Type 'super' - Active combat skills with limited uses
+  SUPERS: [
+    27, // thief
+    28, // fierceBrute
+    29, // tragicPotion
+    30, // net
+    31, // bomb
+    32, // hammer
+    33, // cryOfTheDamned
+    34, // hypnosis
+    35, // flashFlood
+    36, // tamer
+    48, // vampirism (ID 48, not 49!)
+    50, // haste (ID 50, not 51!)
+    51, // treat (ID 51, not 52!)
+  ],
+  // Type 'talent' - Special abilities (shown in "Supers" section in UI)
+  TALENTS: [
+    41, // regeneration
+    42, // chef
+    43, // spy
+    44, // saboteur
+    45, // backup
+    46, // hideaway
+    47, // monk
+  ],
+  // Type 'passive' - All other passive skills
+  // Type 'booster' - Stat boosters (herculeanStrength, etc.)
+};
+
+// Helper to check skill type
+const isSuper = (skillId: number) => SKILL_CATEGORIES.SUPERS.includes(skillId);
+const isTalent = (skillId: number) => SKILL_CATEGORIES.TALENTS.includes(skillId);
+const isSuperOrTalent = (skillId: number) => isSuper(skillId) || isTalent(skillId);
+
 type Props = {
   fight: FightGetResponse | null,
   speed?: number,
@@ -538,8 +576,8 @@ const PixiFight: React.FC<Props> = ({
         tooltipDiv.style.padding = '10px';
         tooltipDiv.style.boxShadow = '0 4px 8px rgba(0,0,0,0.3)';
         tooltipDiv.style.fontFamily = 'Arial, sans-serif';
-        tooltipDiv.style.fontSize = '12px';
-        tooltipDiv.style.minWidth = '200px';
+        tooltipDiv.style.fontSize = '14px';
+        tooltipDiv.style.minWidth = '240px';
 
         document.body.appendChild(tooltipDiv);
       };
@@ -563,11 +601,14 @@ const PixiFight: React.FC<Props> = ({
         const agility = Math.round(fighter.agility || fighter.agi || 0);
         const speed = Math.round(fighter.speed || fighter.spd || 0);
 
-        // Get skills
+        // Get skills - Using OFFICIAL categorization from core/src/brute/skills.ts
         const skills = fighter.skills || [];
-        const SUPER_IDS = [27, 28, 29, 30, 31, 32, 33, 34, 35, 36, 42, 43, 44, 45, 46, 47, 48, 49, 51, 52];
-        const supers = skills.filter((id: number) => SUPER_IDS.includes(id));
-        const normalSkills = skills.filter((id: number) => !SUPER_IDS.includes(id));
+
+        // Supers section: includes both 'super' and 'talent' types (as in original LaBrute)
+        const supers = skills.filter((id: number) => isSuperOrTalent(id));
+
+        // Skills section: everything else (passive and booster types)
+        const normalSkills = skills.filter((id: number) => !isSuperOrTalent(id));
 
         // Map skill IDs to names
         const getSkillName = (id: number) => {
@@ -584,41 +625,41 @@ const PixiFight: React.FC<Props> = ({
         // Create HTML content
         tooltipDiv.innerHTML = `
           <div style="margin-bottom: 6px;">
-            <span style="color: #D2691E; font-weight: bold; font-size: 14px;">${fighter.name || 'Unknown'}</span>
+            <span style="color: #D2691E; font-weight: bold; font-size: 18px;">${fighter.name || 'Unknown'}</span>
           </div>
           <div style="margin-bottom: 8px;">
             <span style="color: #D2691E; font-weight: bold;">LEVEL</span>
             <span style="color: #333; font-weight: bold;"> ${level}</span>
           </div>
           <div style="display: flex; align-items: center; gap: 12px; margin-bottom: 10px;">
-            <div style="position: relative; width: 36px; height: 36px; display: flex; align-items: center; justify-content: center;">
-              <span style="font-size: 24px;">🧡</span>
-              <span style="position: absolute; color: white; font-weight: bold; font-size: 12px; text-shadow: 1px 1px 2px rgba(0,0,0,0.8);">${hp}</span>
+            <div style="position: relative; width: 48px; height: 48px; display: flex; align-items: center; justify-content: center;">
+              <span style="font-size: 36px;">🧡</span>
+              <span style="position: absolute; color: white; font-weight: bold; font-size: 18px; text-shadow: 1px 1px 3px rgba(0,0,0,0.9);">${hp}</span>
             </div>
             <div style="flex: 1;">
               <!-- Strength Bar -->
               <div style="display: flex; align-items: center; margin-bottom: 4px;">
-                <span style="width: 20px; text-align: center;">💪</span>
-                <div style="flex: 1; position: relative; height: 16px; background: #E0E0E0; border: 1px solid #999; margin: 0 8px; border-radius: 2px; overflow: hidden;">
+                <span style="width: 24px; text-align: center; font-size: 18px;">💪</span>
+                <div style="flex: 1; position: relative; height: 18px; background: #E0E0E0; border: 1px solid #999; margin: 0 8px; border-radius: 2px; overflow: hidden;">
                   <div style="position: absolute; height: 100%; background: linear-gradient(to bottom, #FFA500, #FF8C00); width: ${Math.min(100, (strength / 50) * 100)}%;"></div>
                 </div>
-                <span style="color: #4169E1; font-weight: bold; min-width: 25px;">${strength}</span>
+                <span style="color: #4169E1; font-weight: bold; min-width: 30px; font-size: 16px;">${strength}</span>
               </div>
               <!-- Agility Bar -->
               <div style="display: flex; align-items: center; margin-bottom: 4px;">
-                <span style="width: 20px; text-align: center;">🪶</span>
-                <div style="flex: 1; position: relative; height: 16px; background: #E0E0E0; border: 1px solid #999; margin: 0 8px; border-radius: 2px; overflow: hidden;">
+                <span style="width: 24px; text-align: center; font-size: 18px;">🪶</span>
+                <div style="flex: 1; position: relative; height: 18px; background: #E0E0E0; border: 1px solid #999; margin: 0 8px; border-radius: 2px; overflow: hidden;">
                   <div style="position: absolute; height: 100%; background: linear-gradient(to bottom, #FFA500, #FF8C00); width: ${Math.min(100, (agility / 50) * 100)}%;"></div>
                 </div>
-                <span style="color: #4169E1; font-weight: bold; min-width: 25px;">${agility}</span>
+                <span style="color: #4169E1; font-weight: bold; min-width: 30px; font-size: 16px;">${agility}</span>
               </div>
               <!-- Speed Bar -->
               <div style="display: flex; align-items: center;">
-                <span style="width: 20px; text-align: center;">⚡</span>
-                <div style="flex: 1; position: relative; height: 16px; background: #E0E0E0; border: 1px solid #999; margin: 0 8px; border-radius: 2px; overflow: hidden;">
+                <span style="width: 24px; text-align: center; font-size: 18px;">⚡</span>
+                <div style="flex: 1; position: relative; height: 18px; background: #E0E0E0; border: 1px solid #999; margin: 0 8px; border-radius: 2px; overflow: hidden;">
                   <div style="position: absolute; height: 100%; background: linear-gradient(to bottom, #FFA500, #FF8C00); width: ${Math.min(100, (speed / 50) * 100)}%;"></div>
                 </div>
-                <span style="color: #4169E1; font-weight: bold; min-width: 25px;">${speed}</span>
+                <span style="color: #4169E1; font-weight: bold; min-width: 30px; font-size: 16px;">${speed}</span>
               </div>
             </div>
           </div>
