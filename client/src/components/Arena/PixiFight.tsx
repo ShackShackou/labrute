@@ -7,7 +7,8 @@ import { Spine } from '@esotericsoftware/spine-pixi-v8';
 import { FightGetResponse, WeaponById, WeaponId, weapons, StepType, WeaponType, SkillId, SkillById, skills } from '@labrute/core';
 
 // SKILL CATEGORIZATION - Based on core/src/brute/skills.ts
-// This is the OFFICIAL categorization from LaBrute source
+// This is the OFFICIAL and COMPLETE categorization from LaBrute source
+// IDs are based on the SkillId enum (starting from 0)
 const SKILL_CATEGORIES = {
   // Type 'super' - Active combat skills with limited uses
   SUPERS: [
@@ -24,10 +25,8 @@ const SKILL_CATEGORIES = {
     48, // vampirism
     50, // haste
     51, // treat
-    // NOTE: ID 49 (chaining) is PASSIVE, not super!
-    // NOTE: ID 52 (repulse) is PASSIVE, not super!
-    // NOTE: ID 53 (fastMetabolism) is PASSIVE, not super!
   ],
+
   // Type 'talent' - Special abilities (shown in "Supers" section in UI)
   TALENTS: [
     41, // regeneration
@@ -38,14 +37,51 @@ const SKILL_CATEGORIES = {
     46, // hideaway
     47, // monk
   ],
-  // Type 'passive' - All other passive skills including:
-  // ID 49 (chaining), ID 52 (repulse), ID 53 (fastMetabolism), etc.
-  // Type 'booster' - Stat boosters (herculeanStrength, etc.)
+
+  // Type 'booster' - Stat boosting skills
+  BOOSTERS: [
+    0,  // herculeanStrength
+    1,  // felineAgility
+    2,  // lightningBolt
+    3,  // vitality
+    4,  // immortality
+    5,  // reconnaissance
+  ],
+
+  // Type 'passive' - All passive combat skills
+  PASSIVES: [
+    6,  // weaponsMaster
+    7,  // martialArts
+    8,  // sixthSense
+    9,  // hostility
+    10, // fistsOfFury
+    11, // shield
+    12, // armor
+    13, // toughenedSkin
+    14, // untouchable
+    15, // sabotage
+    16, // shock
+    17, // bodybuilder
+    18, // relentless
+    19, // survival
+    20, // leadSkeleton
+    21, // balletShoes
+    22, // determination
+    23, // firstStrike
+    24, // resistant
+    25, // counterAttack
+    26, // ironHead
+    49, // chaining (PASSIVE, not super!)
+    52, // repulse (PASSIVE, not super!)
+    53, // fastMetabolism (PASSIVE, not super!)
+  ],
 };
 
 // Helper to check skill type
 const isSuper = (skillId: number) => SKILL_CATEGORIES.SUPERS.includes(skillId);
 const isTalent = (skillId: number) => SKILL_CATEGORIES.TALENTS.includes(skillId);
+const isBooster = (skillId: number) => SKILL_CATEGORIES.BOOSTERS.includes(skillId);
+const isPassive = (skillId: number) => SKILL_CATEGORIES.PASSIVES.includes(skillId);
 const isSuperOrTalent = (skillId: number) => isSuper(skillId) || isTalent(skillId);
 
 type Props = {
