@@ -94,11 +94,13 @@ const PixiFight: React.FC<Props> = ({
 
   const tooltipElementsRef = useRef<TooltipElements | null>(null);
   const tooltipFadeTimeoutRef = useRef<number | null>(null);
-  const tooltipStateRef = useRef<{ fighter: any | null; anchorX: number; anchorY: number; pointerX: number; pointerY: number; visible: boolean }>({ fighter: null, anchorX: 0, anchorY: 0, pointerX: 0, pointerY: 0, visible: false });
+  const tooltipStateRef = useRef<{ fighter: any | null; anchorX: number; anchorY: number; portraitWidth: number; portraitHeight: number; visible: boolean }>({ fighter: null, anchorX: 0, anchorY: 0, portraitWidth: 0, portraitHeight: 0, visible: false });
 
   const hideTooltip = () => {
     tooltipStateRef.current.visible = false;
     tooltipStateRef.current.fighter = null;
+    tooltipStateRef.current.portraitWidth = 0;
+    tooltipStateRef.current.portraitHeight = 0;
     const root = tooltipElementsRef.current?.root;
     if (tooltipFadeTimeoutRef.current) {
       try { clearTimeout(tooltipFadeTimeoutRef.current); } catch {}
@@ -111,7 +113,7 @@ const PixiFight: React.FC<Props> = ({
           root.style.display = 'none';
         }
         tooltipFadeTimeoutRef.current = null;
-      }, 140);
+      }, 240);
     }
   };
 
@@ -170,115 +172,111 @@ const PixiFight: React.FC<Props> = ({
       app.stage.addChild(debugLayer);
       debugLayerRef.current = debugLayer;
 
+
       const ensureTooltip = (): TooltipElements => {
         let parts = tooltipElementsRef.current;
         if (!parts || !parts.root.isConnected) {
-          const root = parts?.root ?? document.createElement('div');
-          root.style.position = 'absolute';
-          root.style.display = 'none';
-          root.style.pointerEvents = 'none';
-          root.style.opacity = '0';
-          root.style.transition = 'opacity 140ms ease-out';
-          root.style.willChange = 'opacity, left, top';
-          root.style.zIndex = '10000';
-          root.style.background = '#FFF6D5';
-          root.style.border = '1px solid #8B6534';
-          root.style.borderRadius = '6px';
-          root.style.boxShadow = '0 6px 14px rgba(0, 0, 0, 0.28)';
-          root.style.padding = '10px 12px';
-          root.style.left = '0px';
-          root.style.top = '0px';
-          root.style.fontFamily = "'Verdana','Geneva','sans-serif'";
-          root.style.fontSize = '13px';
-          root.style.color = '#5B3618';
-          root.style.minWidth = '190px';
-          root.style.maxWidth = '230px';
-          root.style.lineHeight = '1.25';
-          root.style.letterSpacing = '0.2px';
+          const root = parts?.root ?? document.createElement("div");
+          root.style.position = "absolute";
+          root.style.display = "none";
+          root.style.pointerEvents = "none";
+          root.style.opacity = "0";
+          root.style.transition = "opacity 240ms ease-out";
+          root.style.willChange = "opacity, left, top";
+          root.style.zIndex = "10000";
+          root.style.background = "#FFF6D5";
+          root.style.border = "1px solid #8B6534";
+          root.style.borderRadius = "6px";
+          root.style.boxShadow = "0 4px 12px rgba(0, 0, 0, 0.28)";
+          root.style.padding = "10px 12px";
+          root.style.fontFamily = "Verdana, Arial, sans-serif";
+          root.style.fontSize = "13px";
+          root.style.color = "#5B3618";
+          root.style.minWidth = "200px";
+          root.style.maxWidth = "230px";
           if (!parts) {
-            const nameEl = document.createElement('div');
-            nameEl.style.fontWeight = '700';
-            nameEl.style.fontSize = '17px';
-            nameEl.style.marginBottom = '4px';
-            nameEl.style.color = '#5B3618';
+            const nameEl = document.createElement("div");
+            nameEl.style.fontWeight = "700";
+            nameEl.style.fontSize = "16px";
+            nameEl.style.marginBottom = "4px";
+            nameEl.style.color = "#5B3618";
             root.appendChild(nameEl);
 
-            const levelEl = document.createElement('div');
-            levelEl.style.fontVariant = 'small-caps';
-            levelEl.style.fontWeight = '700';
-            levelEl.style.letterSpacing = '0.6px';
-            levelEl.style.marginBottom = '10px';
-            levelEl.style.color = '#B0782E';
+            const levelEl = document.createElement("div");
+            levelEl.style.fontVariant = "small-caps";
+            levelEl.style.fontWeight = "700";
+            levelEl.style.letterSpacing = "0.6px";
+            levelEl.style.marginBottom = "8px";
+            levelEl.style.color = "#B0782E";
             root.appendChild(levelEl);
 
-            const statsWrapper = document.createElement('div');
-            statsWrapper.style.display = 'flex';
-            statsWrapper.style.alignItems = 'center';
-            statsWrapper.style.gap = '10px';
-            statsWrapper.style.marginBottom = '8px';
+            const statsWrapper = document.createElement("div");
+            statsWrapper.style.display = "flex";
+            statsWrapper.style.alignItems = "center";
+            statsWrapper.style.gap = "10px";
+            statsWrapper.style.marginBottom = "8px";
             root.appendChild(statsWrapper);
 
-            const hpBadge = document.createElement('div');
-            hpBadge.style.width = '44px';
-            hpBadge.style.height = '44px';
-            hpBadge.style.borderRadius = '50%';
-            hpBadge.style.display = 'flex';
-            hpBadge.style.alignItems = 'center';
-            hpBadge.style.justifyContent = 'center';
-            hpBadge.style.fontWeight = '800';
-            hpBadge.style.fontSize = '18px';
-            hpBadge.style.color = '#FFFFFF';
-            hpBadge.style.background = 'radial-gradient(circle at 30% 30%, #FFC982 0%, #E65D26 70%)';
-            hpBadge.style.border = '2px solid #B44619';
-            hpBadge.style.boxShadow = '0 3px 6px rgba(0, 0, 0, 0.25)';
-            hpBadge.style.textShadow = '0 1px 2px rgba(0, 0, 0, 0.35)';
-            const hpValue = document.createElement('span');
-            hpValue.textContent = '0';
+            const hpBadge = document.createElement("div");
+            hpBadge.style.width = "42px";
+            hpBadge.style.height = "42px";
+            hpBadge.style.borderRadius = "50%";
+            hpBadge.style.display = "flex";
+            hpBadge.style.alignItems = "center";
+            hpBadge.style.justifyContent = "center";
+            hpBadge.style.fontWeight = "800";
+            hpBadge.style.fontSize = "18px";
+            hpBadge.style.color = "#FFFFFF";
+            hpBadge.style.background = "radial-gradient(circle at 30% 30%, #FFC982 0%, #E65D26 70%)";
+            hpBadge.style.border = "2px solid #B44619";
+            hpBadge.style.boxShadow = "0 2px 6px rgba(0, 0, 0, 0.25)";
+            const hpValue = document.createElement("span");
+            hpValue.textContent = "0";
             hpBadge.appendChild(hpValue);
             statsWrapper.appendChild(hpBadge);
 
-            const statsCol = document.createElement('div');
-            statsCol.style.flex = '1';
-            statsCol.style.display = 'flex';
-            statsCol.style.flexDirection = 'column';
-            statsCol.style.gap = '5px';
+            const statsCol = document.createElement("div");
+            statsCol.style.flex = "1";
+            statsCol.style.display = "flex";
+            statsCol.style.flexDirection = "column";
+            statsCol.style.gap = "5px";
             statsWrapper.appendChild(statsCol);
 
             const makeStatRow = (label: string, accent: string, fillColor: string) => {
-              const row = document.createElement('div');
-              row.style.display = 'flex';
-              row.style.alignItems = 'center';
-              row.style.gap = '8px';
+              const row = document.createElement("div");
+              row.style.display = "flex";
+              row.style.alignItems = "center";
+              row.style.gap = "6px";
 
-              const labelEl = document.createElement('span');
+              const labelEl = document.createElement("span");
               labelEl.textContent = label;
-              labelEl.style.fontWeight = '700';
-              labelEl.style.width = '32px';
+              labelEl.style.fontWeight = "700";
+              labelEl.style.width = "30px";
               labelEl.style.color = accent;
               row.appendChild(labelEl);
 
-              const track = document.createElement('div');
-              track.style.flex = '1';
-              track.style.height = '7px';
-              track.style.borderRadius = '4px';
-              track.style.background = '#F2DEB1';
-              track.style.boxShadow = 'inset 0 1px 3px rgba(0, 0, 0, 0.18)';
+              const track = document.createElement("div");
+              track.style.flex = "1";
+              track.style.height = "7px";
+              track.style.borderRadius = "4px";
+              track.style.background = "#F0D8AC";
+              track.style.boxShadow = "inset 0 1px 2px rgba(0, 0, 0, 0.22)";
               row.appendChild(track);
 
-              const fill = document.createElement('div');
-              fill.style.height = '100%';
-              fill.style.width = '0%';
-              fill.style.borderRadius = '4px';
+              const fill = document.createElement("div");
+              fill.style.height = "100%";
+              fill.style.width = "0%";
+              fill.style.borderRadius = "4px";
               fill.style.background = fillColor;
-              fill.style.boxShadow = '0 1px 2px rgba(0, 0, 0, 0.25)';
+              fill.style.boxShadow = "0 1px 1px rgba(0, 0, 0, 0.25)";
               track.appendChild(fill);
 
-              const valueEl = document.createElement('span');
-              valueEl.style.fontWeight = '700';
-              valueEl.style.width = '32px';
-              valueEl.style.textAlign = 'right';
+              const valueEl = document.createElement("span");
+              valueEl.style.fontWeight = "700";
+              valueEl.style.width = "32px";
+              valueEl.style.textAlign = "right";
               valueEl.style.color = accent;
-              valueEl.textContent = '0';
+              valueEl.textContent = "0";
               row.appendChild(valueEl);
 
               statsCol.appendChild(row);
@@ -286,34 +284,33 @@ const PixiFight: React.FC<Props> = ({
             };
 
             const statRows = {
-              strength: makeStatRow('STR', '#C34527', 'linear-gradient(90deg, #FFD68C 0%, #E98328 100%)'),
-              agility: makeStatRow('AGI', '#1E70CE', 'linear-gradient(90deg, #AAD3FF 0%, #3F7CEF 100%)'),
-              speed: makeStatRow('SPD', '#C7A12A', 'linear-gradient(90deg, #FBEAA0 0%, #D4B437 100%)'),
+              strength: makeStatRow("STR", "#C34527", "linear-gradient(90deg, #FFD78E 0%, #E98328 100%)"),
+              agility: makeStatRow("AGI", "#1E70CE", "linear-gradient(90deg, #AAD3FF 0%, #3F7CEF 100%)"),
+              speed: makeStatRow("SPD", "#C7A12A", "linear-gradient(90deg, #FBEAA0 0%, #D4B437 100%)"),
             };
 
-            const listContainer = document.createElement('div');
-            listContainer.style.display = 'flex';
-            listContainer.style.flexDirection = 'column';
-            listContainer.style.gap = '4px';
-            listContainer.style.marginTop = '10px';
-            root.appendChild(listContainer);
+            const listWrapper = document.createElement("div");
+            listWrapper.style.display = "flex";
+            listWrapper.style.flexDirection = "column";
+            listWrapper.style.gap = "4px";
+            root.appendChild(listWrapper);
 
             const makeListRow = (label: string): TooltipRowElements => {
-              const row = document.createElement('div');
-              row.style.color = '#5B3618';
-              row.style.fontSize = '13px';
+              const row = document.createElement("div");
+              row.style.color = "#5B3618";
+              row.style.fontSize = "13px";
 
-              const labelEl = document.createElement('span');
+              const labelEl = document.createElement("span");
               labelEl.textContent = `${label}: `;
-              labelEl.style.fontWeight = '700';
-              labelEl.style.marginRight = '4px';
+              labelEl.style.fontWeight = "700";
+              labelEl.style.marginRight = "4px";
               row.appendChild(labelEl);
 
-              const valueEl = document.createElement('span');
+              const valueEl = document.createElement("span");
               valueEl.textContent = t('none');
               row.appendChild(valueEl);
 
-              listContainer.appendChild(row);
+              listWrapper.appendChild(row);
               return { row, label: labelEl, value: valueEl };
             };
 
@@ -373,11 +370,11 @@ const PixiFight: React.FC<Props> = ({
         };
       };
 
+
       const updateTooltipContent = (fighterData: any) => {
         const elements = ensureTooltip();
         if (!fighterData) {
           elements.root.style.display = 'none';
-          elements.root.style.opacity = '0';
           tooltipStateRef.current.visible = false;
           return;
         }
@@ -392,29 +389,28 @@ const PixiFight: React.FC<Props> = ({
         const agility = Math.round(Number(fighterData?.agility ?? fighterData?.agilityValue ?? fighterData?.agilityStat ?? 0));
         const speedValue = Math.round(Number(fighterData?.speed ?? fighterData?.speedValue ?? fighterData?.speedStat ?? 0));
         const maxStat = Math.max(1, strength, agility, speedValue);
-        const widthFor = (value: number) => `${Math.max(6, (value / maxStat) * 100)}%`;
 
-        elements.statRows.strength.value.textContent = strength.toString();
-        elements.statRows.strength.fill.style.width = widthFor(strength);
-        elements.statRows.agility.value.textContent = agility.toString();
-        elements.statRows.agility.fill.style.width = widthFor(agility);
-        elements.statRows.speed.value.textContent = speedValue.toString();
-        elements.statRows.speed.fill.style.width = widthFor(speedValue);
+        const applyStat = (target: { fill: HTMLDivElement; value: HTMLSpanElement; accent: string }, value: number) => {
+          const width = Math.max(6, (value / maxStat) * 100);
+          target.fill.style.width = `${Math.min(100, width)}%`;
+          target.value.textContent = value.toString();
+          target.value.style.color = target.accent;
+        };
 
-        elements.statRows.strength.value.style.color = elements.statRows.strength.accent;
-        elements.statRows.agility.value.style.color = elements.statRows.agility.accent;
-        elements.statRows.speed.value.style.color = elements.statRows.speed.accent;
-
-        elements.supers.label.textContent = `${t('supers')}: `;
-        elements.skills.label.textContent = `${t('skills')}: `;
+        applyStat(elements.statRows.strength, strength);
+        applyStat(elements.statRows.agility, agility);
+        applyStat(elements.statRows.speed, speedValue);
 
         const separated = classifySkills(fighterData);
+        elements.supers.label.textContent = `${t('supers')}: `;
+        elements.skills.label.textContent = `${t('skills')}: `;
         elements.supers.value.textContent = separated.supers.length ? separated.supers.join(', ') : t('none');
         elements.skills.value.textContent = separated.skills.length ? separated.skills.join(', ') : t('none');
         elements.supers.value.style.opacity = separated.supers.length ? '1' : '0.65';
         elements.skills.value.style.opacity = separated.skills.length ? '1' : '0.65';
       };
-      const positionTooltip = (pointerX?: number, pointerY?: number) => {
+
+      const positionTooltip = () => {
         const elements = tooltipElementsRef.current;
         const host = containerRef.current;
         const canvasEl = app.canvas as HTMLCanvasElement;
@@ -427,67 +423,64 @@ const PixiFight: React.FC<Props> = ({
         const internalHeight = canvasEl.height || canvasRect.height || 1;
         const scaleX = canvasRect.width / internalWidth;
         const scaleY = canvasRect.height / internalHeight;
-        const pointerLocalX = typeof pointerX === 'number' ? pointerX : tooltipStateRef.current.pointerX;
-        const pointerLocalY = typeof pointerY === 'number' ? pointerY : tooltipStateRef.current.pointerY;
-        const screenPointerX = canvasRect.left + pointerLocalX * scaleX;
-        const screenPointerY = canvasRect.top + pointerLocalY * scaleY;
+        const centerX = tooltipStateRef.current.anchorX;
+        const topY = tooltipStateRef.current.anchorY;
+        const screenCenterX = canvasRect.left + centerX * scaleX;
+        const screenTopY = canvasRect.top + topY * scaleY;
 
-        if (elements.root.style.display !== 'block') {
-          elements.root.style.display = 'block';
-        }
+        elements.root.style.display = 'block';
         const bounds = elements.root.getBoundingClientRect();
-        const width = bounds.width || 190;
-        const height = bounds.height || 98;
-        const margin = 8;
-        const offsetY = 25;
+        const width = bounds.width || 200;
+        const height = bounds.height || 110;
+        const margin = 6;
+        const gap = 6;
 
-        let localX = screenPointerX - hostRect.left - width / 2;
+        let localX = screenCenterX - hostRect.left - width / 2;
         localX = Math.max(margin, Math.min(localX, hostRect.width - width - margin));
 
-        let localY = screenPointerY - hostRect.top - offsetY - height;
+        let localY = screenTopY - hostRect.top - gap - height;
         localY = Math.max(margin, Math.min(localY, hostRect.height - height - margin));
 
         elements.root.style.left = `${localX}px`;
         elements.root.style.top = `${localY}px`;
       };
 
-      const showTooltipForFighter = (fighterData: any, anchorX: number, anchorY: number, pointerX: number, pointerY: number) => {
+      const showTooltipForFighter = (fighterData: any, bounds: Rectangle) => {
         if (!fighterData) {
           return;
         }
         tooltipStateRef.current.fighter = fighterData;
-        tooltipStateRef.current.anchorX = anchorX;
-        tooltipStateRef.current.anchorY = anchorY;
-        tooltipStateRef.current.pointerX = pointerX;
-        tooltipStateRef.current.pointerY = pointerY;
+        tooltipStateRef.current.anchorX = bounds.x + (bounds.width / 2);
+        tooltipStateRef.current.anchorY = bounds.y;
+        tooltipStateRef.current.portraitWidth = bounds.width;
+        tooltipStateRef.current.portraitHeight = bounds.height;
         tooltipStateRef.current.visible = true;
         const elements = ensureTooltip();
         if (tooltipFadeTimeoutRef.current) {
           try { clearTimeout(tooltipFadeTimeoutRef.current); } catch {}
           tooltipFadeTimeoutRef.current = null;
         }
-        if (elements.root.style.display !== 'block') {
-          elements.root.style.display = 'block';
-        }
+        elements.root.style.display = 'block';
         requestAnimationFrame(() => {
           if (tooltipStateRef.current.visible && tooltipElementsRef.current?.root === elements.root) {
             elements.root.style.opacity = '1';
           }
         });
         updateTooltipContent(fighterData);
-        positionTooltip(pointerX, pointerY);
+        positionTooltip();
       };
 
-      const moveTooltip = (pointerX: number, pointerY: number) => {
+      const moveTooltip = (bounds: Rectangle) => {
         if (!tooltipStateRef.current.visible) {
           return;
         }
-        tooltipStateRef.current.pointerX = pointerX;
-        tooltipStateRef.current.pointerY = pointerY;
-        positionTooltip(pointerX, pointerY);
+        tooltipStateRef.current.anchorX = bounds.x + (bounds.width / 2);
+        tooltipStateRef.current.anchorY = bounds.y;
+        tooltipStateRef.current.portraitWidth = bounds.width;
+        tooltipStateRef.current.portraitHeight = bounds.height;
+        positionTooltip();
       };
-
-      hideTooltip();
+      // hideTooltip(); // Old tooltip system - commented out
 
       const scene = new Container();
       // Depth sort by Y
@@ -521,6 +514,174 @@ const PixiFight: React.FC<Props> = ({
       // Calibration multipliers per side (R often needs to be slowed down)
       const mulL = (() => { const u = params.get('pixiMulL'); const ls = localStorage.getItem('compare.pixiMulL'); const n = Number(u ?? ls ?? '1'); return isNaN(n) ? 1 : n; })();
       const mulR = (() => { const u = params.get('pixiMulR'); const ls = localStorage.getItem('compare.pixiMulR'); const n = Number(u ?? ls ?? '1'); return isNaN(n) ? 1 : n; })();
+
+      // ===== TOOLTIP SYSTEM =====
+      let tooltipDiv: HTMLDivElement | null = null;
+      let currentHoveredFighter: any = null;
+      let tooltipFadeTimeout: number | null = null;
+
+      const createTooltipDiv = () => {
+        if (tooltipDiv) return;
+
+        tooltipDiv = document.createElement('div');
+        tooltipDiv.style.position = 'absolute';
+        tooltipDiv.style.zIndex = '99999';
+        tooltipDiv.style.pointerEvents = 'none';
+        tooltipDiv.style.display = 'none';
+        tooltipDiv.style.opacity = '0';
+        tooltipDiv.style.transition = 'opacity 0.2s ease-in-out';
+
+        // Style exact de la carte originale
+        tooltipDiv.style.background = '#FFF6D5';
+        tooltipDiv.style.border = '2px solid #8B4513';
+        tooltipDiv.style.borderRadius = '8px';
+        tooltipDiv.style.padding = '10px';
+        tooltipDiv.style.boxShadow = '0 4px 8px rgba(0,0,0,0.3)';
+        tooltipDiv.style.fontFamily = 'Arial, sans-serif';
+        tooltipDiv.style.fontSize = '12px';
+        tooltipDiv.style.minWidth = '200px';
+
+        document.body.appendChild(tooltipDiv);
+      };
+
+      const showTooltip = (fighter: any, mouseX: number, mouseY: number) => {
+        createTooltipDiv();
+        if (!tooltipDiv || !fighter) return;
+
+        currentHoveredFighter = fighter;
+
+        // Clear fade timeout
+        if (tooltipFadeTimeout) {
+          clearTimeout(tooltipFadeTimeout);
+          tooltipFadeTimeout = null;
+        }
+
+        // Build tooltip content
+        const level = fighter.level || 1;
+        const hp = Math.round(fighter.hp || fighter.maxHp || 100);
+        const strength = Math.round(fighter.strength || fighter.str || 0);
+        const agility = Math.round(fighter.agility || fighter.agi || 0);
+        const speed = Math.round(fighter.speed || fighter.spd || 0);
+
+        // Get skills
+        const skills = fighter.skills || [];
+        const SUPER_IDS = [27, 28, 29, 30, 31, 32, 33, 34, 35, 36, 42, 43, 44, 45, 46, 47, 48, 49, 51, 52];
+        const supers = skills.filter((id: number) => SUPER_IDS.includes(id));
+        const normalSkills = skills.filter((id: number) => !SUPER_IDS.includes(id));
+
+        // Map skill IDs to names
+        const getSkillName = (id: number) => {
+          try {
+            return SkillById[id as SkillId] || `Skill${id}`;
+          } catch {
+            return `Skill${id}`;
+          }
+        };
+
+        const supersText = supers.length > 0 ? supers.map(getSkillName).join(', ') : 'None';
+        const skillsText = normalSkills.length > 0 ? normalSkills.map(getSkillName).join(', ') : 'None';
+
+        // Create HTML content
+        tooltipDiv.innerHTML = `
+          <div style="margin-bottom: 6px;">
+            <span style="color: #D2691E; font-weight: bold; font-size: 14px;">${fighter.name || 'Unknown'}</span>
+          </div>
+          <div style="margin-bottom: 8px;">
+            <span style="color: #D2691E; font-weight: bold;">LEVEL</span>
+            <span style="color: #333; font-weight: bold;"> ${level}</span>
+          </div>
+          <div style="display: flex; align-items: center; gap: 12px; margin-bottom: 10px;">
+            <div style="position: relative; width: 36px; height: 36px; display: flex; align-items: center; justify-content: center;">
+              <span style="font-size: 24px;">🧡</span>
+              <span style="position: absolute; color: white; font-weight: bold; font-size: 12px; text-shadow: 1px 1px 2px rgba(0,0,0,0.8);">${hp}</span>
+            </div>
+            <div style="flex: 1;">
+              <!-- Strength Bar -->
+              <div style="display: flex; align-items: center; margin-bottom: 4px;">
+                <span style="width: 20px; text-align: center;">💪</span>
+                <div style="flex: 1; position: relative; height: 16px; background: #E0E0E0; border: 1px solid #999; margin: 0 8px; border-radius: 2px; overflow: hidden;">
+                  <div style="position: absolute; height: 100%; background: linear-gradient(to bottom, #FFA500, #FF8C00); width: ${Math.min(100, (strength / 50) * 100)}%;"></div>
+                </div>
+                <span style="color: #4169E1; font-weight: bold; min-width: 25px;">${strength}</span>
+              </div>
+              <!-- Agility Bar -->
+              <div style="display: flex; align-items: center; margin-bottom: 4px;">
+                <span style="width: 20px; text-align: center;">🪶</span>
+                <div style="flex: 1; position: relative; height: 16px; background: #E0E0E0; border: 1px solid #999; margin: 0 8px; border-radius: 2px; overflow: hidden;">
+                  <div style="position: absolute; height: 100%; background: linear-gradient(to bottom, #FFA500, #FF8C00); width: ${Math.min(100, (agility / 50) * 100)}%;"></div>
+                </div>
+                <span style="color: #4169E1; font-weight: bold; min-width: 25px;">${agility}</span>
+              </div>
+              <!-- Speed Bar -->
+              <div style="display: flex; align-items: center;">
+                <span style="width: 20px; text-align: center;">⚡</span>
+                <div style="flex: 1; position: relative; height: 16px; background: #E0E0E0; border: 1px solid #999; margin: 0 8px; border-radius: 2px; overflow: hidden;">
+                  <div style="position: absolute; height: 100%; background: linear-gradient(to bottom, #FFA500, #FF8C00); width: ${Math.min(100, (speed / 50) * 100)}%;"></div>
+                </div>
+                <span style="color: #4169E1; font-weight: bold; min-width: 25px;">${speed}</span>
+              </div>
+            </div>
+          </div>
+          <div style="border-top: 1px solid #CDB79E; padding-top: 6px;">
+            <div style="margin-bottom: 3px;">
+              <span style="color: #8B4513; font-weight: bold;">Supers:</span>
+              <span style="color: #333; margin-left: 4px;">${supersText}</span>
+            </div>
+            <div>
+              <span style="color: #8B4513; font-weight: bold;">Skills:</span>
+              <span style="color: #333; margin-left: 4px;">${skillsText}</span>
+            </div>
+          </div>
+        `;
+
+        // Position tooltip
+        tooltipDiv.style.display = 'block';
+
+        // Force layout calculation
+        const tipRect = tooltipDiv.getBoundingClientRect();
+
+        // Simple positioning: tooltip follows mouse and appears above it
+        let x = mouseX - (tipRect.width / 2);  // Center horizontally on mouse
+        let y = mouseY - tipRect.height - 5;    // Position just above (5px gap)
+
+        // Keep on screen
+        x = Math.max(5, Math.min(x, window.innerWidth - tipRect.width - 5));
+
+        // If too high, show below cursor instead
+        if (y < 5) {
+          y = mouseY + 15;
+        }
+
+        tooltipDiv.style.left = `${x}px`;
+        tooltipDiv.style.top = `${y}px`;
+
+        // Fade in
+        requestAnimationFrame(() => {
+          if (tooltipDiv) tooltipDiv.style.opacity = '1';
+        });
+      };
+
+      const hideTooltip = () => {
+        if (!tooltipDiv) return;
+
+        currentHoveredFighter = null;
+
+        // Start fade out
+        tooltipDiv.style.opacity = '0';
+
+        // Clear existing timeout
+        if (tooltipFadeTimeout) {
+          clearTimeout(tooltipFadeTimeout);
+        }
+
+        // Hide completely after fade
+        tooltipFadeTimeout = window.setTimeout(() => {
+          if (tooltipDiv) {
+            tooltipDiv.style.display = 'none';
+          }
+          tooltipFadeTimeout = null;
+        }, 200); // Match transition duration
+      };
 
       // Deterministic RNG (for lanes/arrive) when strict or explicitly enabled
       const DETERMINISTIC = STRICT || (params.get('pixiDeterministic') === '1' || localStorage.getItem('compare.pixiDeterministic') === '1');
@@ -1027,22 +1188,45 @@ const PixiFight: React.FC<Props> = ({
           portraitContainer.eventMode = 'static';
           try { portraitContainer.hitArea = new Rectangle(0, 0, portraitSize, portraitSize); } catch {}
           try { (portraitContainer as any).cursor = 'pointer'; } catch {}
-          const handleMove = (event: any) => {
-            if (disposed) { return; }
-            try { moveTooltip(event.data.global.x, event.data.global.y); } catch {}
-          };
-          portraitContainer.on('pointerover', (event: any) => {
-            if (disposed) { return; }
-            try {
-              const bounds = portraitContainer.getBounds();
-              const anchorX = bounds.x + bounds.width / 2;
-              const anchorY = bounds.y;
-              showTooltipForFighter(fighter, anchorX, anchorY, event.data.global.x, event.data.global.y);
-              portraitContainer.on('pointermove', handleMove);
-            } catch {}
+
+          portraitContainer.on('pointerover', (e: any) => {
+            if (disposed) return;
+
+            // Get portrait bounds in Pixi coordinates
+            const bounds = portraitContainer.getBounds();
+
+            // Get canvas element and its position on screen
+            const canvas = app.view as HTMLCanvasElement;
+            const canvasRect = canvas.getBoundingClientRect();
+
+            // Convert portrait center to screen coordinates
+            const portraitScreenX = canvasRect.left + bounds.x + (bounds.width / 2);
+            const portraitScreenY = canvasRect.top + bounds.y; // Position at top of portrait
+
+            // Use portrait position for initial tooltip placement
+            showTooltip(fighter, portraitScreenX, portraitScreenY);
           });
+
+          portraitContainer.on('pointermove', (e: any) => {
+            if (disposed || !currentHoveredFighter) return;
+
+            // While moving, follow the mouse
+            const canvas = app.view as HTMLCanvasElement;
+            const canvasRect = canvas.getBoundingClientRect();
+
+            // Get mouse position relative to canvas
+            const globalX = e.data?.global?.x || e.global?.x || 0;
+            const globalY = e.data?.global?.y || e.global?.y || 0;
+
+            // Convert to screen coordinates
+            const mouseScreenX = canvasRect.left + globalX;
+            const mouseScreenY = canvasRect.top + globalY - 30; // Closer to cursor
+
+            showTooltip(fighter, mouseScreenX, mouseScreenY);
+          });
+
           portraitContainer.on('pointerout', () => {
-            try { portraitContainer.off('pointermove', handleMove); } catch {}
+            if (disposed) return;
             hideTooltip();
           });
         }
@@ -3326,8 +3510,7 @@ const PixiFight: React.FC<Props> = ({
         }
       } catch {}
       tooltipElementsRef.current = null;
-      tooltipStateRef.current = { fighter: null, anchorX: 0, anchorY: 0, pointerX: 0, pointerY: 0, visible: false };
-      tooltipStateRef.current.pointerY = 0;
+      tooltipStateRef.current = { fighter: null, anchorX: 0, anchorY: 0, portraitWidth: 0, portraitHeight: 0, visible: false };
       
       // Restore original console.error
       console.error = originalError;
