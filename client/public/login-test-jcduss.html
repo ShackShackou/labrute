@@ -1,0 +1,128 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <title>Test Connexion JCDUSS</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background: #2a2a2a;
+            color: #fff;
+            padding: 50px;
+        }
+        .container {
+            max-width: 600px;
+            margin: 0 auto;
+            background: #333;
+            padding: 30px;
+            border-radius: 10px;
+        }
+        button {
+            background: #4CAF50;
+            color: white;
+            padding: 15px 30px;
+            font-size: 16px;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            margin: 10px;
+        }
+        button:hover {
+            background: #45a049;
+        }
+        .info {
+            background: #444;
+            padding: 15px;
+            margin: 20px 0;
+            border-radius: 5px;
+        }
+        pre {
+            background: #222;
+            padding: 10px;
+            overflow: auto;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Test Connexion JCDUSS / HerveVenere</h1>
+
+        <div class="info">
+            <h3>Comptes trouvés:</h3>
+            <p><strong>JCDUSS (e99ab88c-8be2-4fd0-8519-a0c4bf7a3705)</strong> → HerveVenere</p>
+            <p><strong>JCDUSSE (11aecee4-3126-43ef-b138-fc7613fef3c2)</strong> → SuperMoulure</p>
+            <p><strong>JCDUSS (121bcd48-b859-40e4-8c85-8cc449b0347e)</strong> → SuperMoulurette</p>
+        </div>
+
+        <button onclick="loginEternaltwin()">1. Se connecter via Eternaltwin</button>
+        <button onclick="checkCookie()">2. Vérifier cookies</button>
+        <button onclick="fetchUser()">3. Récupérer utilisateur</button>
+
+        <div id="result"></div>
+    </div>
+
+    <script>
+        function loginEternaltwin() {
+            // Redirect vers OAuth
+            fetch('http://localhost:9000/api/oauth/redirect')
+                .then(r => r.json())
+                .then(data => {
+                    console.log('Redirection vers:', data.url);
+                    window.location.href = data.url;
+                })
+                .catch(err => {
+                    document.getElementById('result').innerHTML =
+                        '<pre>Erreur: ' + err + '</pre>';
+                });
+        }
+
+        function checkCookie() {
+            const cookies = document.cookie;
+            document.getElementById('result').innerHTML =
+                '<h3>Cookies actuels:</h3><pre>' + (cookies || 'Aucun cookie') + '</pre>';
+        }
+
+        async function fetchUser() {
+            try {
+                const response = await fetch('http://localhost:9000/api/user/authenticated', {
+                    credentials: 'include'
+                });
+                const data = await response.json();
+                document.getElementById('result').innerHTML =
+                    '<h3>Utilisateur connecté:</h3><pre>' + JSON.stringify(data, null, 2) + '</pre>';
+            } catch (err) {
+                document.getElementById('result').innerHTML =
+                    '<pre>Erreur: ' + err + '</pre>';
+            }
+        }
+
+        // Auto-check au chargement
+        window.addEventListener('load', () => {
+            const urlParams = new URLSearchParams(window.location.search);
+            const code = urlParams.get('code');
+
+            if (code) {
+                document.getElementById('result').innerHTML =
+                    '<h3>Code OAuth reçu!</h3><p>Code: ' + code + '</p>' +
+                    '<p>Tentative de connexion...</p>';
+
+                // Appeler l'API pour échanger le code
+                fetch('http://localhost:9000/api/oauth/token?code=' + code)
+                    .then(r => r.json())
+                    .then(user => {
+                        document.getElementById('result').innerHTML +=
+                            '<h3>Connexion réussie!</h3><pre>' + JSON.stringify(user, null, 2) + '</pre>';
+
+                        // Sauvegarder dans les cookies
+                        document.cookie = 'user=' + user.id + '; path=/; max-age=604800';
+                        document.cookie = 'token=' + user.connexionToken + '; path=/; max-age=604800';
+                    })
+                    .catch(err => {
+                        document.getElementById('result').innerHTML +=
+                            '<pre>Erreur token: ' + err + '</pre>';
+                    });
+            }
+        });
+    </script>
+</body>
+</html>

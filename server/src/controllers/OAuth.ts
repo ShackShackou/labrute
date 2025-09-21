@@ -90,10 +90,17 @@ export class OAuth {
       let user: UserWithBrutesBodyColor | null = null;
 
       try {
+        // First check if user exists to preserve their token
+        const existingUser = await this.#prisma.user.findUnique({
+          where: { id: etwinUser.id },
+          select: { connexionToken: true }
+        });
+
         user = await this.#prisma.user.upsert({
           where: { id: etwinUser.id },
           update: {
-            connexionToken: token.accessToken,
+            // Keep existing token if it exists, otherwise use new one
+            connexionToken: existingUser?.connexionToken || token.accessToken,
             name: etwinUser.displayName.current.value,
           },
           create: {

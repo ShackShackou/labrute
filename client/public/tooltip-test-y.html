@@ -1,0 +1,128 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Test Tooltip Y Movement</title>
+  <style>
+    body {
+      margin: 0;
+      padding: 50px;
+      background: #222;
+      color: white;
+      font-family: Arial;
+      height: 100vh;
+    }
+
+    .test-zone {
+      width: 400px;
+      height: 400px;
+      background: #333;
+      border: 2px solid #666;
+      margin: 0 auto;
+      position: relative;
+    }
+
+    .portrait {
+      width: 48px;
+      height: 48px;
+      background: #8B6534;
+      border: 2px solid #B8860B;
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      cursor: pointer;
+    }
+
+    #tooltip {
+      position: fixed;
+      background: #FFF6D5;
+      border: 1px solid #8B6534;
+      padding: 8px;
+      font-size: 10px;
+      color: #333;
+      pointer-events: none;
+      display: none;
+      min-width: 120px;
+      border-radius: 4px;
+      z-index: 9999;
+    }
+
+    #debug {
+      position: fixed;
+      top: 10px;
+      right: 10px;
+      background: rgba(0,0,0,0.8);
+      padding: 10px;
+      border-radius: 5px;
+      font-family: monospace;
+      font-size: 12px;
+    }
+  </style>
+</head>
+<body>
+  <h1 style="text-align: center;">Test du mouvement Y du tooltip</h1>
+  <p style="text-align: center;">Survolez le carré et bougez la souris HAUT/BAS</p>
+
+  <div class="test-zone">
+    <div class="portrait"></div>
+  </div>
+
+  <div id="tooltip">
+    <strong>Tooltip Test</strong><br>
+    Position: <span id="pos">0, 0</span>
+  </div>
+
+  <div id="debug">
+    <div>Mouse X: <span id="mx">0</span></div>
+    <div>Mouse Y: <span id="my">0</span></div>
+    <div>Tooltip X: <span id="tx">0</span></div>
+    <div>Tooltip Y: <span id="ty">0</span></div>
+  </div>
+
+  <script>
+    const tooltip = document.getElementById('tooltip');
+    const portrait = document.querySelector('.portrait');
+    const posSpan = document.getElementById('pos');
+
+    let isHovering = false;
+
+    function updateTooltip(e) {
+      if (!isHovering) return;
+
+      // Position EXACTE de la souris
+      const mouseX = e.clientX;
+      const mouseY = e.clientY;
+
+      // Tooltip suit la souris EXACTEMENT
+      const tipX = mouseX - 60; // Centré horizontalement
+      const tipY = mouseY - 60; // 60px au-dessus du curseur
+
+      // Applique la position
+      tooltip.style.left = tipX + 'px';
+      tooltip.style.top = tipY + 'px';
+      tooltip.style.display = 'block';
+
+      // Update debug
+      document.getElementById('mx').textContent = mouseX;
+      document.getElementById('my').textContent = mouseY;
+      document.getElementById('tx').textContent = tipX;
+      document.getElementById('ty').textContent = tipY;
+      posSpan.textContent = `${mouseX}, ${mouseY}`;
+    }
+
+    // Event sur tout le document pour capturer le mouvement
+    document.addEventListener('mousemove', updateTooltip);
+
+    portrait.addEventListener('mouseenter', () => {
+      isHovering = true;
+      tooltip.style.display = 'block';
+    });
+
+    portrait.addEventListener('mouseleave', () => {
+      isHovering = false;
+      tooltip.style.display = 'none';
+    });
+  </script>
+</body>
+</html>

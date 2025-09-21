@@ -52,7 +52,9 @@
       "Bash(start http://localhost:3000/)",
       "Bash(dir:*)",
       "Bash(ren:*)",
-      "Bash(start http://localhost:3000/BeigePopular/fight/670be95e5e65a2f6a17f5f9a?renderer=pixi)"
+      "Bash(start http://localhost:3000/BeigePopular/fight/670be95e5e65a2f6a17f5f9a?renderer=pixi)",
+      "Bash(git stash:*)",
+      "Read(//c/Users/User/OneDrive/Pictures/Screenshots/**)"
     ],
     "deny": [],
     "ask": []

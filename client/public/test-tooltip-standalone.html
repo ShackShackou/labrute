@@ -1,0 +1,366 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Test Tooltip Standalone</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      margin: 0;
+      padding: 20px;
+      background: #2a2a2a;
+      color: white;
+    }
+    .container {
+      max-width: 800px;
+      margin: 0 auto;
+    }
+    h1 {
+      text-align: center;
+    }
+    .fight-area {
+      background: #1a1a1a;
+      border: 2px solid #444;
+      border-radius: 8px;
+      padding: 20px;
+      margin: 20px 0;
+      position: relative;
+      min-height: 400px;
+    }
+    .fighters-bar {
+      display: flex;
+      justify-content: space-between;
+      margin-bottom: 20px;
+    }
+    .fighter-info {
+      background: #333;
+      padding: 10px;
+      border-radius: 5px;
+      min-width: 250px;
+    }
+    .portrait {
+      width: 48px;
+      height: 48px;
+      background: #8B6534;
+      border: 2px solid #B8860B;
+      display: inline-block;
+      cursor: pointer;
+      position: relative;
+      margin-bottom: 10px;
+    }
+    .portrait:hover {
+      border-color: #FFD700;
+    }
+    .hp-bar {
+      width: 200px;
+      height: 12px;
+      background: #3A2317;
+      border: 1px solid #B8860B;
+      margin: 5px 0;
+    }
+    .hp-fill {
+      height: 100%;
+      background: #8B4513;
+      width: 100%;
+    }
+    .name {
+      font-weight: bold;
+      color: #FFD700;
+      margin-bottom: 5px;
+    }
+
+    /* Tooltip styles - exactement comme dans PixiFight */
+    .pfp-tooltip {
+      position: absolute;
+      z-index: 10000;
+      pointer-events: none;
+      background: #FFF6D5;
+      border: 1px solid #8B6534;
+      border-radius: 6px;
+      padding: 8px 12px;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.15);
+      display: none;
+      font-family: system-ui, Verdana, Arial, sans-serif;
+      font-size: 11px;
+      line-height: 1.4;
+      min-width: 140px;
+      max-width: 180px;
+      color: #5B4631;
+    }
+
+    .pfp-tooltip-name {
+      font-size: 13px;
+      font-weight: bold;
+      color: #5B4631;
+      margin-bottom: 4px;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    .pfp-tooltip-level {
+      font-size: 11px;
+      font-weight: 600;
+      color: #5B4631;
+      text-transform: uppercase;
+      font-variant: small-caps;
+      margin-bottom: 3px;
+    }
+
+    .pfp-tooltip-hp {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      margin-bottom: 4px;
+    }
+
+    .hp-icon {
+      color: #D9534F;
+      font-size: 14px;
+    }
+
+    .stat-row {
+      margin-bottom: 6px;
+    }
+
+    .stat-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 2px;
+    }
+
+    .stat-label {
+      font-size: 11px;
+      font-weight: 600;
+      color: #5B4631;
+    }
+
+    .stat-value {
+      font-size: 11px;
+      font-weight: bold;
+    }
+
+    .stat-value.str { color: #D9534F; }
+    .stat-value.agi { color: #5BC0DE; }
+    .stat-value.spd { color: #F0AD4E; }
+
+    .stat-bar {
+      width: 100%;
+      height: 5px;
+      background: #EFE4C6;
+      border-radius: 2px;
+      overflow: hidden;
+    }
+
+    .stat-fill {
+      height: 100%;
+      transition: width 0.2s;
+    }
+
+    .stat-fill.str { background: #D9534F; }
+    .stat-fill.agi { background: #5BC0DE; }
+    .stat-fill.spd { background: #F0AD4E; }
+
+    .pfp-tooltip-skills {
+      font-size: 10px;
+      color: #5B4631;
+      word-wrap: break-word;
+      margin-top: 6px;
+    }
+
+    .console {
+      background: #111;
+      padding: 10px;
+      border-radius: 5px;
+      font-family: monospace;
+      font-size: 12px;
+      max-height: 200px;
+      overflow-y: auto;
+    }
+    .log { margin: 2px 0; }
+    .log.info { color: #4CAF50; }
+    .log.warn { color: #FFC107; }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>🎮 Test Tooltip Standalone</h1>
+
+    <div class="fight-area">
+      <div class="fighters-bar">
+        <div class="fighter-info">
+          <div class="portrait" id="portrait1"></div>
+          <div class="name">Brutus le Fort</div>
+          <div class="hp-bar"><div class="hp-fill"></div></div>
+          <div>Niveau 10 • STR: 50</div>
+        </div>
+
+        <div class="fighter-info" style="text-align: right;">
+          <div class="portrait" id="portrait2" style="float: right;"></div>
+          <div class="name">Maximus le Rapide</div>
+          <div class="hp-bar"><div class="hp-fill"></div></div>
+          <div>Niveau 12 • AGI: 45</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="console" id="console">
+      <div class="log info">Console de debug - Survolez les portraits...</div>
+    </div>
+  </div>
+
+  <!-- Tooltip DOM element -->
+  <div id="tooltip" class="pfp-tooltip">
+    <div class="pfp-tooltip-name">Nom du combattant</div>
+    <div class="pfp-tooltip-level">LEVEL 10</div>
+    <div class="pfp-tooltip-hp">
+      <span class="hp-icon">♥</span>
+      <span class="hp-value">100/100</span>
+    </div>
+    <div class="stat-row">
+      <div class="stat-header">
+        <span class="stat-label">STR</span>
+        <span class="stat-value str">50</span>
+      </div>
+      <div class="stat-bar">
+        <div class="stat-fill str" style="width: 50%;"></div>
+      </div>
+    </div>
+    <div class="stat-row">
+      <div class="stat-header">
+        <span class="stat-label">AGI</span>
+        <span class="stat-value agi">30</span>
+      </div>
+      <div class="stat-bar">
+        <div class="stat-fill agi" style="width: 30%;"></div>
+      </div>
+    </div>
+    <div class="stat-row">
+      <div class="stat-header">
+        <span class="stat-label">SPD</span>
+        <span class="stat-value spd">25</span>
+      </div>
+      <div class="stat-bar">
+        <div class="stat-fill spd" style="width: 25%;"></div>
+      </div>
+    </div>
+    <div class="pfp-tooltip-skills">
+      <strong>Compétences:</strong> Force herculéenne, Agilité du chat, Vitesse de l'éclair
+    </div>
+  </div>
+
+  <script>
+    const tooltip = document.getElementById('tooltip');
+    const consoleEl = document.getElementById('console');
+
+    function log(msg, type = 'info') {
+      const div = document.createElement('div');
+      div.className = `log ${type}`;
+      div.textContent = `[${new Date().toLocaleTimeString()}] ${msg}`;
+      consoleEl.appendChild(div);
+      consoleEl.scrollTop = consoleEl.scrollHeight;
+    }
+
+    // Fighter data
+    const fighters = {
+      fighter1: {
+        name: 'Brutus le Fort',
+        level: 10,
+        hp: 100,
+        maxHp: 100,
+        strength: 50,
+        agility: 30,
+        speed: 25,
+        skills: 'Force herculéenne, Agilité du chat, Vitesse de l\'éclair'
+      },
+      fighter2: {
+        name: 'Maximus le Rapide',
+        level: 12,
+        hp: 120,
+        maxHp: 120,
+        strength: 40,
+        agility: 45,
+        speed: 35,
+        skills: 'Coup de grâce, Esquive parfaite, Sprint final, Régénération'
+      }
+    };
+
+    function showTooltip(fighter, x, y) {
+      log(`Showing tooltip for ${fighter.name} at (${Math.round(x)}, ${Math.round(y)})`);
+
+      // Update content
+      tooltip.querySelector('.pfp-tooltip-name').textContent = fighter.name;
+      tooltip.querySelector('.pfp-tooltip-level').textContent = `LEVEL ${fighter.level}`;
+      tooltip.querySelector('.hp-value').textContent = `${fighter.hp}/${fighter.maxHp}`;
+
+      // Update stats
+      const stats = ['str', 'agi', 'spd'];
+      const values = [fighter.strength, fighter.agility, fighter.speed];
+      stats.forEach((stat, i) => {
+        const value = values[i];
+        const row = tooltip.querySelector(`.stat-value.${stat}`);
+        const fill = tooltip.querySelector(`.stat-fill.${stat}`);
+        if (row) row.textContent = value;
+        if (fill) fill.style.width = `${value}%`;
+      });
+
+      tooltip.querySelector('.pfp-tooltip-skills').innerHTML =
+        `<strong>Compétences:</strong> ${fighter.skills}`;
+
+      // Position tooltip
+      tooltip.style.display = 'block';
+      const rect = tooltip.getBoundingClientRect();
+      let tipX = x - rect.width / 2;
+      let tipY = y - rect.height - 12;
+
+      // Keep on screen
+      tipX = Math.max(4, Math.min(tipX, window.innerWidth - rect.width - 4));
+      tipY = Math.max(4, tipY);
+
+      tooltip.style.left = `${tipX}px`;
+      tooltip.style.top = `${tipY}px`;
+    }
+
+    function hideTooltip() {
+      log('Hiding tooltip');
+      tooltip.style.display = 'none';
+    }
+
+    // Add event listeners
+    const portrait1 = document.getElementById('portrait1');
+    const portrait2 = document.getElementById('portrait2');
+
+    portrait1.addEventListener('mouseenter', (e) => {
+      log('Mouse entered portrait 1');
+      showTooltip(fighters.fighter1, e.pageX, e.pageY);
+    });
+
+    portrait1.addEventListener('mousemove', (e) => {
+      showTooltip(fighters.fighter1, e.pageX, e.pageY);
+    });
+
+    portrait1.addEventListener('mouseleave', () => {
+      log('Mouse left portrait 1');
+      hideTooltip();
+    });
+
+    portrait2.addEventListener('mouseenter', (e) => {
+      log('Mouse entered portrait 2');
+      showTooltip(fighters.fighter2, e.pageX, e.pageY);
+    });
+
+    portrait2.addEventListener('mousemove', (e) => {
+      showTooltip(fighters.fighter2, e.pageX, e.pageY);
+    });
+
+    portrait2.addEventListener('mouseleave', () => {
+      log('Mouse left portrait 2');
+      hideTooltip();
+    });
+
+    log('Page loaded. Hover over portraits to test tooltip.', 'info');
+  </script>
+</body>
+</html>

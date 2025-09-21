@@ -1,0 +1,184 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Simple Tooltip Test</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      margin: 0;
+      padding: 20px;
+      background: #333;
+      color: white;
+    }
+    h1 {
+      text-align: center;
+    }
+    .container {
+      max-width: 900px;
+      margin: 0 auto;
+    }
+    .test-area {
+      background: #222;
+      padding: 20px;
+      border-radius: 8px;
+      margin: 20px 0;
+    }
+    .portrait {
+      width: 48px;
+      height: 48px;
+      background: #8B6534;
+      border: 2px solid #B8860B;
+      display: inline-block;
+      margin: 20px;
+      cursor: pointer;
+      position: relative;
+    }
+    .portrait:hover {
+      border-color: #FFD700;
+    }
+    .info {
+      background: #444;
+      padding: 15px;
+      border-radius: 5px;
+      margin: 20px 0;
+    }
+    code {
+      background: #555;
+      padding: 2px 5px;
+      border-radius: 3px;
+    }
+    .console-output {
+      background: #111;
+      padding: 10px;
+      border-radius: 5px;
+      font-family: monospace;
+      font-size: 12px;
+      max-height: 200px;
+      overflow-y: auto;
+      margin-top: 10px;
+    }
+    .log-entry {
+      margin: 2px 0;
+      padding: 2px;
+    }
+    .log-entry.info { color: #4CAF50; }
+    .log-entry.warn { color: #FFC107; }
+    .log-entry.error { color: #F44336; }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>🎮 Simple Tooltip Test</h1>
+
+    <div class="info">
+      <h3>Instructions:</h3>
+      <p>1. Ouvrez la console du navigateur (F12) pour voir les logs de debug</p>
+      <p>2. Survolez les carrés ci-dessous pour déclencher les événements</p>
+      <p>3. Les logs montreront si le tooltip est créé et positionné</p>
+    </div>
+
+    <div class="test-area">
+      <h3>Test avec fonction globale</h3>
+      <div id="portrait1" class="portrait" title="Fighter 1"></div>
+      <div id="portrait2" class="portrait" title="Fighter 2"></div>
+    </div>
+
+    <div class="test-area">
+      <h3>Console Output:</h3>
+      <div id="console" class="console-output"></div>
+    </div>
+  </div>
+
+  <script>
+    // Capture console logs
+    const consoleDiv = document.getElementById('console');
+    function addLog(message, type = 'info') {
+      const entry = document.createElement('div');
+      entry.className = `log-entry ${type}`;
+      entry.textContent = `[${new Date().toLocaleTimeString()}] ${message}`;
+      consoleDiv.appendChild(entry);
+      consoleDiv.scrollTop = consoleDiv.scrollHeight;
+    }
+
+    // Override console methods
+    const originalLog = console.log;
+    const originalWarn = console.warn;
+    const originalError = console.error;
+
+    console.log = function(...args) {
+      originalLog.apply(console, args);
+      addLog(args.join(' '), 'info');
+    };
+
+    console.warn = function(...args) {
+      originalWarn.apply(console, args);
+      addLog(args.join(' '), 'warn');
+    };
+
+    console.error = function(...args) {
+      originalError.apply(console, args);
+      addLog(args.join(' '), 'error');
+    };
+
+    // Test fighter data
+    const testFighter = {
+      name: 'TestBrute',
+      level: 10,
+      hp: 100,
+      maxHp: 150,
+      strength: 50,
+      agility: 30,
+      speed: 25,
+      weapons: [1, 2],
+      skills: [1, 2, 3, 4],
+      supers: [5]
+    };
+
+    // Check if showPfpStats exists
+    console.log('Checking for showPfpStats function...');
+
+    if (typeof window.showPfpStats === 'function') {
+      console.log('✅ showPfpStats function found!');
+    } else {
+      console.warn('⚠️ showPfpStats function NOT found. Creating mock...');
+
+      // Create a simple mock function
+      window.showPfpStats = function(fighter, gx, gy, anchorNode, isRight, followMouse) {
+        console.log('Mock showPfpStats called:', {
+          fighter: fighter?.name,
+          gx: gx,
+          gy: gy,
+          followMouse: followMouse
+        });
+      };
+
+      window.hidePfpStats = function() {
+        console.log('Mock hidePfpStats called');
+      };
+    }
+
+    // Add event listeners to portraits
+    const portraits = document.querySelectorAll('.portrait');
+    portraits.forEach((portrait, index) => {
+      portrait.addEventListener('mouseenter', (e) => {
+        console.log(`Mouse entered portrait ${index + 1}`);
+        const rect = e.target.getBoundingClientRect();
+        window.showPfpStats(testFighter, rect.left + rect.width/2, rect.top, e.target, index === 1, true);
+      });
+
+      portrait.addEventListener('mousemove', (e) => {
+        window.showPfpStats(testFighter, e.clientX, e.clientY, e.target, index === 1, true);
+      });
+
+      portrait.addEventListener('mouseleave', () => {
+        console.log(`Mouse left portrait ${index + 1}`);
+        window.hidePfpStats();
+      });
+    });
+
+    console.log('Test page ready. Hover over the portraits to test.');
+  </script>
+</body>
+</html>

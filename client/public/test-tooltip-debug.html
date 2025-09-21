@@ -1,0 +1,118 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Debug Tooltip</title>
+  <style>
+    body { background: #222; color: white; padding: 20px; font-family: Arial; }
+    .status { background: #333; padding: 20px; border-radius: 8px; margin: 20px 0; }
+    .ok { color: #4CAF50; }
+    .err { color: #F44336; }
+    button { padding: 10px 20px; margin: 5px; cursor: pointer; }
+  </style>
+</head>
+<body>
+  <h1>Debug Tooltip Functions</h1>
+
+  <div class="status">
+    <h3>Status des fonctions :</h3>
+    <div id="status"></div>
+  </div>
+
+  <div>
+    <button onclick="testShow()">Test showPfpStats</button>
+    <button onclick="testHide()">Test hidePfpStats</button>
+    <button onclick="checkTooltip()">Check Tooltip DOM</button>
+  </div>
+
+  <div class="status">
+    <h3>Console :</h3>
+    <div id="console"></div>
+  </div>
+
+  <script>
+    const statusEl = document.getElementById('status');
+    const consoleEl = document.getElementById('console');
+
+    function log(msg, isError = false) {
+      const div = document.createElement('div');
+      div.className = isError ? 'err' : 'ok';
+      div.textContent = `[${new Date().toLocaleTimeString()}] ${msg}`;
+      consoleEl.appendChild(div);
+    }
+
+    // Check functions
+    function checkFunctions() {
+      let html = '';
+
+      if (typeof window.showPfpStats === 'function') {
+        html += '<div class="ok">✓ showPfpStats exists</div>';
+      } else {
+        html += '<div class="err">✗ showPfpStats NOT found</div>';
+      }
+
+      if (typeof window.hidePfpStats === 'function') {
+        html += '<div class="ok">✓ hidePfpStats exists</div>';
+      } else {
+        html += '<div class="err">✗ hidePfpStats NOT found</div>';
+      }
+
+      // Check for tooltip in DOM
+      const tooltips = document.querySelectorAll('[role="tooltip"], .pfp-tooltip, div[style*="z-index: 10000"]');
+      html += `<div>Tooltips in DOM: ${tooltips.length}</div>`;
+
+      statusEl.innerHTML = html;
+    }
+
+    function testShow() {
+      log('Testing showPfpStats...');
+      if (window.showPfpStats) {
+        const testFighter = {
+          name: 'TestBrute',
+          level: 10,
+          hp: 100,
+          maxHp: 150,
+          strength: 50,
+          agility: 30,
+          speed: 25
+        };
+        window.showPfpStats(testFighter, 400, 300, null, false, true);
+        log('showPfpStats called');
+        setTimeout(checkTooltip, 100);
+      } else {
+        log('showPfpStats not found!', true);
+      }
+    }
+
+    function testHide() {
+      log('Testing hidePfpStats...');
+      if (window.hidePfpStats) {
+        window.hidePfpStats();
+        log('hidePfpStats called');
+      } else {
+        log('hidePfpStats not found!', true);
+      }
+    }
+
+    function checkTooltip() {
+      const tooltips = document.querySelectorAll('[role="tooltip"], .pfp-tooltip, div[style*="z-index: 10000"]');
+      log(`Found ${tooltips.length} potential tooltips in DOM`);
+
+      tooltips.forEach((t, i) => {
+        const visible = window.getComputedStyle(t).display !== 'none';
+        const opacity = window.getComputedStyle(t).opacity;
+        log(`  Tooltip ${i}: display=${window.getComputedStyle(t).display}, opacity=${opacity}, visible=${visible}`);
+      });
+    }
+
+    // Initial check
+    setTimeout(() => {
+      checkFunctions();
+      log('Page loaded. Click buttons to test.');
+    }, 1000);
+
+    // Re-check every 2 seconds
+    setInterval(checkFunctions, 2000);
+  </script>
+</body>
+</html>

@@ -612,12 +612,12 @@ const PixiFight: React.FC<Props> = ({
         // Style exact de la carte originale
         tooltipDiv.style.background = '#FFF6D5';
         tooltipDiv.style.border = '2px solid #8B4513';
-        tooltipDiv.style.borderRadius = '8px';
-        tooltipDiv.style.padding = '10px';
-        tooltipDiv.style.boxShadow = '0 4px 8px rgba(0,0,0,0.3)';
+        tooltipDiv.style.borderRadius = '6px';
+        tooltipDiv.style.padding = '6px 8px';
+        tooltipDiv.style.boxShadow = '0 3px 6px rgba(0,0,0,0.3)';
         tooltipDiv.style.fontFamily = 'Arial, sans-serif';
-        tooltipDiv.style.fontSize = '14px';
-        tooltipDiv.style.minWidth = '240px';
+        tooltipDiv.style.fontSize = '11px';
+        tooltipDiv.style.minWidth = '160px';
 
         document.body.appendChild(tooltipDiv);
       };
@@ -662,55 +662,55 @@ const PixiFight: React.FC<Props> = ({
         const supersText = supers.length > 0 ? supers.map(getSkillName).join(', ') : 'None';
         const skillsText = normalSkills.length > 0 ? normalSkills.map(getSkillName).join(', ') : 'None';
 
-        // Create HTML content
+        // Create HTML content EXACTLY like the reference image
         tooltipDiv.innerHTML = `
-          <div style="margin-bottom: 6px;">
-            <span style="color: #D2691E; font-weight: bold; font-size: 18px;">${fighter.name || 'Unknown'}</span>
+          <div style="margin-bottom: 2px;">
+            <span style="color: #8B4513; font-weight: bold; font-size: 12px;">${fighter.name || 'Unknown'}</span>
           </div>
-          <div style="margin-bottom: 8px;">
-            <span style="color: #D2691E; font-weight: bold;">LEVEL</span>
-            <span style="color: #333; font-weight: bold;"> ${level}</span>
+          <div style="margin-bottom: 3px;">
+            <span style="color: #D2691E; font-weight: bold; font-size: 10px;">LEVEL</span>
+            <span style="color: #333; font-weight: bold; font-size: 10px;"> ${level}</span>
           </div>
-          <div style="display: flex; align-items: center; gap: 12px; margin-bottom: 10px;">
-            <div style="position: relative; width: 48px; height: 48px; display: flex; align-items: center; justify-content: center;">
-              <span style="font-size: 36px;">🧡</span>
-              <span style="position: absolute; color: white; font-weight: bold; font-size: 18px; text-shadow: 1px 1px 3px rgba(0,0,0,0.9);">${hp}</span>
+          <div style="display: flex; align-items: flex-start; gap: 4px; margin-bottom: 4px;">
+            <div style="position: relative; width: 26px; height: 26px; display: flex; align-items: center; justify-content: center;">
+              <span style="font-size: 20px; line-height: 1;">🧡</span>
+              <span style="position: absolute; color: white; font-weight: bold; font-size: 11px; text-shadow: 1px 1px 2px rgba(0,0,0,0.8);">${hp}</span>
             </div>
             <div style="flex: 1;">
               <!-- Strength Bar -->
-              <div style="display: flex; align-items: center; margin-bottom: 4px;">
-                <span style="width: 24px; text-align: center; font-size: 18px;">💪</span>
-                <div style="flex: 1; position: relative; height: 18px; background: #E0E0E0; border: 1px solid #999; margin: 0 8px; border-radius: 2px; overflow: hidden;">
-                  <div style="position: absolute; height: 100%; background: linear-gradient(to bottom, #FFA500, #FF8C00); width: ${Math.min(100, (strength / 50) * 100)}%;"></div>
+              <div style="display: flex; align-items: center; margin-bottom: 1px; height: 12px;">
+                <span style="width: 12px; font-size: 10px;">💪</span>
+                <div style="flex: 1; position: relative; height: 10px; background: #E8E8E8; border: 1px solid #AAA; margin: 0 3px; overflow: hidden;">
+                  <div style="position: absolute; height: 100%; background: linear-gradient(to bottom, #FFD700, #FFA500); width: ${Math.min(100, (strength / 50) * 100)}%;"></div>
                 </div>
-                <span style="color: #4169E1; font-weight: bold; min-width: 30px; font-size: 16px;">${strength}</span>
+                <span style="color: #4169E1; font-weight: bold; width: 16px; font-size: 10px; text-align: right;">${strength}</span>
               </div>
               <!-- Agility Bar -->
-              <div style="display: flex; align-items: center; margin-bottom: 4px;">
-                <span style="width: 24px; text-align: center; font-size: 18px;">🪶</span>
-                <div style="flex: 1; position: relative; height: 18px; background: #E0E0E0; border: 1px solid #999; margin: 0 8px; border-radius: 2px; overflow: hidden;">
-                  <div style="position: absolute; height: 100%; background: linear-gradient(to bottom, #FFA500, #FF8C00); width: ${Math.min(100, (agility / 50) * 100)}%;"></div>
+              <div style="display: flex; align-items: center; margin-bottom: 1px; height: 12px;">
+                <span style="width: 12px; font-size: 10px;">🪶</span>
+                <div style="flex: 1; position: relative; height: 10px; background: #E8E8E8; border: 1px solid #AAA; margin: 0 3px; overflow: hidden;">
+                  <div style="position: absolute; height: 100%; background: linear-gradient(to bottom, #FFD700, #FFA500); width: ${Math.min(100, (agility / 50) * 100)}%;"></div>
                 </div>
-                <span style="color: #4169E1; font-weight: bold; min-width: 30px; font-size: 16px;">${agility}</span>
+                <span style="color: #4169E1; font-weight: bold; width: 16px; font-size: 10px; text-align: right;">${agility}</span>
               </div>
               <!-- Speed Bar -->
-              <div style="display: flex; align-items: center;">
-                <span style="width: 24px; text-align: center; font-size: 18px;">⚡</span>
-                <div style="flex: 1; position: relative; height: 18px; background: #E0E0E0; border: 1px solid #999; margin: 0 8px; border-radius: 2px; overflow: hidden;">
-                  <div style="position: absolute; height: 100%; background: linear-gradient(to bottom, #FFA500, #FF8C00); width: ${Math.min(100, (speed / 50) * 100)}%;"></div>
+              <div style="display: flex; align-items: center; height: 12px;">
+                <span style="width: 12px; font-size: 10px;">⚡</span>
+                <div style="flex: 1; position: relative; height: 10px; background: #E8E8E8; border: 1px solid #AAA; margin: 0 3px; overflow: hidden;">
+                  <div style="position: absolute; height: 100%; background: linear-gradient(to bottom, #FFD700, #FFA500); width: ${Math.min(100, (speed / 50) * 100)}%;"></div>
                 </div>
-                <span style="color: #4169E1; font-weight: bold; min-width: 30px; font-size: 16px;">${speed}</span>
+                <span style="color: #4169E1; font-weight: bold; width: 16px; font-size: 10px; text-align: right;">${speed}</span>
               </div>
             </div>
           </div>
-          <div style="border-top: 1px solid #CDB79E; padding-top: 6px;">
-            <div style="margin-bottom: 3px;">
-              <span style="color: #8B4513; font-weight: bold;">Supers:</span>
-              <span style="color: #333; margin-left: 4px;">${supersText}</span>
+          <div style="border-top: 1px solid #CBA; padding-top: 2px;">
+            <div style="margin-bottom: 1px;">
+              <span style="color: #8B4513; font-weight: bold; font-size: 10px;">Supers:</span>
+              <span style="color: #8B4513; font-size: 10px;"> ${supersText}</span>
             </div>
             <div>
-              <span style="color: #8B4513; font-weight: bold;">Skills:</span>
-              <span style="color: #333; margin-left: 4px;">${skillsText}</span>
+              <span style="color: #8B4513; font-weight: bold; font-size: 10px;">Skills:</span>
+              <span style="color: #8B4513; font-size: 10px;"> ${skillsText}</span>
             </div>
           </div>
         `;

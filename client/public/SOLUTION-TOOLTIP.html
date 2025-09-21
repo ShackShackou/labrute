@@ -1,0 +1,346 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>LaBrute Tooltip - Solution Finale qui MARCHE</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+
+    body {
+      background: #1a1a1a;
+      color: white;
+      font-family: Arial, sans-serif;
+      padding: 20px;
+    }
+
+    .container {
+      max-width: 800px;
+      margin: 0 auto;
+    }
+
+    h1 {
+      text-align: center;
+      margin-bottom: 30px;
+      color: #FFD700;
+    }
+
+    .arena {
+      width: 600px;
+      height: 400px;
+      background: #2a2a2a;
+      border: 3px solid #444;
+      border-radius: 10px;
+      margin: 0 auto;
+      position: relative;
+    }
+
+    .fighters-bar {
+      display: flex;
+      justify-content: space-between;
+      padding: 10px;
+      background: rgba(0,0,0,0.3);
+    }
+
+    .fighter-card {
+      background: rgba(0,0,0,0.5);
+      padding: 10px;
+      border-radius: 5px;
+      min-width: 250px;
+    }
+
+    /* Portrait LaBrute */
+    .portrait {
+      width: 48px;
+      height: 48px;
+      background: #8B6534;
+      border: 2px solid #B8860B;
+      position: relative;
+      cursor: pointer;
+      display: inline-block;
+    }
+
+    .portrait:hover {
+      border-color: #FFD700;
+    }
+
+    .portrait-inner {
+      position: absolute;
+      top: 2px;
+      left: 2px;
+      right: 2px;
+      bottom: 2px;
+      background: #6B4F2C;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-weight: bold;
+      font-size: 20px;
+      color: #FFD700;
+    }
+
+    /* TOOLTIP PLUS PETIT - AU DESSUS */
+    #tooltip {
+      position: fixed;
+      z-index: 99999;
+      background: #FFF6D5;
+      border: 1px solid #8B6534;
+      border-radius: 4px;
+      padding: 6px 8px;
+      box-shadow: 0 2px 6px rgba(0,0,0,0.2);
+      font-size: 10px;
+      line-height: 1.3;
+      min-width: 120px;
+      max-width: 150px;
+      color: #5B4631;
+      pointer-events: none;
+      display: none;
+    }
+
+    .tooltip-name {
+      font-size: 11px;
+      font-weight: bold;
+      color: #5B4631;
+      margin-bottom: 3px;
+      padding-bottom: 2px;
+      border-bottom: 1px solid #D4AF37;
+    }
+
+    .tooltip-level {
+      font-size: 9px;
+      text-transform: uppercase;
+      color: #8B6534;
+      margin-bottom: 3px;
+    }
+
+    .tooltip-hp {
+      display: flex;
+      align-items: center;
+      gap: 4px;
+      margin-bottom: 3px;
+      font-size: 10px;
+    }
+
+    .hp-heart {
+      color: #E74C3C;
+      font-size: 11px;
+    }
+
+    .stat-row {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 2px;
+      font-size: 9px;
+    }
+
+    .stat-bar {
+      width: 100%;
+      height: 3px;
+      background: #EFE4C6;
+      border-radius: 2px;
+      overflow: hidden;
+      margin-bottom: 2px;
+    }
+
+    .stat-fill {
+      height: 100%;
+    }
+
+    .stat-str { color: #E74C3C; }
+    .stat-str .stat-fill { background: #E74C3C; }
+
+    .stat-agi { color: #3498DB; }
+    .stat-agi .stat-fill { background: #3498DB; }
+
+    .stat-spd { color: #F39C12; }
+    .stat-spd .stat-fill { background: #F39C12; }
+
+    .tooltip-skills {
+      font-size: 9px;
+      color: #5B4631;
+      margin-top: 3px;
+    }
+
+    /* Debug */
+    #debug {
+      position: fixed;
+      top: 10px;
+      right: 10px;
+      background: rgba(0,0,0,0.8);
+      padding: 10px;
+      font-size: 11px;
+      font-family: monospace;
+      border-radius: 5px;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>🎮 Tooltip LaBrute - SOLUTION QUI MARCHE</h1>
+
+    <div class="arena">
+      <div class="fighters-bar">
+        <div class="fighter-card">
+          <div class="portrait" data-fighter="brutus">
+            <div class="portrait-inner">B</div>
+          </div>
+          <div style="margin-top: 10px;">
+            <div style="font-weight: bold; color: #FFD700;">Brutus</div>
+            <div style="font-size: 12px; color: #999;">Niveau 10</div>
+          </div>
+        </div>
+
+        <div class="fighter-card" style="text-align: right;">
+          <div class="portrait" data-fighter="maximus">
+            <div class="portrait-inner">M</div>
+          </div>
+          <div style="margin-top: 10px;">
+            <div style="font-weight: bold; color: #FFD700;">Maximus</div>
+            <div style="font-size: 12px; color: #999;">Niveau 12</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div style="margin-top: 30px; text-align: center; color: #999;">
+      <p>✅ Le tooltip suit la souris en X et Y</p>
+      <p>✅ Positionné AU-DESSUS du curseur</p>
+      <p>✅ Taille réduite pour être plus discret</p>
+    </div>
+  </div>
+
+  <!-- Tooltip -->
+  <div id="tooltip">
+    <div class="tooltip-name">Nom</div>
+    <div class="tooltip-level">LEVEL 10</div>
+    <div class="tooltip-hp">
+      <span class="hp-heart">♥</span>
+      <span class="hp-text">100/100</span>
+    </div>
+    <div class="stat-row stat-str">
+      <span>FOR: <span class="stat-value">50</span></span>
+    </div>
+    <div class="stat-bar"><div class="stat-fill stat-str" style="width: 50%;"></div></div>
+
+    <div class="stat-row stat-agi">
+      <span>AGI: <span class="stat-value">30</span></span>
+    </div>
+    <div class="stat-bar"><div class="stat-fill stat-agi" style="width: 30%;"></div></div>
+
+    <div class="stat-row stat-spd">
+      <span>VIT: <span class="stat-value">25</span></span>
+    </div>
+    <div class="stat-bar"><div class="stat-fill stat-spd" style="width: 25%;"></div></div>
+
+    <div class="tooltip-skills">
+      <strong>Skills:</strong> <span class="skills-list">Force, Sprint</span>
+    </div>
+  </div>
+
+  <!-- Debug -->
+  <div id="debug">
+    <div>Mouse: <span id="mouse">0, 0</span></div>
+    <div>Tooltip: <span id="tip">0, 0</span></div>
+  </div>
+
+  <script>
+    // Données
+    const fighters = {
+      brutus: {
+        name: 'Brutus le Fort',
+        level: 10,
+        hp: 100,
+        maxHp: 100,
+        strength: 50,
+        agility: 30,
+        speed: 25,
+        skills: 'Force herculéenne, Sprint'
+      },
+      maximus: {
+        name: 'Maximus',
+        level: 12,
+        hp: 120,
+        maxHp: 120,
+        strength: 40,
+        agility: 45,
+        speed: 35,
+        skills: 'Esquive, Contre, Régén'
+      }
+    };
+
+    const tooltip = document.getElementById('tooltip');
+    let currentFighter = null;
+    let isHovering = false;
+
+    // UPDATE TOOLTIP - SUIT LA SOURIS EN X ET Y
+    function updateTooltip(e) {
+      if (!isHovering) return;
+
+      // Position EXACTE de la souris
+      const mouseX = e.clientX;
+      const mouseY = e.clientY;
+
+      // Tooltip AU-DESSUS du curseur
+      const tipX = mouseX - 75;  // Centré (150/2 = 75)
+      const tipY = mouseY - 140; // AU-DESSUS du curseur
+
+      // Applique position
+      tooltip.style.left = Math.max(5, Math.min(tipX, window.innerWidth - 155)) + 'px';
+      tooltip.style.top = Math.max(5, tipY) + 'px';
+
+      // Debug
+      document.getElementById('mouse').textContent = `${mouseX}, ${mouseY}`;
+      document.getElementById('tip').textContent = `${Math.round(tipX)}, ${Math.round(tipY)}`;
+    }
+
+    // Fonction pour afficher avec données
+    function showTooltip(fighter) {
+      tooltip.querySelector('.tooltip-name').textContent = fighter.name;
+      tooltip.querySelector('.tooltip-level').textContent = `LEVEL ${fighter.level}`;
+      tooltip.querySelector('.hp-text').textContent = `${fighter.hp}/${fighter.maxHp}`;
+
+      // Stats
+      tooltip.querySelector('.stat-str .stat-value').textContent = fighter.strength;
+      tooltip.querySelector('.stat-fill.stat-str').style.width = fighter.strength + '%';
+
+      tooltip.querySelector('.stat-agi .stat-value').textContent = fighter.agility;
+      tooltip.querySelector('.stat-fill.stat-agi').style.width = fighter.agility + '%';
+
+      tooltip.querySelector('.stat-spd .stat-value').textContent = fighter.speed;
+      tooltip.querySelector('.stat-fill.stat-spd').style.width = fighter.speed + '%';
+
+      tooltip.querySelector('.skills-list').textContent = fighter.skills;
+
+      tooltip.style.display = 'block';
+      isHovering = true;
+    }
+
+    function hideTooltip() {
+      tooltip.style.display = 'none';
+      isHovering = false;
+      currentFighter = null;
+    }
+
+    // IMPORTANT: Event sur DOCUMENT pour capturer TOUS les mouvements
+    document.addEventListener('mousemove', updateTooltip);
+
+    // Events sur portraits
+    document.querySelectorAll('.portrait').forEach(portrait => {
+      const fighterKey = portrait.dataset.fighter;
+      const fighter = fighters[fighterKey];
+
+      portrait.addEventListener('mouseenter', (e) => {
+        currentFighter = fighter;
+        showTooltip(fighter);
+        updateTooltip(e); // Position initiale
+      });
+
+      portrait.addEventListener('mouseleave', () => {
+        hideTooltip();
+      });
+    });
+
+    console.log('✅ Tooltip FONCTIONNEL - Survolez les portraits!');
+  </script>
+</body>
+</html>

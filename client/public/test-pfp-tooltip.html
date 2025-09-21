@@ -1,0 +1,129 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>PFP Tooltip Test</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      padding: 20px;
+      background: #f0f0f0;
+    }
+    .test-section {
+      background: white;
+      padding: 20px;
+      margin: 20px 0;
+      border-radius: 8px;
+      box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    }
+    h1 { color: #333; }
+    h2 { color: #666; font-size: 18px; }
+    .test-link {
+      display: inline-block;
+      padding: 10px 20px;
+      margin: 10px;
+      background: #007bff;
+      color: white;
+      text-decoration: none;
+      border-radius: 4px;
+    }
+    .test-link:hover {
+      background: #0056b3;
+    }
+    code {
+      background: #f4f4f4;
+      padding: 2px 6px;
+      border-radius: 3px;
+      font-family: monospace;
+    }
+    .feature-list {
+      list-style-type: none;
+      padding: 0;
+    }
+    .feature-list li {
+      padding: 8px 0;
+      border-bottom: 1px solid #eee;
+    }
+    .feature-list li:last-child {
+      border-bottom: none;
+    }
+    .check { color: green; font-weight: bold; }
+  </style>
+</head>
+<body>
+  <h1>🎮 PFP Tooltip Test Page</h1>
+
+  <div class="test-section">
+    <h2>Test URLs</h2>
+    <p>Use these URLs to test the PFP tooltip functionality:</p>
+
+    <a href="?pixiTooltipTest=1" class="test-link">Force Show Tooltip</a>
+    <a href="?pixiDbg=1" class="test-link">Enable Debug Logging</a>
+    <a href="?pixiTooltipTest=1&pixiDbg=1" class="test-link">Both Test + Debug</a>
+    <a href="?" class="test-link">Normal Mode</a>
+  </div>
+
+  <div class="test-section">
+    <h2>Features Implemented</h2>
+    <ul class="feature-list">
+      <li><span class="check">✓</span> <strong>Hover Activation:</strong> Tooltip appears on PFP hover</li>
+      <li><span class="check">✓</span> <strong>Mouse Tracking:</strong> X position follows mouse, Y stays anchored</li>
+      <li><span class="check">✓</span> <strong>Anti-flicker:</strong> 120ms delay on hide</li>
+      <li><span class="check">✓</span> <strong>Global Tooltip:</strong> Single DOM element reused</li>
+      <li><span class="check">✓</span> <strong>Z-index Priority:</strong> Always above canvas (z-index: 10000)</li>
+      <li><span class="check">✓</span> <strong>No Click Capture:</strong> pointer-events: none</li>
+    </ul>
+  </div>
+
+  <div class="test-section">
+    <h2>Content Display</h2>
+    <ul class="feature-list">
+      <li><span class="check">✓</span> <strong>Fighter Name:</strong> Bold, with ellipsis for long names</li>
+      <li><span class="check">✓</span> <strong>Level:</strong> Small-caps with weapon icon if equipped</li>
+      <li><span class="check">✓</span> <strong>HP:</strong> Current HP with heart icon</li>
+      <li><span class="check">✓</span> <strong>Stats:</strong> STR (red), AGI (blue), SPD (yellow) with bars</li>
+      <li><span class="check">✓</span> <strong>Supers:</strong> Listed if present, hidden otherwise</li>
+      <li><span class="check">✓</span> <strong>Skills:</strong> Localized names with word wrap</li>
+    </ul>
+  </div>
+
+  <div class="test-section">
+    <h2>Positioning</h2>
+    <ul class="feature-list">
+      <li><span class="check">✓</span> <strong>Anchor:</strong> Centered above PFP with -4px offset</li>
+      <li><span class="check">✓</span> <strong>X-axis:</strong> Follows mouse cursor</li>
+      <li><span class="check">✓</span> <strong>Clamp:</strong> 4px margins from container edges</li>
+      <li><span class="check">✓</span> <strong>No Flip:</strong> Always stays above portrait</li>
+    </ul>
+  </div>
+
+  <div class="test-section">
+    <h2>Style</h2>
+    <ul class="feature-list">
+      <li><span class="check">✓</span> <strong>Background:</strong> #FFF6D5</li>
+      <li><span class="check">✓</span> <strong>Border:</strong> 1px solid #8B6534</li>
+      <li><span class="check">✓</span> <strong>Border Radius:</strong> 6px</li>
+      <li><span class="check">✓</span> <strong>Shadow:</strong> Soft shadow for depth</li>
+      <li><span class="check">✓</span> <strong>Font:</strong> system-ui, Verdana, Arial</li>
+    </ul>
+  </div>
+
+  <div class="test-section">
+    <h2>Debug Parameters</h2>
+    <p><code>&pixiTooltipTest=1</code> - Forces tooltip to show on load for testing</p>
+    <p><code>&pixiDbg=1</code> - Enables console logging of position and data</p>
+  </div>
+
+  <script>
+    // Log current URL parameters
+    const params = new URLSearchParams(window.location.search);
+    if (params.get('pixiTooltipTest') === '1') {
+      console.log('[Test Mode] Tooltip will be forced to show on load');
+    }
+    if (params.get('pixiDbg') === '1') {
+      console.log('[Debug Mode] Position logging enabled');
+    }
+  </script>
+</body>
+</html>

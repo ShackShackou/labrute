@@ -1,0 +1,334 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Enhanced PFP Tooltip Test</title>
+  <style>
+    body {
+      font-family: 'Segoe UI', system-ui, Arial, sans-serif;
+      padding: 20px;
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      min-height: 100vh;
+    }
+    .container {
+      max-width: 1000px;
+      margin: 0 auto;
+    }
+    .header {
+      text-align: center;
+      color: white;
+      margin-bottom: 30px;
+    }
+    h1 {
+      font-size: 2.5em;
+      margin-bottom: 10px;
+      text-shadow: 2px 2px 4px rgba(0,0,0,0.3);
+    }
+    .subtitle {
+      font-size: 1.2em;
+      opacity: 0.95;
+    }
+    .test-section {
+      background: white;
+      padding: 25px;
+      margin: 20px 0;
+      border-radius: 12px;
+      box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+    }
+    h2 {
+      color: #5a67d8;
+      font-size: 1.5em;
+      margin-bottom: 15px;
+      border-bottom: 2px solid #e2e8f0;
+      padding-bottom: 10px;
+    }
+    .test-buttons {
+      display: flex;
+      gap: 10px;
+      flex-wrap: wrap;
+      margin: 20px 0;
+    }
+    .test-link {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      padding: 12px 24px;
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      color: white;
+      text-decoration: none;
+      border-radius: 8px;
+      font-weight: 600;
+      transition: all 0.3s;
+      box-shadow: 0 4px 15px rgba(102, 126, 234, 0.4);
+    }
+    .test-link:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 6px 20px rgba(102, 126, 234, 0.5);
+    }
+    .feature-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+      gap: 15px;
+      margin: 20px 0;
+    }
+    .feature-card {
+      background: #f7fafc;
+      padding: 15px;
+      border-radius: 8px;
+      border-left: 4px solid #667eea;
+    }
+    .feature-card h3 {
+      color: #2d3748;
+      font-size: 1.1em;
+      margin-bottom: 8px;
+    }
+    .feature-card p {
+      color: #718096;
+      font-size: 0.95em;
+      margin: 0;
+    }
+    .check {
+      color: #48bb78;
+      font-weight: bold;
+      margin-right: 5px;
+    }
+    .warning {
+      background: #fff5f5;
+      border: 1px solid #feb2b2;
+      border-radius: 8px;
+      padding: 15px;
+      margin: 20px 0;
+    }
+    .warning h3 {
+      color: #c53030;
+      margin-top: 0;
+    }
+    code {
+      background: #edf2f7;
+      padding: 3px 8px;
+      border-radius: 4px;
+      font-family: 'Consolas', 'Monaco', monospace;
+      font-size: 0.9em;
+      color: #5a67d8;
+    }
+    .demo-area {
+      background: #2d3748;
+      padding: 30px;
+      border-radius: 8px;
+      margin: 20px 0;
+      min-height: 200px;
+      position: relative;
+      overflow: hidden;
+    }
+    .demo-fighter {
+      width: 60px;
+      height: 60px;
+      background: linear-gradient(135deg, #8B6534 0%, #3A2317 100%);
+      border: 2px solid #B8860B;
+      border-radius: 4px;
+      position: absolute;
+      cursor: pointer;
+      transition: transform 0.2s;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: white;
+      font-weight: bold;
+    }
+    .demo-fighter:hover {
+      transform: scale(1.05);
+    }
+    #fighter1 { left: 100px; top: 50px; }
+    #fighter2 { right: 100px; top: 50px; }
+    .status {
+      background: #edf2f7;
+      padding: 15px;
+      border-radius: 8px;
+      margin: 20px 0;
+    }
+    .status-item {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      margin: 10px 0;
+    }
+    .status-indicator {
+      width: 12px;
+      height: 12px;
+      border-radius: 50%;
+      background: #cbd5e0;
+    }
+    .status-indicator.active {
+      background: #48bb78;
+      animation: pulse 1.5s infinite;
+    }
+    @keyframes pulse {
+      0% { opacity: 1; }
+      50% { opacity: 0.5; }
+      100% { opacity: 1; }
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="header">
+      <h1>🎮 LaBrute Tooltip Enhanced</h1>
+      <p class="subtitle">Test du comportement amélioré des fiches info</p>
+    </div>
+
+    <div class="test-section">
+      <h2>🚀 Quick Test URLs</h2>
+      <div class="test-buttons">
+        <a href="/BeigePopular/fight/670be95e5e65a2f6a17f5f9a?renderer=pixi" class="test-link">
+          <span>⚔️</span> Test dans un combat réel
+        </a>
+        <a href="/BeigePopular/fight/670be95e5e65a2f6a17f5f9a?renderer=pixi&pixiDbg=1" class="test-link">
+          <span>🔍</span> Mode Debug activé
+        </a>
+        <a href="/BeigePopular/fight/670be95e5e65a2f6a17f5f9a?renderer=pixi&pixiTooltipTest=1" class="test-link">
+          <span>📊</span> Force tooltip display
+        </a>
+      </div>
+    </div>
+
+    <div class="test-section">
+      <h2>✨ Nouveau Comportement</h2>
+      <div class="feature-grid">
+        <div class="feature-card">
+          <h3><span class="check">✓</span> Apparition instantanée</h3>
+          <p>Le tooltip apparaît immédiatement au survol du portrait, sans délai</p>
+        </div>
+        <div class="feature-card">
+          <h3><span class="check">✓</span> Suivi de la souris</h3>
+          <p>La fiche suit en permanence les mouvements du curseur</p>
+        </div>
+        <div class="feature-card">
+          <h3><span class="check">✓</span> Disparition immédiate</h3>
+          <p>Disparaît instantanément quand on quitte la zone de survol</p>
+        </div>
+        <div class="feature-card">
+          <h3><span class="check">✓</span> Affichage des armes</h3>
+          <p>Les armes équipées sont affichées avec le niveau</p>
+        </div>
+        <div class="feature-card">
+          <h3><span class="check">✓</span> Supers visibles</h3>
+          <p>Les super-pouvoirs sont listés s'ils sont présents</p>
+        </div>
+        <div class="feature-card">
+          <h3><span class="check">✓</span> Stats complètes</h3>
+          <p>Force, Agilité, Vitesse avec barres visuelles</p>
+        </div>
+      </div>
+    </div>
+
+    <div class="test-section">
+      <h2>📋 Contenu affiché</h2>
+      <div class="status">
+        <div class="status-item">
+          <div class="status-indicator active"></div>
+          <strong>Nom du combattant:</strong> Affiché en gras en haut
+        </div>
+        <div class="status-item">
+          <div class="status-indicator active"></div>
+          <strong>Niveau et armes:</strong> LEVEL X • Arme1, Arme2
+        </div>
+        <div class="status-item">
+          <div class="status-indicator active"></div>
+          <strong>Points de vie:</strong> ♥ HP actuel/HP max
+        </div>
+        <div class="status-item">
+          <div class="status-indicator active"></div>
+          <strong>Statistiques:</strong> STR, AGI, SPD avec barres de progression
+        </div>
+        <div class="status-item">
+          <div class="status-indicator active"></div>
+          <strong>Supers:</strong> Liste des super-pouvoirs (si présents)
+        </div>
+        <div class="status-item">
+          <div class="status-indicator active"></div>
+          <strong>Compétences:</strong> Liste des skills séparés par des virgules
+        </div>
+      </div>
+    </div>
+
+    <div class="test-section">
+      <h2>🎯 Zone de démonstration</h2>
+      <p>Survolez les portraits ci-dessous pour tester le tooltip (nécessite d'être dans un combat)</p>
+      <div class="demo-area">
+        <div class="demo-fighter" id="fighter1" title="Fighter 1">F1</div>
+        <div class="demo-fighter" id="fighter2" title="Fighter 2">F2</div>
+      </div>
+    </div>
+
+    <div class="test-section">
+      <h2>🔧 Paramètres de test</h2>
+      <div class="warning">
+        <h3>⚠️ Note importante</h3>
+        <p>Le tooltip ne fonctionne que dans le contexte d'un combat Pixi actif. Utilisez les liens de test ci-dessus pour voir le comportement en situation réelle.</p>
+      </div>
+      <ul>
+        <li><code>?renderer=pixi</code> - Active le renderer Pixi (requis)</li>
+        <li><code>&pixiDbg=1</code> - Active les logs de debug dans la console</li>
+        <li><code>&pixiTooltipTest=1</code> - Force l'affichage du tooltip au chargement</li>
+      </ul>
+    </div>
+
+    <div class="test-section">
+      <h2>📊 Comparaison avec l'ancien comportement</h2>
+      <table style="width: 100%; border-collapse: collapse;">
+        <thead>
+          <tr style="background: #f7fafc;">
+            <th style="padding: 10px; text-align: left; border-bottom: 2px solid #e2e8f0;">Aspect</th>
+            <th style="padding: 10px; text-align: left; border-bottom: 2px solid #e2e8f0;">Avant</th>
+            <th style="padding: 10px; text-align: left; border-bottom: 2px solid #e2e8f0;">Maintenant</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td style="padding: 10px; border-bottom: 1px solid #e2e8f0;">Apparition</td>
+            <td style="padding: 10px; border-bottom: 1px solid #e2e8f0; color: #718096;">Avec délai possible</td>
+            <td style="padding: 10px; border-bottom: 1px solid #e2e8f0; color: #48bb78; font-weight: bold;">Instantanée</td>
+          </tr>
+          <tr>
+            <td style="padding: 10px; border-bottom: 1px solid #e2e8f0;">Position</td>
+            <td style="padding: 10px; border-bottom: 1px solid #e2e8f0; color: #718096;">Fixe au-dessus du portrait</td>
+            <td style="padding: 10px; border-bottom: 1px solid #e2e8f0; color: #48bb78; font-weight: bold;">Suit la souris</td>
+          </tr>
+          <tr>
+            <td style="padding: 10px; border-bottom: 1px solid #e2e8f0;">Disparition</td>
+            <td style="padding: 10px; border-bottom: 1px solid #e2e8f0; color: #718096;">Avec délai de 120ms</td>
+            <td style="padding: 10px; border-bottom: 1px solid #e2e8f0; color: #48bb78; font-weight: bold;">Instantanée</td>
+          </tr>
+          <tr>
+            <td style="padding: 10px; border-bottom: 1px solid #e2e8f0;">Armes</td>
+            <td style="padding: 10px; border-bottom: 1px solid #e2e8f0; color: #718096;">Non affichées dans tooltip</td>
+            <td style="padding: 10px; border-bottom: 1px solid #e2e8f0; color: #48bb78; font-weight: bold;">Affichées avec le niveau</td>
+          </tr>
+          <tr>
+            <td style="padding: 10px;">Supers</td>
+            <td style="padding: 10px; color: #718096;">Non affichés</td>
+            <td style="padding: 10px; color: #48bb78; font-weight: bold;">Liste complète si présents</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <script>
+    console.log('%c🎮 LaBrute Tooltip Enhanced Test Page', 'font-size: 20px; color: #667eea; font-weight: bold;');
+    console.log('%cPour tester le tooltip, cliquez sur un des liens de combat ci-dessus', 'font-size: 14px; color: #718096;');
+
+    // Simulate tooltip behavior for demo
+    const fighters = document.querySelectorAll('.demo-fighter');
+    fighters.forEach(fighter => {
+      fighter.addEventListener('mouseenter', (e) => {
+        console.log(`[DEMO] Tooltip would show for ${e.target.id}`);
+      });
+      fighter.addEventListener('mouseleave', (e) => {
+        console.log(`[DEMO] Tooltip would hide for ${e.target.id}`);
+      });
+    });
+  </script>
+</body>
+</html>
