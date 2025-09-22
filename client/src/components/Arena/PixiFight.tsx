@@ -3572,11 +3572,94 @@ const PixiFight: React.FC<Props> = ({
             const victimSide = (victim === leftMain || victimIdx === leftMainIdx) ? 'L' : 'R';
 
             console.log(`Vampire side: ${vampireSide}, Victim side: ${victimSide}`);
-            // Get positions for visual effects
-            const vampireNode = vampire === leftMain ? left : vampire === rightMain ? right : { node: { x: 0, y: 0 } };
-            const victimNode = victim === leftMain ? left : victim === rightMain ? right : { node: { x: 0, y: 0 } };
-            const spos = getPos(vampireNode.node);
-            const tpos = getPos(victimNode.node);
+            // Get the actual sprite nodes for animation
+            let vampireSprite: any = null;
+            let victimSprite: any = null;
+
+            // Find vampire sprite
+            if (vampire === leftMain) {
+              vampireSprite = left;
+            } else if (vampire === rightMain) {
+              vampireSprite = right;
+            } else {
+              // Check if it's a pet
+              const leftPetData = leftMain?.pets?.[0];
+              const rightPetData = rightMain?.pets?.[0];
+              if (leftPetData && vampire?.name === leftPetData.name) {
+                vampireSprite = left; // Use main fighter's position for now
+              } else if (rightPetData && vampire?.name === rightPetData.name) {
+                vampireSprite = right; // Use main fighter's position for now
+              }
+            }
+
+            // Find victim sprite
+            if (victim === leftMain) {
+              victimSprite = left;
+            } else if (victim === rightMain) {
+              victimSprite = right;
+            } else {
+              // Check if it's a pet
+              const leftPetData = leftMain?.pets?.[0];
+              const rightPetData = rightMain?.pets?.[0];
+              if (leftPetData && victim?.name === leftPetData.name) {
+                victimSprite = left; // Use main fighter's position for now
+              } else if (rightPetData && victim?.name === rightPetData.name) {
+                victimSprite = right; // Use main fighter's position for now
+              }
+            }
+
+            if (!vampireSprite || !victimSprite) {
+              console.error('Could not find sprite for vampire or victim');
+              // Fall back to using main fighters
+              vampireSprite = vampireSide === 'L' ? left : right;
+              victimSprite = victimSide === 'L' ? left : right;
+            }
+
+            const spos = getPos(vampireSprite.node);
+            const tpos = getPos(victimSprite.node);
+
+            // Store vampire's original position
+            const originalVampireX = vampireSprite.node.x;
+            const originalVampireY = vampireSprite.node.y;
+
+            // Calculate position close to victim (offset by 80 pixels to avoid overlap)
+            const targetX = vampireSide === 'L' ? tpos.x - 80 : tpos.x + 80;
+            const targetY = tpos.y;
+
+            // Animate vampire moving to victim
+            let moveTime = 0;
+            const moveDuration = 300; // 300ms to move to victim
+            const stayDuration = 500; // Stay for 500ms while sucking blood
+            const returnDuration = 300; // 300ms to return
+            const totalDuration = moveDuration + stayDuration + returnDuration;
+
+            const vampireMoveTick = (tk: any) => {
+              moveTime += tk.deltaMS || 16.7;
+
+              if (moveTime <= moveDuration) {
+                // Phase 1: Move to victim
+                const progress = moveTime / moveDuration;
+                const eased = progress * progress; // Ease in
+                vampireSprite.node.x = originalVampireX + (targetX - originalVampireX) * eased;
+                vampireSprite.node.y = originalVampireY + (targetY - originalVampireY) * eased;
+              } else if (moveTime <= moveDuration + stayDuration) {
+                // Phase 2: Stay at victim position
+                vampireSprite.node.x = targetX;
+                vampireSprite.node.y = targetY;
+              } else if (moveTime <= totalDuration) {
+                // Phase 3: Return to original position
+                const returnProgress = (moveTime - moveDuration - stayDuration) / returnDuration;
+                const eased = 1 - (1 - returnProgress) * (1 - returnProgress); // Ease out
+                vampireSprite.node.x = targetX + (originalVampireX - targetX) * eased;
+                vampireSprite.node.y = targetY + (originalVampireY - targetY) * eased;
+              } else {
+                // Animation complete, ensure vampire is back at original position
+                vampireSprite.node.x = originalVampireX;
+                vampireSprite.node.y = originalVampireY;
+                app.ticker.remove(vampireMoveTick);
+              }
+            };
+            addTick(vampireMoveTick);
 
             // Store initial HP values
             const beforeVictimHP = victimSide === 'L' ? hpL : hpR;
@@ -3584,101 +3667,120 @@ const PixiFight: React.FC<Props> = ({
 
             console.log(`BEFORE VAMPIRISM: Victim(${victimSide}) HP=${beforeVictimHP}, Vampire(${vampireSide}) HP=${beforeVampireHP}`);
 
-            // Apply damage to victim
-            if (victimSide === 'L') {
-              hpL = Math.max(0, hpL - damage);
-              barL.set(hpL / maxL);
-              console.log(`Victim LEFT HP: ${beforeVictimHP} -> ${hpL}`);
-            } else if (victimSide === 'R') {
-              hpR = Math.max(0, hpR - damage);
-              barR.set(hpR / maxR);
-              console.log(`Victim RIGHT HP: ${beforeVictimHP} -> ${hpR}`);
-            }
-
-            // Heal the vampire
-            if (vampireSide === 'L') {
-              hpL = Math.min(maxL, hpL + healAmount);
-              const ratio = hpL / maxL;
-              console.log(`Vampire LEFT HP (heal): ${beforeVampireHP} -> ${hpL}, ratio: ${ratio}`);
-              barL.set(ratio);
-            } else if (vampireSide === 'R') {
-              hpR = Math.min(maxR, hpR + healAmount);
-              const ratio = hpR / maxR;
-              console.log(`Vampire RIGHT HP (heal): ${beforeVampireHP} -> ${hpR}, ratio: ${ratio}`);
-              barR.set(ratio);
-            }
-
-            // Show damage number on target (red)
-            const damageText = new Text(`-${damage}`, {
-              fontSize: 22,
-              fontWeight: 'bold',
-              fill: '#FF0000',
-            });
-            damageText.anchor.set(0.5);
-            damageText.position.set(tpos.x, tpos.y - 50);
-            scene.addChild(damageText);
-
-            // Show heal number on attacker (green)
-            const healText = new Text(`+${healAmount}`, {
-              fontSize: 22,
-              fontWeight: 'bold',
-              fill: '#00FF00',
-            });
-            healText.anchor.set(0.5);
-            healText.position.set(spos.x, spos.y - 50);
-            scene.addChild(healText);
-
-            // Animate numbers floating up
-            let floatTime = 0;
-            const floatTick = (tk: any) => {
-              floatTime += tk.deltaMS || 16.7;
-              const progress = floatTime / 800;
-
-              damageText.y = tpos.y - 50 - progress * 30;
-              damageText.alpha = 1 - progress;
-
-              healText.y = spos.y - 50 - progress * 30;
-              healText.alpha = 1 - progress;
-
-              if (progress >= 1) {
-                app.ticker.remove(floatTick);
-                scene.removeChild(damageText);
-                scene.removeChild(healText);
-                damageText.destroy();
-                healText.destroy();
+            // Delay HP updates and effects until vampire reaches victim (after 300ms)
+            setTimeout(() => {
+              // Apply damage to victim
+              if (victimSide === 'L') {
+                hpL = Math.max(0, hpL - damage);
+                barL.set(hpL / maxL);
+                console.log(`Victim LEFT HP: ${beforeVictimHP} -> ${hpL}`);
+              } else if (victimSide === 'R') {
+                hpR = Math.max(0, hpR - damage);
+                barR.set(hpR / maxR);
+                console.log(`Victim RIGHT HP: ${beforeVictimHP} -> ${hpR}`);
               }
-            };
-            addTick(floatTick);
 
-            // Blood effect particles
-            for (let i = 0; i < 10; i++) {
-              const blood = new Graphics();
-              blood.circle(0, 0, 2)
-                .fill({ color: 0x8B0000, alpha: 0.8 });
+              // Heal the vampire - check if they're on same side (vampirism can hit same team)
+              if (vampireSide === 'L' && victimSide === 'L') {
+                // Both on left side - vampire heals after damaging teammate
+                hpL = Math.min(maxL, hpL + healAmount);
+                const ratio = hpL / maxL;
+                console.log(`Vampire LEFT HP (heal after team damage): ${hpL - healAmount} -> ${hpL}, ratio: ${ratio}`);
+                barL.set(ratio);
+              } else if (vampireSide === 'R' && victimSide === 'R') {
+                // Both on right side - vampire heals after damaging teammate
+                hpR = Math.min(maxR, hpR + healAmount);
+                const ratio = hpR / maxR;
+                console.log(`Vampire RIGHT HP (heal after team damage): ${hpR - healAmount} -> ${hpR}, ratio: ${ratio}`);
+                barR.set(ratio);
+              } else if (vampireSide === 'L') {
+                // Normal case - vampire on left, victim on right
+                hpL = Math.min(maxL, hpL + healAmount);
+                const ratio = hpL / maxL;
+                console.log(`Vampire LEFT HP (heal): ${beforeVampireHP} -> ${hpL}, ratio: ${ratio}`);
+                barL.set(ratio);
+              } else if (vampireSide === 'R') {
+                // Normal case - vampire on right, victim on left
+                hpR = Math.min(maxR, hpR + healAmount);
+                const ratio = hpR / maxR;
+                console.log(`Vampire RIGHT HP (heal): ${beforeVampireHP} -> ${hpR}, ratio: ${ratio}`);
+                barR.set(ratio);
+              }
+              // Show damage number on target (red)
+              const damageText = new Text(`-${damage}`, {
+                fontSize: 22,
+                fontWeight: 'bold',
+                fill: '#FF0000',
+              });
+              damageText.anchor.set(0.5);
+              damageText.position.set(tpos.x, tpos.y - 50);
+              scene.addChild(damageText);
 
-              const startX = tpos.x + (Math.random() - 0.5) * 20;
-              const startY = tpos.y + (Math.random() - 0.5) * 20;
-              blood.position.set(startX, startY);
-              scene.addChild(blood);
+              // Show heal number on vampire at victim position (green)
+              const healText = new Text(`+${healAmount}`, {
+                fontSize: 22,
+                fontWeight: 'bold',
+                fill: '#00FF00',
+              });
+              healText.anchor.set(0.5);
+              // Show heal number where vampire is (near victim)
+              const vampireCurrentX = vampireSide === 'L' ? tpos.x - 50 : tpos.x + 50;
+              healText.position.set(vampireCurrentX, tpos.y - 50);
+              scene.addChild(healText);
 
-              // Animate blood moving from target to attacker
-              let bloodTime = 0;
-              const bloodTick = (tk: any) => {
-                bloodTime += tk.deltaMS || 16.7;
-                const progress = Math.min(bloodTime / 500, 1);
+              // Animate numbers floating up
+              let floatTime = 0;
+              const floatTick = (tk: any) => {
+                floatTime += tk.deltaMS || 16.7;
+                const progress = floatTime / 800;
 
-                blood.x = startX + (spos.x - startX) * progress;
-                blood.y = startY + (spos.y - startY) * progress;
-                blood.alpha = 0.8 * (1 - progress);
+                damageText.y = tpos.y - 50 - progress * 30;
+                damageText.alpha = 1 - progress;
+
+                healText.y = tpos.y - 50 - progress * 30;
+                healText.alpha = 1 - progress;
 
                 if (progress >= 1) {
-                  app.ticker.remove(bloodTick);
-                  scene.removeChild(blood);
-                  blood.destroy();
+                  app.ticker.remove(floatTick);
+                  scene.removeChild(damageText);
+                  scene.removeChild(healText);
+                  damageText.destroy();
+                  healText.destroy();
                 }
               };
-              addTick(bloodTick);
-            }
+              addTick(floatTick);
+
+              // Blood effect particles
+              for (let i = 0; i < 10; i++) {
+                const blood = new Graphics();
+                blood.circle(0, 0, 2)
+                  .fill({ color: 0x8B0000, alpha: 0.8 });
+
+                const startX = tpos.x + (Math.random() - 0.5) * 20;
+                const startY = tpos.y + (Math.random() - 0.5) * 20;
+                blood.position.set(startX, startY);
+                scene.addChild(blood);
+
+                // Animate blood moving from victim to vampire's current position
+                let bloodTime = 0;
+                const bloodTick = (tk: any) => {
+                  bloodTime += tk.deltaMS || 16.7;
+                  const progress = Math.min(bloodTime / 500, 1);
+
+                  const vampireTargetX = vampireSide === 'L' ? tpos.x - 50 : tpos.x + 50;
+                  blood.x = startX + (vampireTargetX - startX) * progress;
+                  blood.y = startY + (tpos.y - startY) * progress;
+                  blood.alpha = 0.8 * (1 - progress);
+
+                  if (progress >= 1) {
+                    app.ticker.remove(bloodTick);
+                    scene.removeChild(blood);
+                    blood.destroy();
+                  }
+                };
+                addTick(bloodTick);
+              }
+            }, 300); // Wait for vampire to reach victim
 
             console.log(`AFTER VAMPIRISM: Left HP = ${hpL}/${maxL}, Right HP = ${hpR}/${maxR}`);
             break; }
