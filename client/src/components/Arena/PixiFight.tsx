@@ -243,12 +243,12 @@ const PixiFight: React.FC<Props> = ({
       // @ts-ignore
       (ui as any).zIndex = 999;
       app.stage.addChild(ui);
-      // Debug layer (optional)
-      const debugLayer = new Container();
+      // Debug layer DISABLED - no debug graphics
+      // const debugLayer = new Container();
       // @ts-ignore
-      (debugLayer as any).zIndex = 998;
-      app.stage.addChild(debugLayer);
-      debugLayerRef.current = debugLayer;
+      // (debugLayer as any).zIndex = 998;
+      // app.stage.addChild(debugLayer);
+      // debugLayerRef.current = debugLayer;
 
 
       const ensureTooltip = (): TooltipElements => {
@@ -587,7 +587,8 @@ const PixiFight: React.FC<Props> = ({
       const clampMax = Number(params.get('pixiClampMax') ?? `${clampYMaxRatio}`);
       const clampY = (y:number) => Math.max(H * clampMin, Math.min(H * clampMax, y));
       const preferVideo = (params.get('bgVideo') === '1' || params.get('bgVideo') === 'true') || !!preferVideoBackground;
-      const debugDiag = (params.get('pixiDiag') === '1' || localStorage.getItem('compare.pixiDiag') === '1');
+      const debugDiag = false; // DISABLED - debug diagnostics
+      // const debugDiag = (params.get('pixiDiag') === '1' || localStorage.getItem('compare.pixiDiag') === '1');
       const traceEnabled = false; // DISABLED - debug traces
       // const traceEnabled = (params.get('pixiTrace') === '1' || localStorage.getItem('compare.pixiTrace') === '1');
       // Calibration multipliers per side (R often needs to be slowed down)
