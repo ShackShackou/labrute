@@ -588,7 +588,8 @@ const PixiFight: React.FC<Props> = ({
       const clampY = (y:number) => Math.max(H * clampMin, Math.min(H * clampMax, y));
       const preferVideo = (params.get('bgVideo') === '1' || params.get('bgVideo') === 'true') || !!preferVideoBackground;
       const debugDiag = (params.get('pixiDiag') === '1' || localStorage.getItem('compare.pixiDiag') === '1');
-      const traceEnabled = (params.get('pixiTrace') === '1' || localStorage.getItem('compare.pixiTrace') === '1');
+      const traceEnabled = false; // DISABLED - debug traces
+      // const traceEnabled = (params.get('pixiTrace') === '1' || localStorage.getItem('compare.pixiTrace') === '1');
       // Calibration multipliers per side (R often needs to be slowed down)
       const mulL = (() => { const u = params.get('pixiMulL'); const ls = localStorage.getItem('compare.pixiMulL'); const n = Number(u ?? ls ?? '1'); return isNaN(n) ? 1 : n; })();
       const mulR = (() => { const u = params.get('pixiMulR'); const ls = localStorage.getItem('compare.pixiMulR'); const n = Number(u ?? ls ?? '1'); return isNaN(n) ? 1 : n; })();
@@ -996,41 +997,26 @@ const PixiFight: React.FC<Props> = ({
               } catch {}
             }
           });
-          // overlay graphics + tick
-          const gL = new Graphics(); const gR = new Graphics();
-          const info = new Text('', { fontSize: 10, fill: 0xffffff, stroke: 0x000000, strokeThickness: 2 } as any);
-          info.position.set(W/2 - 60, 6);
+          // overlay graphics + tick (DISABLED - debug feature)
+          // const gL = new Graphics(); const gR = new Graphics();
+          // const info = new Text('', { fontSize: 10, fill: 0xffffff, stroke: 0x000000, strokeThickness: 2 } as any);
+          // info.position.set(W/2 - 60, 6);
           // @ts-ignore
-          (gL as any).zIndex = 999; (gR as any).zIndex = 999; (info as any).zIndex = 999;
-          ui.addChild(gL, gR, info);
-          overlayGraphicsRef.current = { L: gL, R: gR, text: info };
+          // (gL as any).zIndex = 999; (gR as any).zIndex = 999; (info as any).zIndex = 999;
+          // ui.addChild(gL, gR, info);
+          // overlayGraphicsRef.current = { L: gL, R: gR, text: info };
           const errBufL:number[]=[]; const errBufR:number[]=[];
           const sampleAt = (arr:{t:number,x:number,y:number}[], t:number) => {
             if (!arr || arr.length===0) return null;
             let lo=0, hi=arr.length-1; while (lo<hi){ const mid=(lo+hi)>>1; if(arr[mid] && arr[mid].t < t) lo=mid+1; else hi=mid; }
             return arr[lo] || null;
           };
+          // Debug overlay disabled
           const tickOverlay = () => {
-            try {
-              if (!overlayOnRef.current || !overlayRefData.current || !overlayGraphicsRef.current) return;
-              const t = (performance.now()/1000) - (overlayStartRef.current || 0);
-              const refL = sampleAt(overlayRefData.current.L, t);
-              const refR = sampleAt(overlayRefData.current.R, t);
-              const og = overlayGraphicsRef.current;
-              if (og) {
-                try { if (og.L && typeof og.L.clear === 'function') { og.L.clear(); } } catch {}
-                try { if (og.R && typeof og.R.clear === 'function') { og.R.clear(); } } catch {}
-              }
-              // Debug traces disabled - uncomment to show position tracking
-              // if (refL) { og.L.circle(refL.x, refL.y, 3).fill({ color: 0xff2222, alpha: 0.8 }); }
-              // if (refR) { og.R.circle(refR.x, refR.y, 3).fill({ color: 0x22aaff, alpha: 0.8 }); }
-              let maeL=0, maeR=0; let nL=0,nR=0;
-              if (spinesRef.current.L && refL) { const p = getPos(spinesRef.current.L); const d=Math.hypot((p.x-refL.x),(p.y-refL.y)); errBufL.push(d); if (errBufL.length>60) errBufL.shift(); maeL=errBufL.reduce((a,b)=>a+b,0)/errBufL.length; nL=errBufL.length; }
-              if (spinesRef.current.R && refR) { const p = getPos(spinesRef.current.R); const d=Math.hypot((p.x-refR.x),(p.y-refR.y)); errBufR.push(d); if (errBufR.length>60) errBufR.shift(); maeR=errBufR.reduce((a,b)=>a+b,0)/errBufR.length; nR=errBufR.length; }
-              og.text.text = `MAE L:${maeL.toFixed(1)}px (${nL})  R:${maeR.toFixed(1)}px (${nR})`;
-            } catch {}
+            // Disabled - debug feature
+            return;
           };
-          addTick(tickOverlay);
+          // addTick(tickOverlay); // Disabled
         }
       } catch {}
 
