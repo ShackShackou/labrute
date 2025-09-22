@@ -3553,40 +3553,58 @@ const PixiFight: React.FC<Props> = ({
 
           // Vampirism
           case 31: {
-            console.log('VAMPIRISM ACTION:', s);
+            console.log('VAMPIRISM ACTION FULL DETAILS:', s);
+            console.log('Actor from b:', s.b, 'Target from t:', s.t);
+            console.log('Actor from f:', s.f, 'Target still t:', s.t);
+
+            // VAMPIRISM uses b for actor, t for target (not f!)
+            const vampireIdx = s.b as number;
+            const victimIdx = s.t as number;
             const damage = s.d || 0;
             const healAmount = s.h || 0;
-            console.log(`Vampirism: damage=${damage}, heal=${healAmount}, actor=${actorIdx}, target=${targetIdx}`);
-            const spos = getPos(src.node);
-            const tpos = getPos(tgt.node);
+
+            const vampire = vampireIdx !== undefined ? byIndex.get(vampireIdx) : undefined;
+            const victim = victimIdx !== undefined ? byIndex.get(victimIdx) : undefined;
+
+            console.log(`Vampirism: Vampire ${vampire?.name}(${vampireIdx}) sucks ${damage} HP from ${victim?.name}(${victimIdx}) and heals ${healAmount} HP`);
+
+            const vampireSide = (vampire === leftMain || vampireIdx === leftMainIdx) ? 'L' : 'R';
+            const victimSide = (victim === leftMain || victimIdx === leftMainIdx) ? 'L' : 'R';
+
+            console.log(`Vampire side: ${vampireSide}, Victim side: ${victimSide}`);
+            // Get positions for visual effects
+            const vampireNode = vampire === leftMain ? left : vampire === rightMain ? right : { node: { x: 0, y: 0 } };
+            const victimNode = victim === leftMain ? left : victim === rightMain ? right : { node: { x: 0, y: 0 } };
+            const spos = getPos(vampireNode.node);
+            const tpos = getPos(victimNode.node);
 
             // Store initial HP values
-            const beforeTargetHP = targetSide === 'L' ? hpL : hpR;
-            const beforeActorHP = actorSide === 'L' ? hpL : hpR;
+            const beforeVictimHP = victimSide === 'L' ? hpL : hpR;
+            const beforeVampireHP = vampireSide === 'L' ? hpL : hpR;
 
-            // Apply damage to target
-            if (targetSide === 'L') {
+            console.log(`BEFORE VAMPIRISM: Victim(${victimSide}) HP=${beforeVictimHP}, Vampire(${vampireSide}) HP=${beforeVampireHP}`);
+
+            // Apply damage to victim
+            if (victimSide === 'L') {
               hpL = Math.max(0, hpL - damage);
               barL.set(hpL / maxL);
-              console.log(`Target LEFT HP: ${beforeTargetHP} -> ${hpL}`);
-            } else if (targetSide === 'R') {
+              console.log(`Victim LEFT HP: ${beforeVictimHP} -> ${hpL}`);
+            } else if (victimSide === 'R') {
               hpR = Math.max(0, hpR - damage);
               barR.set(hpR / maxR);
-              console.log(`Target RIGHT HP: ${beforeTargetHP} -> ${hpR}`);
+              console.log(`Victim RIGHT HP: ${beforeVictimHP} -> ${hpR}`);
             }
 
-            // Heal the attacker (vampirism happens simultaneously)
-            // IMPORTANT: The actor might be the same as the target if they're hitting themselves
-            // We need to handle this case correctly
-            if (actorSide === 'L') {
+            // Heal the vampire
+            if (vampireSide === 'L') {
               hpL = Math.min(maxL, hpL + healAmount);
               const ratio = hpL / maxL;
-              console.log(`Actor LEFT HP (vampirism heal): ${beforeActorHP} -> ${hpL}, ratio: ${ratio}`);
+              console.log(`Vampire LEFT HP (heal): ${beforeVampireHP} -> ${hpL}, ratio: ${ratio}`);
               barL.set(ratio);
-            } else if (actorSide === 'R') {
+            } else if (vampireSide === 'R') {
               hpR = Math.min(maxR, hpR + healAmount);
               const ratio = hpR / maxR;
-              console.log(`Actor RIGHT HP (vampirism heal): ${beforeActorHP} -> ${hpR}, ratio: ${ratio}`);
+              console.log(`Vampire RIGHT HP (heal): ${beforeVampireHP} -> ${hpR}, ratio: ${ratio}`);
               barR.set(ratio);
             }
 
