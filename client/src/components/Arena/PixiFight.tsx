@@ -1274,9 +1274,13 @@ const PixiFight: React.FC<Props> = ({
             const canvas = app.view as HTMLCanvasElement;
             const canvasRect = canvas.getBoundingClientRect();
 
-            // Convert portrait center to screen coordinates
-            const portraitScreenX = canvasRect.left + bounds.x + (bounds.width / 2);
-            const portraitScreenY = canvasRect.top + bounds.y; // Position at top of portrait
+            // Calculate scale factor (handles browser zoom and canvas scaling)
+            const scaleX = canvasRect.width / canvas.width;
+            const scaleY = canvasRect.height / canvas.height;
+
+            // Convert portrait center to screen coordinates with proper scaling
+            const portraitScreenX = canvasRect.left + (bounds.x + bounds.width / 2) * scaleX;
+            const portraitScreenY = canvasRect.top + bounds.y * scaleY; // Position at top of portrait
 
             // Use portrait position for initial tooltip placement
             showTooltip(fighter, portraitScreenX, portraitScreenY);
@@ -1289,13 +1293,17 @@ const PixiFight: React.FC<Props> = ({
             const canvas = app.view as HTMLCanvasElement;
             const canvasRect = canvas.getBoundingClientRect();
 
+            // Calculate scale factor (handles browser zoom and canvas scaling)
+            const scaleX = canvasRect.width / canvas.width;
+            const scaleY = canvasRect.height / canvas.height;
+
             // Get mouse position relative to canvas
             const globalX = e.data?.global?.x || e.global?.x || 0;
             const globalY = e.data?.global?.y || e.global?.y || 0;
 
-            // Convert to screen coordinates
-            const mouseScreenX = canvasRect.left + globalX;
-            const mouseScreenY = canvasRect.top + globalY - 30; // Closer to cursor
+            // Convert to screen coordinates with proper scaling
+            const mouseScreenX = canvasRect.left + globalX * scaleX;
+            const mouseScreenY = canvasRect.top + globalY * scaleY - 30; // Closer to cursor
 
             showTooltip(fighter, mouseScreenX, mouseScreenY);
           });
