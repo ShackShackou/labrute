@@ -659,8 +659,8 @@ const PixiFight: React.FC<Props> = ({
           }
         };
 
-        const supersText = supers.length > 0 ? supers.map(getSkillName).join(', ') : 'None';
-        const skillsText = normalSkills.length > 0 ? normalSkills.map(getSkillName).join(', ') : 'None';
+        const supersText = supers.length > 0 ? supers.map(getSkillName).join(', ') : '';
+        const skillsText = normalSkills.length > 0 ? normalSkills.map(getSkillName).join(', ') : '';
 
         // Create HTML content EXACTLY like the reference image
         tooltipDiv.innerHTML = `
@@ -790,7 +790,7 @@ const PixiFight: React.FC<Props> = ({
         if (!debugDiag) return;
         try {
           const g = new Graphics();
-          g.lineStyle(2, color, 0.9).moveTo(x1,y1).lineTo(x2,y2);
+          g.moveTo(x1,y1).lineTo(x2,y2).stroke({ width: 2, color: color, alpha: 0.9 });
           const ang = Math.atan2(y2-y1, x2-x1);
           const ah = 6;
           g.lineTo(x2 - Math.cos(ang-0.3)*ah, y2 - Math.sin(ang-0.3)*ah);
@@ -948,7 +948,7 @@ const PixiFight: React.FC<Props> = ({
         if (traceEnabled) {
           const makeBtn = (text:string, x:number, y:number, onTap:()=>void) => {
             const c = new Container();
-            const g = new Graphics(); g.beginFill(0x333333, 0.85).drawRoundedRect(0, 0, 86, 18, 5).endFill();
+            const g = new Graphics(); g.roundRect(0, 0, 86, 18, 5).fill({ color: 0x333333, alpha: 0.85 });
             // Enable events on the graphic shape (reliable hit area)
             // @ts-ignore
             g.eventMode = 'static';
@@ -1021,8 +1021,8 @@ const PixiFight: React.FC<Props> = ({
                 try { if (og.L && typeof og.L.clear === 'function') { og.L.clear(); } } catch {}
                 try { if (og.R && typeof og.R.clear === 'function') { og.R.clear(); } } catch {}
               }
-              if (refL) { og.L.lineStyle(0).beginFill(0xff2222, 0.8).drawCircle(refL.x, refL.y, 3).endFill(); }
-              if (refR) { og.R.lineStyle(0).beginFill(0x22aaff, 0.8).drawCircle(refR.x, refR.y, 3).endFill(); }
+              if (refL) { og.L.circle(refL.x, refL.y, 3).fill({ color: 0xff2222, alpha: 0.8 }); }
+              if (refR) { og.R.circle(refR.x, refR.y, 3).fill({ color: 0x22aaff, alpha: 0.8 }); }
               let maeL=0, maeR=0; let nL=0,nR=0;
               if (spinesRef.current.L && refL) { const p = getPos(spinesRef.current.L); const d=Math.hypot((p.x-refL.x),(p.y-refL.y)); errBufL.push(d); if (errBufL.length>60) errBufL.shift(); maeL=errBufL.reduce((a,b)=>a+b,0)/errBufL.length; nL=errBufL.length; }
               if (spinesRef.current.R && refR) { const p = getPos(spinesRef.current.R); const d=Math.hypot((p.x-refR.x),(p.y-refR.y)); errBufR.push(d); if (errBufR.length>60) errBufR.shift(); maeR=errBufR.reduce((a,b)=>a+b,0)/errBufR.length; nR=errBufR.length; }
@@ -1043,10 +1043,10 @@ const PixiFight: React.FC<Props> = ({
       let right: any = { node: rightPlaceholder, baseX: baseRX, baseY: baseRY, type: 'placeholder' };
       const addShadow = (obj:any) => {
         const sh = new Graphics();
-        sh.beginFill(0x000000, 0.28).drawEllipse(0, 0, 26, 11).endFill();
+        sh.ellipse(0, 0, 26, 11).fill({ color: 0x000000, alpha: 0.4 });
         const blur = new BlurFilter();
-        blur.blur = 4.5;
-        blur.quality = 3;
+        blur.blur = 2;
+        blur.quality = 2;
         try { (sh as any).filters = [blur]; } catch {}
         scene.addChild(sh);
         return {
@@ -1154,16 +1154,14 @@ const PixiFight: React.FC<Props> = ({
         
         // Portrait EXACTLY like original - simple brown square
         const portraitBg = new Graphics();
-        portraitBg.lineStyle(1.5, 0xB8860B, 1);  // Same light brown border as HP bar
-        portraitBg.beginFill(0x3A2317);  // Darker brown border
-        portraitBg.drawRect(0, 0, portraitSize, portraitSize);
-        portraitBg.endFill();
+        portraitBg.rect(0, 0, portraitSize, portraitSize)
+          .fill({ color: 0x3A2317 })  // Darker brown border
+          .stroke({ width: 1.5, color: 0xB8860B, alpha: 1 });  // Same light brown border as HP bar
         
         // Portrait inner area
         const portrait = new Graphics();
-        portrait.beginFill(0x8B6534);  // Lighter brown inner
-        portrait.drawRect(2, 2, portraitSize - 4, portraitSize - 4);
-        portrait.endFill();
+        portrait.rect(2, 2, portraitSize - 4, portraitSize - 4)
+          .fill({ color: 0x8B6534 });  // Lighter brown inner
         
         const portraitContainer = new Container();
         portraitContainer.addChild(portraitBg, portrait);
@@ -1176,11 +1174,10 @@ const PixiFight: React.FC<Props> = ({
         const offX = Number(p.get('pixiPfpOffX') ?? '0');
         const offY = Number(p.get('pixiPfpOffY') ?? '0');
 
-        // Mask to keep sprite inside the frame
+        // Mask to keep sprite inside the frame (Pixi v8 syntax)
         const mask = new Graphics();
-        mask.beginFill(0xFFFFFF);
-        mask.drawRect(2, 2, portraitSize - 4, portraitSize - 4);
-        mask.endFill();
+        mask.rect(2, 2, portraitSize - 4, portraitSize - 4);
+        mask.fill({ color: 0xFFFFFF });
         portraitContainer.addChild(mask);
 
         // Red X overlay for loser — two filled bars (centered over PFP)
@@ -1190,10 +1187,12 @@ const PixiFight: React.FC<Props> = ({
           const size = Math.round(portraitSize * 1.28); // slightly larger than portrait
           const thick = Math.max(6, Math.round(portraitSize * 0.26));
           const barA = new Graphics();
-          barA.beginFill(0xFF0000).drawRect(-size / 2, -thick / 2, size, thick).endFill();
+          barA.rect(-size / 2, -thick / 2, size, thick);
+          barA.fill({ color: 0xFF0000 });
           barA.rotation = Math.PI / 4;
           const barB = new Graphics();
-          barB.beginFill(0xFF0000).drawRect(-size / 2, -thick / 2, size, thick).endFill();
+          barB.rect(-size / 2, -thick / 2, size, thick);
+          barB.fill({ color: 0xFF0000 });
           barB.rotation = -Math.PI / 4;
           cross.addChild(barA, barB);
           // Center the cross over the PFP (slight inward bias if needed later)
@@ -1329,37 +1328,32 @@ const PixiFight: React.FC<Props> = ({
         
         // Bar background - black with light brown border
         const barBg = new Graphics();
-        barBg.lineStyle(1.5, 0xB8860B, 1);  // Light brown border (goldenrod)
-        barBg.beginFill(0x000000);
-        barBg.drawRoundedRect(0, 0, barW, barH, 4);
-        barBg.endFill();
+        barBg.roundRect(0, 0, barW, barH, 4)
+          .fill({ color: 0x000000 })
+          .stroke({ width: 1.5, color: 0xB8860B, alpha: 1 });  // Light brown border (goldenrod)
         
         // Inner background area with rounded corners
         const barInner = new Graphics();
-        barInner.beginFill(0x1A0F08);  // Very dark brown
-        barInner.drawRoundedRect(1, 1, barW - 2, barH - 2, 3);
-        barInner.endFill();
+        barInner.roundRect(1, 1, barW - 2, barH - 2, 3)
+          .fill({ color: 0x1A0F08 });  // Very dark brown
         
         // HP fill container
         const hpFill = new Container();
         
         // HP bar gradient-like effect
         const hpBar = new Graphics();
-        hpBar.beginFill(0xFFD700);  // Gold/yellow - like official LaBrute
-        hpBar.drawRect(1, 1, barW - 2, barH - 2);
-        hpBar.endFill();
+        hpBar.rect(1, 1, barW - 2, barH - 2)
+          .fill({ color: 0xFFD700 });  // Gold/yellow - like official LaBrute
         
         // Top highlight for 3D effect
         const hpHighlight = new Graphics();
-        hpHighlight.beginFill(0xFFD060, 0.5);
-        hpHighlight.drawRect(1, 1, barW - 2, 2);
-        hpHighlight.endFill();
+        hpHighlight.rect(1, 1, barW - 2, 2)
+          .fill({ color: 0xFFD060, alpha: 0.5 });
         
         // Bottom shadow for depth
         const hpShadow = new Graphics();
-        hpShadow.beginFill(0xCC8020, 0.7);
-        hpShadow.drawRect(1, barH - 3, barW - 2, 2);
-        hpShadow.endFill();
+        hpShadow.rect(1, barH - 3, barW - 2, 2)
+          .fill({ color: 0xCC8020, alpha: 0.7 });
         
         hpFill.addChild(hpBar, hpShadow, hpHighlight);
         
@@ -1435,17 +1429,15 @@ const PixiFight: React.FC<Props> = ({
               const drawWidth = targetWidth;
               
               // Always yellow HP bar - like official LaBrute
-              hpBar.beginFill(0xFFD700); // Gold/yellow
-              
               if (isL) {
                 // Left bar fills from left to right with rounded corners
-                hpBar.drawRoundedRect(1, 1, drawWidth - 2, barH - 2, 3);
+                hpBar.roundRect(1, 1, drawWidth - 2, barH - 2, 3);
               } else {
                 // Right bar fills from right to left with rounded corners
                 const startX = barW - drawWidth + 1;
-                hpBar.drawRoundedRect(startX, 1, drawWidth - 2, barH - 2, 3);
+                hpBar.roundRect(startX, 1, drawWidth - 2, barH - 2, 3);
               }
-              hpBar.endFill();
+              hpBar.fill({ color: 0xFFD700 }); // Gold/yellow
             }
           }
           
@@ -1457,14 +1449,13 @@ const PixiFight: React.FC<Props> = ({
               if (currentHp > 0.1) {
                 const drawWidth = Math.max(0, targetWidth - 2);
                 if (drawWidth > 0) {
-                  hpHighlight.beginFill(0xFFD060, 0.5);
                   if (isL) {
-                    hpHighlight.drawRect(1, 1, drawWidth, 2);
+                    hpHighlight.rect(1, 1, drawWidth, 2);
                   } else {
                     const startX = barW - drawWidth - 1;
-                    hpHighlight.drawRect(startX, 1, drawWidth, 2);
+                    hpHighlight.rect(startX, 1, drawWidth, 2);
                   }
-                  hpHighlight.endFill();
+                  hpHighlight.fill({ color: 0xFFD060, alpha: 0.5 });
                 }
               }
             } catch {
@@ -1479,14 +1470,13 @@ const PixiFight: React.FC<Props> = ({
               if (currentHp > 0.1) {
                 const drawWidth = Math.max(0, targetWidth - 2);
                 if (drawWidth > 0) {
-                  hpShadow.beginFill(0xCC8020, 0.7);
                   if (isL) {
-                    hpShadow.drawRect(1, barH - 3, drawWidth, 2);
+                    hpShadow.rect(1, barH - 3, drawWidth, 2);
                   } else {
                     const startX = barW - drawWidth - 1;
-                    hpShadow.drawRect(startX, barH - 3, drawWidth, 2);
+                    hpShadow.rect(startX, barH - 3, drawWidth, 2);
                   }
-                  hpShadow.endFill();
+                  hpShadow.fill({ color: 0xCC8020, alpha: 0.7 });
                 }
               }
             } catch {
@@ -1508,16 +1498,14 @@ const PixiFight: React.FC<Props> = ({
             if (isL) {
               // Left bar - red trail on the right side of green bar
               const trailStart = barW * currentHp;
-              dmgBar.beginFill(0xFF0000, 0.9);  // Bright red
-              dmgBar.drawRect(trailStart, 1, trailWidth, barH - 2);
-              dmgBar.endFill();
+              dmgBar.rect(trailStart, 1, trailWidth, barH - 2)
+                .fill({ color: 0xFF0000, alpha: 0.9 });  // Bright red
             } else {
               // Right bar - red trail on the left side of green bar  
               const trailEnd = barW * (1 - currentHp);
               const trailStart = barW * (1 - displayHp);
-              dmgBar.beginFill(0xFF0000, 0.9);  // Bright red
-              dmgBar.drawRect(trailStart, 1, trailEnd - trailStart, barH - 2);
-              dmgBar.endFill();
+              dmgBar.rect(trailStart, 1, trailEnd - trailStart, barH - 2)
+                .fill({ color: 0xFF0000, alpha: 0.9 });  // Bright red
             }
             
             // Slowly animate the red trail to catch up with green bar
@@ -1592,14 +1580,13 @@ const PixiFight: React.FC<Props> = ({
             
             // Weapon icon box (28x28) - transparent background with subtle border
             const weaponBg = new Graphics();
-            weaponBg.beginFill(0x1A0F08, 0.3);  // Semi-transparent background
-            weaponBg.drawRoundedRect(0, 0, 28, 28, 2);
-            weaponBg.endFill();
+            weaponBg.roundRect(0, 0, 28, 28, 2)
+              .fill({ color: 0x1A0F08, alpha: 0.3 });  // Semi-transparent background
             
             // Inner border - more visible
             const weaponBorder = new Graphics();
-            weaponBorder.lineStyle(1.5, 0x8B6534, 0.8);
-            weaponBorder.drawRoundedRect(1, 1, 26, 26, 2);
+            weaponBorder.roundRect(1, 1, 26, 26, 2)
+              .stroke({ width: 1.5, color: 0x8B6534, alpha: 0.8 });
             
             // Weapon icon - better shapes
             const weaponIcon = new Graphics();
@@ -1609,71 +1596,61 @@ const PixiFight: React.FC<Props> = ({
           
           if (lowerName.includes('sword') || lowerName.includes('scimitar')) {
             // Sword - vertical blade with guard
-            weaponIcon.beginFill(0xE0E0E0);
-            weaponIcon.drawRect(13, 5, 2, 14);  // Blade
-            weaponIcon.endFill();
-            weaponIcon.beginFill(0xB8860B);
-            weaponIcon.drawRect(10, 17, 8, 2);  // Guard
-            weaponIcon.drawRect(13, 19, 2, 4);  // Handle
-            weaponIcon.endFill();
+            weaponIcon.rect(13, 5, 2, 14)  // Blade
+              .fill({ color: 0xE0E0E0 });
+            weaponIcon.rect(10, 17, 8, 2)  // Guard
+              .rect(13, 19, 2, 4)  // Handle
+              .fill({ color: 0xB8860B });
           } else if (lowerName.includes('axe') || lowerName.includes('hatchet')) {
             // Axe - handle with axe head
-            weaponIcon.beginFill(0x654321);
-            weaponIcon.drawRect(13, 8, 2, 12);  // Handle
-            weaponIcon.endFill();
-            weaponIcon.beginFill(0x808080);
-            weaponIcon.moveTo(11, 8);
-            weaponIcon.lineTo(17, 8);
-            weaponIcon.lineTo(19, 5);
-            weaponIcon.lineTo(19, 11);
-            weaponIcon.lineTo(17, 11);
-            weaponIcon.lineTo(11, 11);
-            weaponIcon.closePath();
-            weaponIcon.endFill();
+            weaponIcon.rect(13, 8, 2, 12)  // Handle
+              .fill({ color: 0x654321 });
+            weaponIcon.moveTo(11, 8)
+              .lineTo(17, 8)
+              .lineTo(19, 5)
+              .lineTo(19, 11)
+              .lineTo(17, 11)
+              .lineTo(11, 11)
+              .closePath()
+              .fill({ color: 0x808080 });
           } else if (lowerName.includes('hammer') || lowerName.includes('mace')) {
             // Hammer - T shape
-            weaponIcon.beginFill(0x654321);
-            weaponIcon.drawRect(13, 10, 2, 10);  // Handle
-            weaponIcon.endFill();
-            weaponIcon.beginFill(0x696969);
-            weaponIcon.drawRect(9, 6, 10, 5);   // Head
-            weaponIcon.endFill();
+            weaponIcon.rect(13, 10, 2, 10)  // Handle
+              .fill({ color: 0x654321 });
+            weaponIcon.rect(9, 6, 10, 5)   // Head
+              .fill({ color: 0x696969 });
           } else if (lowerName.includes('lance') || lowerName.includes('trident')) {
             // Lance/Trident - long with point
-            weaponIcon.beginFill(0x4682B4);
-            weaponIcon.drawRect(13, 8, 2, 12);  // Shaft
-            weaponIcon.moveTo(14, 8);
-            weaponIcon.lineTo(17, 5);
-            weaponIcon.lineTo(14, 5);
-            weaponIcon.lineTo(11, 5);
-            weaponIcon.lineTo(14, 8);
-            weaponIcon.endFill();
+            weaponIcon.rect(13, 8, 2, 12)  // Shaft
+              .fill({ color: 0x4682B4 });
+            weaponIcon.moveTo(14, 8)
+              .lineTo(17, 5)
+              .lineTo(14, 5)
+              .lineTo(11, 5)
+              .lineTo(14, 8)
+              .fill({ color: 0x4682B4 });
           } else if (lowerName.includes('whip') || lowerName.includes('flail')) {
             // Whip - curved line
-            weaponIcon.lineStyle(2, 0x8B4513);
+            weaponIcon.stroke({ width: 2, color: 0x8B4513 });
             weaponIcon.moveTo(10, 20);
             weaponIcon.bezierCurveTo(14, 18, 16, 12, 18, 8);
           } else if (lowerName.includes('knife') || lowerName.includes('dagger')) {
             // Knife - small blade
-            weaponIcon.beginFill(0xC0C0C0);
-            weaponIcon.moveTo(14, 8);
-            weaponIcon.lineTo(16, 12);
-            weaponIcon.lineTo(14, 16);
-            weaponIcon.lineTo(12, 12);
-            weaponIcon.closePath();
-            weaponIcon.endFill();
-            weaponIcon.beginFill(0x654321);
-            weaponIcon.drawRect(13, 16, 2, 4);  // Handle
-            weaponIcon.endFill();
+            weaponIcon.moveTo(14, 8)
+              .lineTo(16, 12)
+              .lineTo(14, 16)
+              .lineTo(12, 12)
+              .closePath()
+              .fill({ color: 0xC0C0C0 });
+            weaponIcon.rect(13, 16, 2, 4)  // Handle
+              .fill({ color: 0x654321 });
           } else if (lowerName.includes('club') || lowerName.includes('baton')) {
             // Club - thick at top
-            weaponIcon.beginFill(0x654321);
-            weaponIcon.drawRect(13, 12, 2, 8);  // Handle
-            weaponIcon.drawEllipse(11, 6, 6, 8);  // Head
-            weaponIcon.endFill();
+            weaponIcon.rect(13, 12, 2, 8)  // Handle
+              .ellipse(11, 6, 6, 8)  // Head
+              .fill({ color: 0x654321 });
           } else if (lowerName.includes('fan') || lowerName.includes('shuriken')) {
             // Fan/Shuriken - star shape
-            weaponIcon.beginFill(0x800080);
             // Draw star manually
             const points = [];
             const outerRadius = 8;
@@ -1683,14 +1660,13 @@ const PixiFight: React.FC<Props> = ({
               const angle = (Math.PI * 2 * i) / 10 - Math.PI / 2;
               points.push(14 + Math.cos(angle) * radius, 14 + Math.sin(angle) * radius);
             }
-            weaponIcon.drawPolygon(points);
-            weaponIcon.endFill();
+            weaponIcon.poly(points)
+              .fill({ color: 0x800080 });
           } else {
             // Default weapon - simple sword silhouette
-            weaponIcon.beginFill(0x888888);
-            weaponIcon.drawRect(13, 6, 2, 16);
-            weaponIcon.drawRect(11, 18, 6, 2);
-            weaponIcon.endFill();
+            weaponIcon.rect(13, 6, 2, 16)
+              .rect(11, 18, 6, 2)
+              .fill({ color: 0x888888 });
           }
           
             // Add all parts to this weapon's container
@@ -1819,7 +1795,7 @@ const PixiFight: React.FC<Props> = ({
           const btn = new Container();
           btn.eventMode = 'static';
           const bg = new Graphics();
-          bg.beginFill(0x333333, 0.85).drawRoundedRect(0, 0, 76, 18, 5).endFill();
+          bg.roundRect(0, 0, 76, 18, 5).fill({ color: 0x333333, alpha: 0.85 });
           const label = new Text('Save Trace', { fontSize: 11, fill: 0xffffff } as any);
           label.position.set(6, 2);
           btn.addChild(bg, label);
@@ -1928,15 +1904,17 @@ const PixiFight: React.FC<Props> = ({
         const cont = new Container();
         ui.addChild(cont);
         const bg = new Graphics();
-        bg.lineStyle(1, 0xB8860B, 1);
-        bg.beginFill(0x000000, 0.9).drawRoundedRect(-16, -6, 32, 5, 2).endFill();
+        bg.roundRect(-16, -6, 32, 5, 2)
+          .fill({ color: 0x000000, alpha: 0.9 })
+          .stroke({ width: 1, color: 0xB8860B, alpha: 1 });
         const fill = new Graphics();
         cont.addChild(bg, fill);
         const set = (ratio:number) => {
           try { fill.clear(); } catch {}
           const r = Math.max(0, Math.min(1, ratio));
           if (r <= 0) return;
-          fill.beginFill(0xFFD700).drawRoundedRect(-15, -5, Math.max(1, Math.floor(30*r)), 3, 1).endFill();
+          fill.roundRect(-15, -5, Math.max(1, Math.floor(30*r)), 3, 1)
+            .fill({ color: 0xFFD700 });
         };
         const entry = { cont, set } as const;
         petHudByIndex.set(idx, entry);
@@ -1964,30 +1942,28 @@ const PixiFight: React.FC<Props> = ({
         else if (weaponName.includes('shuriken') || weaponName.includes('fan')) color = 0x800080;
         else if (weaponName.includes('keyboard') || weaponName.includes('book')) color = 0x228B22;
         
-        weaponGraphics.beginFill(color);
         if (weaponName.includes('hammer') || weaponName.includes('mace')) {
-          weaponGraphics.drawRect(-4, -25, 8, 20);  // Thicker: 6 -> 8
-          weaponGraphics.drawRect(-8, -30, 16, 10); // Thicker: 12 -> 16, 8 -> 10
+          weaponGraphics.rect(-4, -25, 8, 20)  // Thicker: 6 -> 8
+            .rect(-8, -30, 16, 10); // Thicker: 12 -> 16, 8 -> 10
         } else if (weaponName.includes('axe')) {
-          weaponGraphics.drawRect(-3, -25, 6, 20);  // Thicker: 4 -> 6
-          weaponGraphics.moveTo(-10, -25);  // Wider: -8 -> -10
-          weaponGraphics.lineTo(10, -25);   // Wider: 8 -> 10
-          weaponGraphics.lineTo(8, -30);
-          weaponGraphics.lineTo(-8, -30);
-          weaponGraphics.closePath();
+          weaponGraphics.rect(-3, -25, 6, 20)  // Thicker: 4 -> 6
+            .moveTo(-10, -25)  // Wider: -8 -> -10
+            .lineTo(10, -25)   // Wider: 8 -> 10
+            .lineTo(8, -30)
+            .lineTo(-8, -30)
+            .closePath();
         } else {
-          weaponGraphics.drawRect(-3, -30, 6, 30);  // Thicker: 4 -> 6
+          weaponGraphics.rect(-3, -30, 6, 30);  // Thicker: 4 -> 6
           if (weaponName.includes('sword')) {
-            weaponGraphics.drawRect(-8, -30, 16, 4);  // Thicker: 12 -> 16, 3 -> 4
+            weaponGraphics.rect(-8, -30, 16, 4);  // Thicker: 12 -> 16, 3 -> 4
           }
         }
-        weaponGraphics.endFill();
+        weaponGraphics.fill({ color: color });
         
         // Add glow effect
         const glow = new Graphics();
-        glow.beginFill(color, 0.3);
-        glow.drawCircle(0, -15, 20);
-        glow.endFill();
+        glow.circle(0, -15, 20)
+          .fill({ color: color, alpha: 0.3 });
         
         container.addChild(glow, weaponGraphics);
         
@@ -2026,26 +2002,22 @@ const PixiFight: React.FC<Props> = ({
         
         // Body parts for animation
         const body = new Graphics();
-        body.beginFill(color);
-        body.drawCircle(0, 0, size);
-        body.endFill();
+        body.circle(0, 0, size)
+          .fill({ color: color });
         
         // Head
         const head = new Graphics();
-        head.beginFill(color);
-        head.drawCircle(0, -size * 0.7, size * 0.8);
-        head.endFill();
+        head.circle(0, -size * 0.7, size * 0.8)
+          .fill({ color: color });
         
         // Eyes that blink
         const eyes = new Graphics();
-        eyes.beginFill(0xFFFFFF);
-        eyes.drawCircle(-size/3, -size/3, 2);
-        eyes.drawCircle(size/3, -size/3, 2);
-        eyes.endFill();
-        eyes.beginFill(0x000000);
-        eyes.drawCircle(-size/3, -size/3, 1);
-        eyes.drawCircle(size/3, -size/3, 1);
-        eyes.endFill();
+        eyes.circle(-size/3, -size/3, 2)
+          .circle(size/3, -size/3, 2)
+          .fill({ color: 0xFFFFFF });
+        eyes.circle(-size/3, -size/3, 1)
+          .circle(size/3, -size/3, 1)
+          .fill({ color: 0x000000 });
         head.addChild(eyes);
         
         // Legs for walking animation
@@ -2055,9 +2027,8 @@ const PixiFight: React.FC<Props> = ({
         const legBR = new Graphics(); // Back Right
         
         [legFL, legFR, legBL, legBR].forEach(leg => {
-          leg.beginFill(color);
-          leg.drawRect(-2, 0, 4, size * 0.8);
-          leg.endFill();
+          leg.rect(-2, 0, 4, size * 0.8)
+            .fill({ color: color });
         });
         
         legFL.position.set(-size * 0.5, size * 0.7);
@@ -2067,17 +2038,15 @@ const PixiFight: React.FC<Props> = ({
         
         // Tail
         const tail = new Graphics();
-        tail.beginFill(color);
-        tail.drawRect(0, -2, size * 0.8, 4);
-        tail.endFill();
+        tail.rect(0, -2, size * 0.8, 4)
+          .fill({ color: color });
         tail.position.set(size * 0.8, 0);
         tail.pivot.set(0, 2);
         
         // Shadow
         const shadow = new Graphics();
-        shadow.beginFill(0x000000, 0.3);
-        shadow.drawEllipse(0, size + 2, size * 1.5, size * 0.5);
-        shadow.endFill();
+        shadow.ellipse(0, size + 2, size * 1.5, size * 0.5)
+          .fill({ color: 0x000000, alpha: 0.3 });
         
         // Assemble pet
         container.addChild(shadow, legBL, legBR, body, legFL, legFR, head, tail);
@@ -2423,10 +2392,9 @@ const PixiFight: React.FC<Props> = ({
               if (oldWeaponName && oldWeaponName !== newWeaponName) {
                 const pos = getPos(src.node);
                 const dropWeapon = new Graphics();
-                dropWeapon.lineStyle(1, 0x666666);
-                dropWeapon.beginFill(0x888888);
-                dropWeapon.drawRect(-4, -8, 8, 16);
-                dropWeapon.endFill();
+                dropWeapon.rect(-4, -8, 8, 16)
+                  .fill({ color: 0x888888 })
+                  .stroke({ width: 1, color: 0x666666 });
                 dropWeapon.position.set(pos.x, pos.y - 30);
                 scene.addChild(dropWeapon);
                 
@@ -2888,29 +2856,27 @@ const PixiFight: React.FC<Props> = ({
             
             // Create weapon sprite for throw animation
             const weaponSprite = new Graphics();
-            weaponSprite.lineStyle(2, 0x666666);
-            weaponSprite.beginFill(0x888888);
-            
             // Draw weapon shape based on type
             if (weaponName.includes('knife') || weaponName.includes('dagger')) {
-              weaponSprite.drawRect(-3, -15, 6, 30);
+              weaponSprite.rect(-3, -15, 6, 30);
             } else if (weaponName.includes('axe') || weaponName.includes('hatchet')) {
-              weaponSprite.moveTo(-10, -10);
-              weaponSprite.lineTo(10, -10);
-              weaponSprite.lineTo(5, 0);
-              weaponSprite.lineTo(0, 15);
-              weaponSprite.lineTo(-5, 0);
-              weaponSprite.closePath();
+              weaponSprite.moveTo(-10, -10)
+                .lineTo(10, -10)
+                .lineTo(5, 0)
+                .lineTo(0, 15)
+                .lineTo(-5, 0)
+                .closePath();
             } else {
-              weaponSprite.drawRect(-5, -10, 10, 20);
+              weaponSprite.rect(-5, -10, 10, 20);
             }
-            weaponSprite.endFill();
+            weaponSprite.fill({ color: 0x888888 })
+              .stroke({ width: 2, color: 0x666666 });
             
             const projectile = weaponSprite;
             
             if (weaponName.includes('shuriken')) {
               // Spinning shuriken
-              projectile.lineStyle(2, 0x800080);
+              projectile.stroke({ width: 2, color: 0x800080 });
               for (let i = 0; i < 4; i++) {
                 const angle = (i * 90) * Math.PI / 180;
                 projectile.moveTo(0, 0);
@@ -2918,19 +2884,17 @@ const PixiFight: React.FC<Props> = ({
               }
             } else if (weaponName.includes('knife')) {
               // Knife shape
-              projectile.beginFill(0xC0C0C0);
-              projectile.drawRect(-1, -6, 2, 12);
-              projectile.endFill();
+              projectile.rect(-1, -6, 2, 12)
+                .fill({ color: 0xC0C0C0 });
             } else {
               // Generic projectile
-              projectile.beginFill(0x808080);
-              projectile.drawCircle(0, 0, 4);
-              projectile.endFill();
+              projectile.circle(0, 0, 4)
+                .fill({ color: 0x808080 });
             }
             
             // Trail effect
             const trail = new Graphics();
-            trail.lineStyle(2, 0xFFFFFF, 0.3);
+            trail.stroke({ width: 2, color: 0xFFFFFF, alpha: 0.3 });
             
             projectileContainer.addChild(trail, projectile);
             projectileContainer.position.set(spos.x, spos.y - 20);
@@ -2965,7 +2929,7 @@ const PixiFight: React.FC<Props> = ({
               if (trail && !trail.destroyed && typeof trail.clear === 'function') {
                 try { trail.clear(); } catch {}
               }
-              trail.lineStyle(2, 0xFFFFFF, 0.3);
+              trail.stroke({ width: 2, color: 0xFFFFFF, alpha: 0.3 });
               if (trailPoints.length > 1) {
                 const firstPoint = trailPoints[0];
                 if (firstPoint) {
@@ -3002,10 +2966,9 @@ const PixiFight: React.FC<Props> = ({
             // Animate weapon flying away
             const disarmedWeapon = lastWeaponByActor.get(targetIdx ?? -1) || 'knife';
             const weaponFly = new Graphics();
-            weaponFly.lineStyle(2, 0x666666);
-            weaponFly.beginFill(0x888888);
-            weaponFly.drawRect(-5, -10, 10, 20);
-            weaponFly.endFill();
+            weaponFly.rect(-5, -10, 10, 20)
+              .fill({ color: 0x888888 })
+              .stroke({ width: 2, color: 0x666666 });
             weaponFly.position.set(tpos.x, tpos.y - 30);
             scene.addChild(weaponFly);
             
@@ -3120,7 +3083,7 @@ const PixiFight: React.FC<Props> = ({
                 netContainer.removeChildren();
               } catch {}
               const netGraphics = new Graphics();
-              netGraphics.lineStyle(2, 0x8B4513, 0.7);
+              netGraphics.stroke({ width: 2, color: 0x8B4513, alpha: 0.7 });
               
               // Update physics
               netNodes.forEach(node => {
@@ -3188,21 +3151,19 @@ const PixiFight: React.FC<Props> = ({
             
             // Bomb body
             const bomb = new Graphics();
-            bomb.beginFill(0x1C1C1C);
-            bomb.drawCircle(0, 0, 8);
-            bomb.endFill();
+            bomb.circle(0, 0, 8)
+              .fill({ color: 0x1C1C1C });
             
             // Fuse
             const fuse = new Graphics();
-            fuse.lineStyle(2, 0x8B4513);
+            fuse.stroke({ width: 2, color: 0x8B4513 });
             fuse.moveTo(0, -8);
             fuse.lineTo(0, -15);
             
             // Spark
             const spark = new Graphics();
-            spark.beginFill(0xFFFF00);
-            spark.drawStar(0, -15, 5, 4, 2);
-            spark.endFill();
+            spark.star(0, -15, 5, 4, 2)
+              .fill({ color: 0xFFFF00 });
             
             bombContainer.addChild(bomb, fuse, spark);
             bombContainer.position.set(tpos.x, tpos.y - 30);
@@ -3231,26 +3192,23 @@ const PixiFight: React.FC<Props> = ({
                 
                 // Inner core
                 const core = new Graphics();
-                core.beginFill(0xFFFFFF, 1);
-                core.drawCircle(0, 0, 10);
-                core.endFill();
+                core.circle(0, 0, 10)
+                  .fill({ color: 0xFFFFFF, alpha: 1 });
                 
                 // Middle layer
                 const middle = new Graphics();
-                middle.beginFill(0xFFA500, 0.8);
-                middle.drawCircle(0, 0, 20);
-                middle.endFill();
+                middle.circle(0, 0, 20)
+                  .fill({ color: 0xFFA500, alpha: 0.8 });
                 
                 // Outer layer
                 const outer = new Graphics();
-                outer.beginFill(0xFF4500, 0.6);
-                outer.drawCircle(0, 0, 30);
-                outer.endFill();
+                outer.circle(0, 0, 30)
+                  .fill({ color: 0xFF4500, alpha: 0.6 });
                 
                 // Shockwave ring
                 const ring = new Graphics();
-                ring.lineStyle(3, 0xFFFF00, 0.8);
-                ring.drawCircle(0, 0, 5);
+                ring.circle(0, 0, 5)
+                  .stroke({ width: 3, color: 0xFFFF00, alpha: 0.8 });
                 
                 explosion.addChild(outer, middle, core, ring);
                 explosion.position.set(tpos.x, tpos.y);
@@ -3301,9 +3259,8 @@ const PixiFight: React.FC<Props> = ({
             
             for (let i = 0; i < 5; i++) {
               const star = new Graphics();
-              star.beginFill(0xFFFF00, 0.9);
-              star.drawStar(0, 0, 6, 5, 2);
-              star.endFill();
+              star.star(0, 0, 6, 5, 2)
+                .fill({ color: 0xFFFF00, alpha: 0.9 });
               starSprites.push(star);
               starsContainer.addChild(star);
             }
@@ -3347,7 +3304,7 @@ const PixiFight: React.FC<Props> = ({
             
             for (let i = 0; i < 3; i++) {
               const spiral = new Graphics();
-              spiral.lineStyle(3, i % 2 === 0 ? 0x9932CC : 0xFFFFFF, 0.6);
+              spiral.stroke({ width: 3, color: i % 2 === 0 ? 0x9932CC : 0xFFFFFF, alpha: 0.6 });
               
               // Draw spiral
               let prevX = 0, prevY = 0;
@@ -3401,9 +3358,8 @@ const PixiFight: React.FC<Props> = ({
             
             // Create flash effect
             const flash = new Graphics();
-            flash.beginFill(0xFFFFFF, 1);
-            flash.drawRect(0, 0, W, H);
-            flash.endFill();
+            flash.rect(0, 0, W, H)
+              .fill({ color: 0xFFFFFF, alpha: 1 });
             ui.addChild(flash);
             
             // Fade out flash
@@ -3433,9 +3389,8 @@ const PixiFight: React.FC<Props> = ({
             // Create particles
             for (let i = 0; i < 20; i++) {
               const particle = new Graphics();
-              particle.beginFill(isPoison ? 0x00FF00 : 0xFF69B4, 0.8);
-              particle.drawCircle(0, 0, 2 + Math.random() * 2);
-              particle.endFill();
+              particle.circle(0, 0, 2 + Math.random() * 2)
+                .fill({ color: isPoison ? 0x00FF00 : 0xFF69B4, alpha: 0.8 });
               
               particles.push({
                 g: particle,
@@ -3524,11 +3479,10 @@ const PixiFight: React.FC<Props> = ({
                 for (let i = 0; i < 28; i++) {
                   const g = new Graphics();
                   const col = colors[i % colors.length] ?? 0xFFFFFF;
-                  g.beginFill(col as any);
-                  if (i % 3 === 0) g.drawRect(-2, -2, 4, 4);
-                  else if (i % 3 === 1) g.drawCircle(0, 0, 2);
-                  else g.drawPolygon([0,0, 3,0, 1.5,3]);
-                  g.endFill();
+                  if (i % 3 === 0) g.rect(-2, -2, 4, 4);
+                  else if (i % 3 === 1) g.circle(0, 0, 2);
+                  else g.poly([0,0, 3,0, 1.5,3]);
+                  g.fill({ color: col as any });
                   g.position.set(baseX + (Math.random()*60 - 30), baseY + Math.random()*10);
                   confContainer.addChild(g);
                   parts.push({ g, vy: 0.5 + Math.random()*1.0, vx: (Math.random()*1.2 - 0.6), rot: (Math.random()*0.1 - 0.05), life: 3000 });
