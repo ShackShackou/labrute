@@ -1021,8 +1021,9 @@ const PixiFight: React.FC<Props> = ({
                 try { if (og.L && typeof og.L.clear === 'function') { og.L.clear(); } } catch {}
                 try { if (og.R && typeof og.R.clear === 'function') { og.R.clear(); } } catch {}
               }
-              if (refL) { og.L.circle(refL.x, refL.y, 3).fill({ color: 0xff2222, alpha: 0.8 }); }
-              if (refR) { og.R.circle(refR.x, refR.y, 3).fill({ color: 0x22aaff, alpha: 0.8 }); }
+              // Debug traces disabled - uncomment to show position tracking
+              // if (refL) { og.L.circle(refL.x, refL.y, 3).fill({ color: 0xff2222, alpha: 0.8 }); }
+              // if (refR) { og.R.circle(refR.x, refR.y, 3).fill({ color: 0x22aaff, alpha: 0.8 }); }
               let maeL=0, maeR=0; let nL=0,nR=0;
               if (spinesRef.current.L && refL) { const p = getPos(spinesRef.current.L); const d=Math.hypot((p.x-refL.x),(p.y-refL.y)); errBufL.push(d); if (errBufL.length>60) errBufL.shift(); maeL=errBufL.reduce((a,b)=>a+b,0)/errBufL.length; nL=errBufL.length; }
               if (spinesRef.current.R && refR) { const p = getPos(spinesRef.current.R); const d=Math.hypot((p.x-refR.x),(p.y-refR.y)); errBufR.push(d); if (errBufR.length>60) errBufR.shift(); maeR=errBufR.reduce((a,b)=>a+b,0)/errBufR.length; nR=errBufR.length; }
@@ -2580,6 +2581,48 @@ const PixiFight: React.FC<Props> = ({
             // WEAPON ANIMATION AND DAMAGE IN PARALLEL
             // Start animation immediately and apply damage at the right moment
             
+            // Create attack swoosh effect
+            const createSwoosh = () => {
+              const swoosh = new Graphics();
+              const srcPos = src?.node?.position || src?.position || { x: 100, y: 200 };
+              const tgtPos = tgt?.node?.position || tgt?.position || { x: 400, y: 200 };
+
+              // Calculate swoosh arc based on attack direction
+              const isLeftAttacking = srcPos.x < tgtPos.x;
+              const startX = srcPos.x + (isLeftAttacking ? 20 : -20);
+              const startY = srcPos.y - 40;
+
+              // Draw curved swoosh line
+              swoosh.moveTo(0, 0);
+              swoosh.bezierCurveTo(
+                30 * (isLeftAttacking ? 1 : -1), -20,
+                60 * (isLeftAttacking ? 1 : -1), -10,
+                80 * (isLeftAttacking ? 1 : -1), 10
+              );
+              swoosh.stroke({ width: 3, color: 0xFFFFFF, alpha: 0.7 });
+
+              swoosh.position.set(startX, startY);
+              swoosh.zIndex = 100;
+              scene.addChild(swoosh);
+
+              // Fade out swoosh
+              let alpha = 0.7;
+              const fadeSwoosh = () => {
+                alpha -= 0.05;
+                swoosh.alpha = alpha;
+                if (alpha <= 0) {
+                  scene.removeChild(swoosh);
+                  swoosh.destroy();
+                } else {
+                  requestAnimationFrame(fadeSwoosh);
+                }
+              };
+              requestAnimationFrame(fadeSwoosh);
+            };
+
+            // Create swoosh effect
+            createSwoosh();
+
             // Start weapon animation if weapon equipped
             let weaponAnimPromise: Promise<void> | null = null;
             if (typeof s.w !== 'undefined') {
@@ -2608,9 +2651,75 @@ const PixiFight: React.FC<Props> = ({
               }
             }
             
+            // Create blood particles effect
+            const createBloodParticles = (x: number, y: number, count: number = 8) => {
+              const particles: Graphics[] = [];
+              for (let i = 0; i < count; i++) {
+                const particle = new Graphics();
+                particle.circle(0, 0, 2 + Math.random() * 2)
+                  .fill({ color: 0xCC0000, alpha: 0.9 });
+                particle.position.set(x, y);
+                scene.addChild(particle);
+                particles.push(particle);
+
+                // Animate particle
+                const vx = (Math.random() - 0.5) * 8;
+                const vy = -Math.random() * 6 - 2;
+                let gravity = 0.5;
+                let alpha = 0.9;
+
+                const animateParticle = () => {
+                  particle.x += vx;
+                  particle.y += vy + gravity;
+                  gravity += 0.3;
+                  alpha -= 0.03;
+                  particle.alpha = alpha;
+
+                  if (alpha <= 0) {
+                    scene.removeChild(particle);
+                    particle.destroy();
+                  } else {
+                    requestAnimationFrame(animateParticle);
+                  }
+                };
+                requestAnimationFrame(animateParticle);
+              }
+            };
+
+            // Create white flash for critical hits
+            const createCriticalFlash = () => {
+              const flash = new Graphics();
+              flash.rect(0, 0, W, H)
+                .fill({ color: 0xFFFFFF, alpha: 0.8 });
+              flash.zIndex = 9999;
+              scene.addChild(flash);
+
+              // Fade out flash
+              let alpha = 0.8;
+              const fadeFlash = () => {
+                alpha -= 0.1;
+                flash.alpha = alpha;
+                if (alpha <= 0) {
+                  scene.removeChild(flash);
+                  flash.destroy();
+                } else {
+                  requestAnimationFrame(fadeFlash);
+                }
+              };
+              requestAnimationFrame(fadeFlash);
+            };
+
             // Apply damage IMMEDIATELY (animation happens in parallel)
             // If there's damage, someone's HP must decrease
             if (dmg > 0) {
+              // Add blood particles at target position
+              const targetPos = tgt?.node?.position || tgt?.position || { x: 300, y: 200 };
+              createBloodParticles(targetPos.x, targetPos.y - 30);
+
+              // Add critical flash
+              if (isCritical) {
+                createCriticalFlash();
+              }
               const targetPet = (targetIdx !== null) && (petSpines.has(targetIdx) || (target && ((target as any).type === 'pet' || (target as any).master)));
               if (targetPet && targetIdx !== null) {
                 const hp = hpByIndex.get(targetIdx) || { cur: (target?.hp ?? 1), max: (target?.maxHp ?? 1) };
