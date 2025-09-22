@@ -604,7 +604,7 @@ const PixiFight: React.FC<Props> = ({
         if (tooltipDiv) return;
 
         tooltipDiv = document.createElement('div');
-        tooltipDiv.style.position = 'absolute';
+        tooltipDiv.style.position = 'fixed';  // Use fixed to handle scroll properly
         tooltipDiv.style.zIndex = '99999';
         tooltipDiv.style.pointerEvents = 'none';
         tooltipDiv.style.display = 'none';
