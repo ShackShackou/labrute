@@ -615,11 +615,11 @@ const PixiFight: React.FC<Props> = ({
         tooltipDiv.style.background = '#FFF6D5';
         tooltipDiv.style.border = '2px solid #8B4513';
         tooltipDiv.style.borderRadius = '6px';
-        tooltipDiv.style.padding = '6px 8px';
+        tooltipDiv.style.padding = '2px 4px';
         tooltipDiv.style.boxShadow = '0 3px 6px rgba(0,0,0,0.3)';
         tooltipDiv.style.fontFamily = 'Arial, sans-serif';
         tooltipDiv.style.fontSize = '11px';
-        tooltipDiv.style.minWidth = '160px';
+        tooltipDiv.style.width = '150px';
 
         document.body.appendChild(tooltipDiv);
       };
@@ -666,53 +666,53 @@ const PixiFight: React.FC<Props> = ({
 
         // Create HTML content EXACTLY like the reference image
         tooltipDiv.innerHTML = `
+          <div style="margin-bottom: 1px;">
+            <span style="color: #8B4513; font-weight: bold; font-size: 11px;">${fighter.name || 'Unknown'}</span>
+          </div>
           <div style="margin-bottom: 2px;">
-            <span style="color: #8B4513; font-weight: bold; font-size: 12px;">${fighter.name || 'Unknown'}</span>
+            <span style="color: #D2691E; font-weight: bold; font-size: 9px;">LEVEL</span>
+            <span style="color: #333; font-weight: bold; font-size: 9px;"> ${level}</span>
           </div>
-          <div style="margin-bottom: 3px;">
-            <span style="color: #D2691E; font-weight: bold; font-size: 10px;">LEVEL</span>
-            <span style="color: #333; font-weight: bold; font-size: 10px;"> ${level}</span>
-          </div>
-          <div style="display: flex; align-items: flex-start; gap: 4px; margin-bottom: 4px;">
-            <div style="position: relative; width: 26px; height: 26px; display: flex; align-items: center; justify-content: center;">
-              <span style="font-size: 20px; line-height: 1;">🧡</span>
-              <span style="position: absolute; color: white; font-weight: bold; font-size: 11px; text-shadow: 1px 1px 2px rgba(0,0,0,0.8);">${hp}</span>
+          <div style="display: flex; align-items: flex-start; gap: 2px; margin-bottom: 2px;">
+            <div style="position: relative; width: 22px; height: 22px; display: flex; align-items: center; justify-content: center;">
+              <span style="font-size: 16px; line-height: 1;">🧡</span>
+              <span style="position: absolute; color: white; font-weight: bold; font-size: 9px; text-shadow: 1px 1px 1px rgba(0,0,0,0.8);">${hp}</span>
             </div>
             <div style="flex: 1;">
               <!-- Strength Bar -->
-              <div style="display: flex; align-items: center; margin-bottom: 1px; height: 12px;">
-                <span style="width: 12px; font-size: 10px;">💪</span>
-                <div style="flex: 1; position: relative; height: 10px; background: #E8E8E8; border: 1px solid #AAA; margin: 0 3px; overflow: hidden;">
+              <div style="display: flex; align-items: center; height: 9px;">
+                <span style="width: 10px; font-size: 8px;">💪</span>
+                <div style="flex: 1; position: relative; height: 8px; background: #E8E8E8; border: 1px solid #AAA; margin: 0 3px; overflow: hidden;">
                   <div style="position: absolute; height: 100%; background: linear-gradient(to bottom, #FFD700, #FFA500); width: ${Math.min(100, (strength / 50) * 100)}%;"></div>
                 </div>
-                <span style="color: #4169E1; font-weight: bold; width: 16px; font-size: 10px; text-align: right;">${strength}</span>
+                <span style="color: #4169E1; font-weight: bold; width: 14px; font-size: 9px; text-align: right;">${strength}</span>
               </div>
               <!-- Agility Bar -->
-              <div style="display: flex; align-items: center; margin-bottom: 1px; height: 12px;">
-                <span style="width: 12px; font-size: 10px;">🪶</span>
-                <div style="flex: 1; position: relative; height: 10px; background: #E8E8E8; border: 1px solid #AAA; margin: 0 3px; overflow: hidden;">
+              <div style="display: flex; align-items: center; height: 9px;">
+                <span style="width: 10px; font-size: 8px;">🪶</span>
+                <div style="flex: 1; position: relative; height: 8px; background: #E8E8E8; border: 1px solid #AAA; margin: 0 3px; overflow: hidden;">
                   <div style="position: absolute; height: 100%; background: linear-gradient(to bottom, #FFD700, #FFA500); width: ${Math.min(100, (agility / 50) * 100)}%;"></div>
                 </div>
-                <span style="color: #4169E1; font-weight: bold; width: 16px; font-size: 10px; text-align: right;">${agility}</span>
+                <span style="color: #4169E1; font-weight: bold; width: 14px; font-size: 9px; text-align: right;">${agility}</span>
               </div>
               <!-- Speed Bar -->
-              <div style="display: flex; align-items: center; height: 12px;">
-                <span style="width: 12px; font-size: 10px;">⚡</span>
-                <div style="flex: 1; position: relative; height: 10px; background: #E8E8E8; border: 1px solid #AAA; margin: 0 3px; overflow: hidden;">
+              <div style="display: flex; align-items: center; height: 9px;">
+                <span style="width: 10px; font-size: 8px;">⚡</span>
+                <div style="flex: 1; position: relative; height: 8px; background: #E8E8E8; border: 1px solid #AAA; margin: 0 3px; overflow: hidden;">
                   <div style="position: absolute; height: 100%; background: linear-gradient(to bottom, #FFD700, #FFA500); width: ${Math.min(100, (speed / 50) * 100)}%;"></div>
                 </div>
-                <span style="color: #4169E1; font-weight: bold; width: 16px; font-size: 10px; text-align: right;">${speed}</span>
+                <span style="color: #4169E1; font-weight: bold; width: 14px; font-size: 9px; text-align: right;">${speed}</span>
               </div>
             </div>
           </div>
-          <div style="border-top: 1px solid #CBA; padding-top: 2px;">
+          <div style="padding-top: 1px; font-size: 8px; line-height: 1.1;">
             <div style="margin-bottom: 1px;">
-              <span style="color: #8B4513; font-weight: bold; font-size: 10px;">Supers:</span>
-              <span style="color: #8B4513; font-size: 10px;"> ${supersText}</span>
+              <span style="color: #8B4513; font-weight: bold; font-size: 8px;">Supers:</span>
+              <span style="color: #8B4513; font-size: 8px;"> ${supersText}</span>
             </div>
             <div>
-              <span style="color: #8B4513; font-weight: bold; font-size: 10px;">Skills:</span>
-              <span style="color: #8B4513; font-size: 10px;"> ${skillsText}</span>
+              <span style="color: #8B4513; font-weight: bold; font-size: 8px;">Skills:</span>
+              <span style="color: #8B4513; font-size: 8px;"> ${skillsText}</span>
             </div>
           </div>
         `;
@@ -1382,9 +1382,9 @@ const PixiFight: React.FC<Props> = ({
           
           // Portrait just below bar
           portraitContainer.position.set(2, 32);
-          
-          // Weapon icon next to portrait (no gap)
-          weaponContainer.position.set(portraitSize + 2, 36);
+
+          // Weapon icon right next to portrait (to the right)
+          weaponContainer.position.set(2 + portraitSize, 32);
           
           fullBar.addChild(nameText, barContainer, portraitContainer, weaponContainer);
           fullBar.position.set(5, 2);  // Back to edge, gap is in the middle now
@@ -1397,9 +1397,9 @@ const PixiFight: React.FC<Props> = ({
           
           // Portrait just below bar
           portraitContainer.position.set(barW - portraitSize - 2, 32);
-          
-          // Weapon icons aligned left of portrait for right fighter (no gap)
-          weaponContainer.position.set(barW - portraitSize - 32, 36);  // Just enough space for one weapon icon
+
+          // Weapon icons to the left of portrait, growing leftward
+          weaponContainer.position.set(0, 32);  // Container starts at left edge of HUD
           
           fullBar.addChild(nameText, barContainer, portraitContainer, weaponContainer);
           fullBar.position.set(W - 5 - barW, 2);  // Back to edge, gap is in the middle now
@@ -1571,11 +1571,12 @@ const PixiFight: React.FC<Props> = ({
           // Display each weapon icon
           weaponsList.forEach((weaponName, index) => {
             const weaponItemContainer = new Container();
-            // For right fighter, align icons from right (closest to portrait)
+            // For right fighter, align icons from right (next to portrait)
             if (!isL) {
-              // Icons align right-to-left, rightmost weapon closest to portrait
-              const rightmostX = 100; // Start position for rightmost weapon
-              weaponItemContainer.position.set(rightmostX - index * 30, 0);
+              // Icons grow leftward from portrait position
+              // Portrait is at (barW - portraitSize - 2), so weapons go to the left of that
+              const portraitX = barW - portraitSize - 2;
+              weaponItemContainer.position.set(portraitX - (index + 1) * 30, 0);
             } else {
               // For left fighter, keep normal left-to-right alignment
               weaponItemContainer.position.set(index * 30, 0);
@@ -2376,14 +2377,26 @@ const PixiFight: React.FC<Props> = ({
         for (const s of steps) {
           if (disposed) return;
           const a = s.a as number;
+          console.log('Step action:', a, 'Full step:', s);
+          if (a === 31) console.log('FOUND VAMPIRISM STEP!', s);
           const actorIdx: number | null = (typeof s.f === 'number') ? s.f : (typeof s.b === 'number' ? s.b : null);
           const targetIdx: number | null = (typeof s.t === 'number') ? s.t : null;
           const actor = actorIdx !== null ? byIndex.get(actorIdx) : undefined;
           const target = targetIdx !== null ? byIndex.get(targetIdx) : undefined;
           const actorSide: 'L'|'R' = actor?.team === 'R' ? 'R' : 'L';
           const targetSide: 'L'|'R' | null = target ? (target.team === 'R' ? 'R' : 'L') : null;
-          const src = actorSide === 'L' ? left : right;
-          const tgt = targetSide ? (targetSide === 'L' ? left : right) : (src === left ? right : left);
+
+          // Check if actor is a pet
+          const actorPet = actorIdx !== null ? petSpines.get(actorIdx) : null;
+          const targetPet = targetIdx !== null ? petSpines.get(targetIdx) : null;
+
+          // If actor is a pet, use the pet as src; otherwise use main fighter
+          const src = actorPet ? { node: actorPet, baseX: actorPet.x, baseY: actorPet.y, type: 'pet', width: 30 }
+                               : (actorSide === 'L' ? left : right);
+
+          // If target is a pet, use the pet as tgt; otherwise use main fighter
+          const tgt = targetPet ? { node: targetPet, baseX: targetPet.x, baseY: targetPet.y, type: 'pet', width: 30 }
+                               : (targetSide ? (targetSide === 'L' ? left : right) : (src === left ? right : left));
 
           // Track Equip to update known weapon (real data)
           try {
@@ -2439,67 +2452,85 @@ const PixiFight: React.FC<Props> = ({
 
           if (onStep) { try { onStep(steps.indexOf(s), s, performance.now() - t0); } catch {} }
           const stepT0 = performance.now();
+
+          // Debug: log healing-related actions
+          if (a === 6 || a === 34 || a === 13 || (s.d && (a === 9 || a === 10 || a === 11 || a === 12))) {
+            console.log(`Action ${a}, damage/heal: ${s.d || s.h || s.v}, target: ${targetIdx}, actor: ${actorIdx}, step:`, s);
+          }
+
+          // Track HP changes for debugging
+          const prevHpL = hpL;
+          const prevHpR = hpR;
+
           switch (a) {
           // Arrive: pick lane using largest-gap strategy (official-like)
           case 2: {
             try {
-              if (actorSide === 'L') {
-                const x = minLX + rand() * (maxLX - minLX);
-                const y = chooseLaneY('L'); occY.L.push(y);
-                // Start off-screen and jump in
-                setPos(src.node, -60, y + 12); src.baseX = x; src.baseY = y;
-                try { src.node.visible = true; } catch {}
-                try { (shadowL as any).visible = true; } catch {}
-                try { (src.node as any).alpha = 0; } catch {}
-                await jumpTo(src.node, x, y, arriveMs, arriveArc);
-                if (arriveBounce) {
-                  await tweenTo(src.node, x, y + Math.max(4, arriveArc*0.18), Math.max(60, arriveMs*0.18));
-                  await tweenTo(src.node, x, y, Math.max(80, arriveMs*0.22));
-                }
-              } else {
-                const x = minRX + rand() * (maxRX - minRX);
-                const y = chooseLaneY('R'); occY.R.push(y);
-                setPos(src.node, W + 60, y + 12); src.baseX = x; src.baseY = y;
-                try { src.node.visible = true; } catch {}
-                try { (shadowR as any).visible = true; } catch {}
-                try { (src.node as any).alpha = 0; } catch {}
-                await jumpTo(src.node, x, y, arriveMs, arriveArc);
-                if (arriveBounce) {
-                  await tweenTo(src.node, x, y + Math.max(4, arriveArc*0.18), Math.max(60, arriveMs*0.18));
-                  await tweenTo(src.node, x, y, Math.max(80, arriveMs*0.22));
-                }
-              }
-              
               // Check if this is a pet arrival
               if (actor?.type === 'pet' && actor?.master && actorIdx !== null) {
+                // Pet arrival - create and animate the pet
                 const petType = actor.name || 'dog1';
                 const pet = createPetSpine(petType, actorSide);
                 petSpines.set(actorIdx, pet);
                 scene.addChild(pet);
-                
-                // Start pet animation
-                if ((pet as any).petTick) {
-                  addTick((pet as any).petTick);
-                }
-                
-                // Position near master
+
+                // Get master position for pet landing
                 const masterIdx = actor.master;
                 const masterSide = masterIdx === leftMainIdx ? 'L' : 'R';
                 const masterObj = masterSide === 'L' ? left : right;
                 const masterPos = getPos(masterObj.node);
-                
-                pet.position.set(
-                  masterPos.x + (actorSide === 'L' ? -30 : 30),
-                  masterPos.y + 10
-                );
-                
-                // Update src to use pet container
+
+                // Pet arrives near master
+                const petTargetX = masterPos.x + (actorSide === 'L' ? -30 : 30);
+                const petTargetY = masterPos.y + 10;
+
+                // Start pet off-screen and jump in
                 if (actorSide === 'L') {
-                  left = { node: pet, baseX: pet.x, baseY: pet.y, type: 'pet', width: 30 };
+                  pet.position.set(-60, petTargetY + 12);
                 } else {
-                  right = { node: pet, baseX: pet.x, baseY: pet.y, type: 'pet', width: 30 };
+                  pet.position.set(W + 60, petTargetY + 12);
                 }
-                try { ensurePetHud(actorIdx); } catch {}
+                pet.alpha = 0;
+
+                // Animate pet arrival
+                await jumpTo(pet, petTargetX, petTargetY, arriveMs, arriveArc * 0.7);
+                if (arriveBounce) {
+                  await tweenTo(pet, petTargetX, petTargetY + 3, Math.max(50, arriveMs*0.15));
+                  await tweenTo(pet, petTargetX, petTargetY, Math.max(60, arriveMs*0.20));
+                }
+
+                // Start pet animation
+                if ((pet as any).petTick) {
+                  addTick((pet as any).petTick);
+                }
+              } else {
+                // Main fighter arrival
+                if (actorSide === 'L') {
+                  const x = minLX + rand() * (maxLX - minLX);
+                  const y = chooseLaneY('L'); occY.L.push(y);
+                  // Start off-screen and jump in
+                  setPos(src.node, -60, y + 12); src.baseX = x; src.baseY = y;
+                  try { src.node.visible = true; } catch {}
+                  try { (shadowL as any).visible = true; } catch {}
+                  try { (src.node as any).alpha = 0; } catch {}
+                  await jumpTo(src.node, x, y, arriveMs, arriveArc);
+                  if (arriveBounce) {
+                    await tweenTo(src.node, x, y + Math.max(4, arriveArc*0.18), Math.max(60, arriveMs*0.18));
+                    await tweenTo(src.node, x, y, Math.max(80, arriveMs*0.22));
+                  }
+                } else {
+                  const x = minRX + rand() * (maxRX - minRX);
+                  const y = chooseLaneY('R'); occY.R.push(y);
+                  setPos(src.node, W + 60, y + 12); src.baseX = x; src.baseY = y;
+                  try { src.node.visible = true; } catch {}
+                  try { (shadowR as any).visible = true; } catch {}
+                  try { (src.node as any).alpha = 0; } catch {}
+                  await jumpTo(src.node, x, y, arriveMs, arriveArc);
+                  if (arriveBounce) {
+                    await tweenTo(src.node, x, y + Math.max(4, arriveArc*0.18), Math.max(60, arriveMs*0.18));
+                    await tweenTo(src.node, x, y, Math.max(80, arriveMs*0.22));
+                  }
+                }
               }
             } catch {}
             break; }
@@ -2690,10 +2721,10 @@ const PixiFight: React.FC<Props> = ({
 
             // Create floating damage number
             const createDamageNumber = (x: number, y: number, damage: number, isCritical: boolean = false) => {
-              const damageText = new Text(String(damage), {
+              const damageText = new Text(`-${damage}`, {
                 fontSize: isCritical ? 28 : 22,
                 fontWeight: 'bold',
-                fill: isCritical ? '#FFFF00' : '#FF0000',
+                fill: isCritical ? '#FF0000' : '#FFFFFF',  // Red for critical, white for normal
                 stroke: '#000000',
                 strokeThickness: 3,
                 dropShadow: true,
@@ -2763,13 +2794,7 @@ const PixiFight: React.FC<Props> = ({
               if (isCritical) {
                 createCriticalFlash();
               }
-              const targetPet = (targetIdx !== null) && (petSpines.has(targetIdx) || (target && ((target as any).type === 'pet' || (target as any).master)));
-              if (targetPet && targetIdx !== null) {
-                const hp = hpByIndex.get(targetIdx) || { cur: (target?.hp ?? 1), max: (target?.maxHp ?? 1) };
-                hp.cur = Math.max(0, (hp.cur ?? 0) - dmg);
-                hpByIndex.set(targetIdx, hp);
-                try { const hud = ensurePetHud(targetIdx); hud.set(hp.cur / Math.max(1, hp.max)); } catch {}
-              } else {
+              // Always update HP bars based on the actual target
               // Check if target is main fighter by ID
               if (target?.id === fight.brute1Id) {
                 hpL = Math.max(0, hpL - dmg);
@@ -2798,18 +2823,12 @@ const PixiFight: React.FC<Props> = ({
                 setTimeout(() => barR.set(hpR / maxR), 50);
                 try { (hudR as any)?.hitShake?.(); } catch {}
               }
-              // Last resort: use visual position
-              else if (tgt === left) {
-                hpL = Math.max(0, hpL - dmg);
-                barL.set(hpL / maxL);
-                setTimeout(() => barL.set(hpL / maxL), 50);
-                try { (hudL as any)?.hitShake?.(); } catch {}
-              } else if (tgt === right) {
-                hpR = Math.max(0, hpR - dmg);
-                barR.set(hpR / maxR);
-                setTimeout(() => barR.set(hpR / maxR), 50);
-                try { (hudR as any)?.hitShake?.(); } catch {}
-              }
+              // If it's a pet, also track its HP separately (but pets don't have HUD bars)
+              const isPetTarget = (targetIdx !== null) && petSpines.has(targetIdx);
+              if (isPetTarget && targetIdx !== null) {
+                const hp = hpByIndex.get(targetIdx) || { cur: (target?.hp ?? 1), max: (target?.maxHp ?? 1) };
+                hp.cur = Math.max(0, (hp.cur ?? 0) - dmg);
+                hpByIndex.set(targetIdx, hp);
               }
             }
             
@@ -2878,6 +2897,85 @@ const PixiFight: React.FC<Props> = ({
                 // The weapon remains in hand, so icon stays hidden
               }
             } catch {}
+            break; }
+          // Heal (potion, drink, etc.)
+          case 6: {
+            console.log('HEAL ACTION TRIGGERED - Full step data:', s);
+            console.log('HEAL ACTION DETAILS', {
+              actor,
+              actorIdx,
+              actorSide,
+              leftMainIdx,
+              rightMainIdx,
+              currentHpL: hpL,
+              currentHpR: hpR,
+              maxL,
+              maxR
+            });
+            // Try different properties for heal amount
+            const healAmount = s.h || s.v || s.d || (typeof s === 'number' ? s : 0);
+            console.log('Heal amount extracted:', healAmount, 'from step:', s);
+            // IMPORTANT: In Heal, the ACTOR heals themselves (drinks potion)
+            const healerPos = getPos(src.node);
+            console.log(`${actor?.name} (idx:${actorIdx}, side:${actorSide}) healing for ${healAmount} HP`);
+
+            // Create healing particle effect on the healer
+            const particles: Graphics[] = [];
+            for (let i = 0; i < 15; i++) {
+              const particle = new Graphics();
+              particle.circle(0, 0, 3)
+                .fill({ color: 0x00FF00, alpha: 0.8 });
+              particle.position.set(
+                healerPos.x + (Math.random() - 0.5) * 30,
+                healerPos.y + 20
+              );
+              scene.addChild(particle);
+              particles.push(particle);
+
+              // Animate particles upward
+              const startY = particle.y;
+              const animateParticle = () => {
+                particle.y -= 2;
+                particle.alpha -= 0.02;
+                if (particle.alpha > 0) {
+                  requestAnimationFrame(animateParticle);
+                } else {
+                  scene.removeChild(particle);
+                  particle.destroy();
+                }
+              };
+              setTimeout(() => animateParticle(), i * 50);
+            }
+
+            // Show healing text on the healer
+            floatText(healerPos.x, healerPos.y - 30, `+${healAmount}`, 0x00FF00);
+
+            // Update HP bars - IMPORTANT: in Heal, the ACTOR heals themselves!
+            // Check who is healing based on actorSide
+            if (actorSide === 'L') {
+              console.log(`LEFT fighter healing: ${hpL} + ${healAmount} = ${Math.min(maxL, hpL + healAmount)}`);
+              hpL = Math.min(maxL, hpL + healAmount);
+              const newRatio = hpL / maxL;
+              console.log(`Setting left bar to ${newRatio} (${hpL}/${maxL})`);
+              barL.set(newRatio);
+              setTimeout(() => { console.log('Retry set left bar'); barL.set(newRatio); }, 50);
+              setTimeout(() => barL.set(newRatio), 100);
+              setTimeout(() => barL.set(newRatio), 200);
+            } else if (actorSide === 'R') {
+              console.log(`RIGHT fighter healing: ${hpR} + ${healAmount} = ${Math.min(maxR, hpR + healAmount)}`);
+              hpR = Math.min(maxR, hpR + healAmount);
+              const newRatio = hpR / maxR;
+              console.log(`Setting right bar to ${newRatio} (${hpR}/${maxR})`);
+              barR.set(newRatio);
+              // Force multiple updates to ensure the bar updates
+              setTimeout(() => barR.set(newRatio), 10);
+              setTimeout(() => barR.set(newRatio), 50);
+              setTimeout(() => barR.set(newRatio), 100);
+              setTimeout(() => barR.set(newRatio), 200);
+              setTimeout(() => barR.set(newRatio), 500);
+            } else {
+              console.warn('Could not determine which fighter to heal!', { actorSide, actor, actorIdx });
+            }
             break; }
           // Block
           case 20: {
@@ -2955,17 +3053,19 @@ const PixiFight: React.FC<Props> = ({
             // Use the same logic as Hit to identify who died
             const diedIdx = actorIdx; // Fix: Define diedIdx like in official LaBrute
             const diedFighter = actor;
-            
-            // Check if it's one of the main fighters
-            if (diedFighter?.id === fight.brute1Id || actorIdx === leftMainIdx) { 
-              left.node.alpha = 0.2; 
-              hpL = 0; 
-              barL.set(0); 
+
+            console.log(`DEATH: Fighter ${diedFighter?.name} (idx: ${diedIdx}) died, leftMainIdx=${leftMainIdx}, rightMainIdx=${rightMainIdx}`);
+
+            // Check if it's one of the main fighters - ONLY set HP to 0 for the one who actually died
+            if (diedIdx !== null && (diedFighter?.id === fight.brute1Id || diedIdx === leftMainIdx)) {
+              left.node.alpha = 0.2;
+              hpL = 0;
+              barL.set(0);
               if (hudL.showDeathX) hudL.showDeathX();
               playAnim(left, 'death', false);
               floatText(left.node.x, left.node.y, 'DEAD', 0x8B0000);
-            } else if (diedFighter?.id === fight.brute2Id || actorIdx === rightMainIdx) { 
-              right.node.alpha = 0.2; 
+            } else if (diedIdx !== null && (diedFighter?.id === fight.brute2Id || diedIdx === rightMainIdx)) {
+              right.node.alpha = 0.2;
               hpR = 0; 
               try { (hudR as any)?.showDeathX?.(); } catch {}
               playAnim(right, 'death', false);
@@ -3444,8 +3544,129 @@ const PixiFight: React.FC<Props> = ({
             addTick(starTick);
             break; }
           
-          // Hypnosis
+          // Haste
+          case 30: {
+            // TODO: Implement haste animation
+            floatText(getPos(src.node).x, getPos(src.node).y, 'HASTE!', 0xFFD700);
+
+            break; }
+
+          // Vampirism
           case 31: {
+            console.log('VAMPIRISM ACTION:', s);
+            const damage = s.d || 0;
+            const healAmount = s.h || 0;
+            console.log(`Vampirism: damage=${damage}, heal=${healAmount}, actor=${actorIdx}, target=${targetIdx}`);
+            const spos = getPos(src.node);
+            const tpos = getPos(tgt.node);
+
+            // Store initial HP values
+            const beforeTargetHP = targetSide === 'L' ? hpL : hpR;
+            const beforeActorHP = actorSide === 'L' ? hpL : hpR;
+
+            // Apply damage to target
+            if (targetSide === 'L') {
+              hpL = Math.max(0, hpL - damage);
+              barL.set(hpL / maxL);
+              console.log(`Target LEFT HP: ${beforeTargetHP} -> ${hpL}`);
+            } else if (targetSide === 'R') {
+              hpR = Math.max(0, hpR - damage);
+              barR.set(hpR / maxR);
+              console.log(`Target RIGHT HP: ${beforeTargetHP} -> ${hpR}`);
+            }
+
+            // Heal the attacker (vampirism happens simultaneously)
+            // IMPORTANT: The actor might be the same as the target if they're hitting themselves
+            // We need to handle this case correctly
+            if (actorSide === 'L') {
+              hpL = Math.min(maxL, hpL + healAmount);
+              const ratio = hpL / maxL;
+              console.log(`Actor LEFT HP (vampirism heal): ${beforeActorHP} -> ${hpL}, ratio: ${ratio}`);
+              barL.set(ratio);
+            } else if (actorSide === 'R') {
+              hpR = Math.min(maxR, hpR + healAmount);
+              const ratio = hpR / maxR;
+              console.log(`Actor RIGHT HP (vampirism heal): ${beforeActorHP} -> ${hpR}, ratio: ${ratio}`);
+              barR.set(ratio);
+            }
+
+            // Show damage number on target (red)
+            const damageText = new Text(`-${damage}`, {
+              fontSize: 22,
+              fontWeight: 'bold',
+              fill: '#FF0000',
+            });
+            damageText.anchor.set(0.5);
+            damageText.position.set(tpos.x, tpos.y - 50);
+            scene.addChild(damageText);
+
+            // Show heal number on attacker (green)
+            const healText = new Text(`+${healAmount}`, {
+              fontSize: 22,
+              fontWeight: 'bold',
+              fill: '#00FF00',
+            });
+            healText.anchor.set(0.5);
+            healText.position.set(spos.x, spos.y - 50);
+            scene.addChild(healText);
+
+            // Animate numbers floating up
+            let floatTime = 0;
+            const floatTick = (tk: any) => {
+              floatTime += tk.deltaMS || 16.7;
+              const progress = floatTime / 800;
+
+              damageText.y = tpos.y - 50 - progress * 30;
+              damageText.alpha = 1 - progress;
+
+              healText.y = spos.y - 50 - progress * 30;
+              healText.alpha = 1 - progress;
+
+              if (progress >= 1) {
+                app.ticker.remove(floatTick);
+                scene.removeChild(damageText);
+                scene.removeChild(healText);
+                damageText.destroy();
+                healText.destroy();
+              }
+            };
+            addTick(floatTick);
+
+            // Blood effect particles
+            for (let i = 0; i < 10; i++) {
+              const blood = new Graphics();
+              blood.circle(0, 0, 2)
+                .fill({ color: 0x8B0000, alpha: 0.8 });
+
+              const startX = tpos.x + (Math.random() - 0.5) * 20;
+              const startY = tpos.y + (Math.random() - 0.5) * 20;
+              blood.position.set(startX, startY);
+              scene.addChild(blood);
+
+              // Animate blood moving from target to attacker
+              let bloodTime = 0;
+              const bloodTick = (tk: any) => {
+                bloodTime += tk.deltaMS || 16.7;
+                const progress = Math.min(bloodTime / 500, 1);
+
+                blood.x = startX + (spos.x - startX) * progress;
+                blood.y = startY + (spos.y - startY) * progress;
+                blood.alpha = 0.8 * (1 - progress);
+
+                if (progress >= 1) {
+                  app.ticker.remove(bloodTick);
+                  scene.removeChild(blood);
+                  blood.destroy();
+                }
+              };
+              addTick(bloodTick);
+            }
+
+            console.log(`AFTER VAMPIRISM: Left HP = ${hpL}/${maxL}, Right HP = ${hpR}/${maxR}`);
+            break; }
+
+          // Hypnosis (was 31, keep old code)
+          case 99999: {
             const spos = getPos(src.node);
             const tpos = getPos(tgt.node);
             floatText(tpos.x, tpos.y, 'HYPNOTIZED!', 0x9932CC);
@@ -3503,35 +3724,73 @@ const PixiFight: React.FC<Props> = ({
             addTick(spiralTick);
             break; }
           
-          // Flashbang
+          // Treat (healing potion)
           case 32: {
-            const tpos = getPos(tgt.node);
-            floatText(tpos.x, tpos.y, 'BLINDED!', 0xFFFFFF);
-            
-            // Create flash effect
-            const flash = new Graphics();
-            flash.rect(0, 0, W, H)
-              .fill({ color: 0xFFFFFF, alpha: 1 });
-            ui.addChild(flash);
-            
-            // Fade out flash
-            let flashTime = 0;
-            const flashTick = (tk: any) => {
-              flashTime += tk.deltaMS || 16.7;
-              flash.alpha = Math.max(0, 1 - flashTime / 200);
-              
-              if (flashTime > 200) {
-                app.ticker.remove(flashTick);
-                ui.removeChild(flash);
-                setTimeout(() => { try { flash.destroy(); } catch {} }, 0);
+            const healAmount = s.h || s.v || s.d || 0;
+            const targetPos = getPos(tgt.node);
+
+            // Create healing particles
+            const particlesContainer = new Container();
+            const particles: {g: Graphics, vx: number, vy: number, life: number}[] = [];
+
+            // Create particles
+            for (let i = 0; i < 20; i++) {
+              const particle = new Graphics();
+              particle.circle(0, 0, 2 + Math.random() * 2)
+                .fill({ color: 0xFF69B4, alpha: 0.8 });
+
+              particles.push({
+                g: particle,
+                vx: (Math.random() - 0.5) * 3,
+                vy: -Math.random() * 3 - 1,
+                life: 1
+              });
+
+              particlesContainer.addChild(particle);
+            }
+
+            particlesContainer.position.set(targetPos.x, targetPos.y);
+            scene.addChild(particlesContainer);
+
+            floatText(targetPos.x, targetPos.y, 'HEALED!', 0xFF69B4);
+
+            // Update HP bars - The ACTOR heals themselves
+            if (actorSide === 'L') {
+              hpL = Math.min(maxL, hpL + healAmount);
+              barL.set(hpL / maxL);
+            } else if (actorSide === 'R') {
+              hpR = Math.min(maxR, hpR + healAmount);
+              barR.set(hpR / maxR);
+            }
+
+            // Animate particles
+            const particleTick = (tk: any) => {
+              const dt = (tk.deltaMS || 16.7) * 0.001;
+
+              let allDead = true;
+              particles.forEach(p => {
+                if (p.life > 0) {
+                  allDead = false;
+                  p.vy += 9.8 * dt; // gravity
+                  p.g.x += p.vx;
+                  p.g.y += p.vy;
+                  p.life -= dt;
+                  p.g.alpha = Math.max(0, p.life);
+                  p.g.scale.set(p.life);
+                }
+              });
+
+              if (allDead) {
+                app.ticker.remove(particleTick);
+                scene.removeChild(particlesContainer);
+                setTimeout(() => { try { particlesContainer.destroy(); } catch {} }, 0);
               }
             };
-            addTick(flashTick);
+            addTick(particleTick);
             break; }
-          
-          // Poison / Treat (healing)
-          case 33: case 34: {
-            const isPoison = a === 33;
+
+          // Poison
+          case 33: {
             const targetPos = getPos(tgt.node);
             
             // Create particle effect
@@ -3542,22 +3801,22 @@ const PixiFight: React.FC<Props> = ({
             for (let i = 0; i < 20; i++) {
               const particle = new Graphics();
               particle.circle(0, 0, 2 + Math.random() * 2)
-                .fill({ color: isPoison ? 0x00FF00 : 0xFF69B4, alpha: 0.8 });
-              
+                .fill({ color: 0x00FF00, alpha: 0.8 });
+
               particles.push({
                 g: particle,
                 vx: (Math.random() - 0.5) * 3,
                 vy: -Math.random() * 3 - 1,
                 life: 1
               });
-              
+
               particlesContainer.addChild(particle);
             }
-            
+
             particlesContainer.position.set(targetPos.x, targetPos.y);
             scene.addChild(particlesContainer);
-            
-            floatText(targetPos.x, targetPos.y, isPoison ? 'POISONED!' : 'HEALED!', isPoison ? 0x00FF00 : 0xFF69B4);
+
+            floatText(targetPos.x, targetPos.y, 'POISONED!', 0x00FF00);
             
             // Animate particles
             const particleTick = (tk: any) => {
@@ -3584,7 +3843,33 @@ const PixiFight: React.FC<Props> = ({
             };
             addTick(particleTick);
             break; }
-            
+
+          // Flashbang
+          case 35: {
+            const tpos = getPos(tgt.node);
+            floatText(tpos.x, tpos.y, 'BLINDED!', 0xFFFFFF);
+
+            // Create flash effect
+            const flash = new Graphics();
+            flash.rect(0, 0, W, H)
+              .fill({ color: 0xFFFFFF, alpha: 1 });
+            ui.addChild(flash);
+
+            // Fade out flash
+            let flashTime = 0;
+            const flashTick = (tk: any) => {
+              flashTime += tk.deltaMS || 16.7;
+              flash.alpha = Math.max(0, 1 - flashTime / 200);
+
+              if (flashTime > 200) {
+                app.ticker.remove(flashTick);
+                ui.removeChild(flash);
+                setTimeout(() => { try { flash.destroy(); } catch {} }, 0);
+              }
+            };
+            addTick(flashTick);
+            break; }
+
           // End
           case 26: {
             try {
@@ -3667,6 +3952,10 @@ const PixiFight: React.FC<Props> = ({
           const elapsed = performance.now() - stepT0;
           const wait = Math.max(0, ideal - elapsed);
           await delay(wait);
+        }
+        // Log HP changes after each action
+        if (prevHpL !== hpL || prevHpR !== hpR) {
+          console.log(`HP CHANGED after action ${a}: L: ${prevHpL} -> ${hpL}, R: ${prevHpR} -> ${hpR}`);
         }
         if (disposed) return;
         }
