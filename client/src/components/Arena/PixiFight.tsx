@@ -1032,10 +1032,17 @@ const PixiFight: React.FC<Props> = ({
       const addShadow = (obj:any) => {
         const sh = new Graphics();
         sh.ellipse(0, 0, 26, 11).fill({ color: 0x000000, alpha: 0.4 });
-        const blur = new BlurFilter();
-        blur.blur = 2;
-        blur.quality = 2;
-        try { (sh as any).filters = [blur]; } catch {}
+        // Soft shadow effect using blur filter (Pixi v8 compatible)
+        try {
+          const blur = new BlurFilter({
+            strength: 2,
+            quality: 2
+          });
+          sh.filters = [blur];
+        } catch (e) {
+          // Fallback: no blur if filter fails
+          console.warn('Shadow blur filter failed:', e);
+        }
         scene.addChild(sh);
         return {
           follow: () => {
