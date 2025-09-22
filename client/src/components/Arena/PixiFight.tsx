@@ -1383,8 +1383,8 @@ const PixiFight: React.FC<Props> = ({
           // Portrait just below bar
           portraitContainer.position.set(2, 32);
           
-          // Weapon icon next to portrait (same position as right side)
-          weaponContainer.position.set(portraitSize + 8, 36);
+          // Weapon icon next to portrait (no gap)
+          weaponContainer.position.set(portraitSize + 2, 36);
           
           fullBar.addChild(nameText, barContainer, portraitContainer, weaponContainer);
           fullBar.position.set(5, 2);  // Back to edge, gap is in the middle now
@@ -1398,8 +1398,8 @@ const PixiFight: React.FC<Props> = ({
           // Portrait just below bar
           portraitContainer.position.set(barW - portraitSize - 2, 32);
           
-          // Weapon icons aligned left of portrait for right fighter, growing leftward
-          weaponContainer.position.set(barW - portraitSize - 148, 36);  // Space for weapons to grow left
+          // Weapon icons aligned left of portrait for right fighter (no gap)
+          weaponContainer.position.set(barW - portraitSize - 32, 36);  // Just enough space for one weapon icon
           
           fullBar.addChild(nameText, barContainer, portraitContainer, weaponContainer);
           fullBar.position.set(W - 5 - barW, 2);  // Back to edge, gap is in the middle now
@@ -2688,6 +2688,44 @@ const PixiFight: React.FC<Props> = ({
               }
             };
 
+            // Create floating damage number
+            const createDamageNumber = (x: number, y: number, damage: number, isCritical: boolean = false) => {
+              const damageText = new Text(String(damage), {
+                fontSize: isCritical ? 28 : 22,
+                fontWeight: 'bold',
+                fill: isCritical ? '#FFFF00' : '#FF0000',
+                stroke: '#000000',
+                strokeThickness: 3,
+                dropShadow: true,
+                dropShadowDistance: 2,
+                dropShadowBlur: 2,
+                dropShadowColor: '#000000',
+              } as any);
+
+              damageText.anchor.set(0.5, 0.5);
+              damageText.position.set(x, y);
+              damageText.zIndex = 1000;
+              scene.addChild(damageText);
+
+              // Animate floating up and fading
+              let vy = -3;
+              let alpha = 1;
+              const animateNumber = () => {
+                damageText.y += vy;
+                vy *= 0.95; // Slow down
+                alpha -= 0.02;
+                damageText.alpha = alpha;
+
+                if (alpha <= 0) {
+                  scene.removeChild(damageText);
+                  damageText.destroy();
+                } else {
+                  requestAnimationFrame(animateNumber);
+                }
+              };
+              requestAnimationFrame(animateNumber);
+            };
+
             // Create white flash for critical hits
             const createCriticalFlash = () => {
               const flash = new Graphics();
@@ -2717,6 +2755,9 @@ const PixiFight: React.FC<Props> = ({
               // Add blood particles at target position
               const targetPos = tgt?.node?.position || tgt?.position || { x: 300, y: 200 };
               createBloodParticles(targetPos.x, targetPos.y - 30);
+
+              // Add floating damage number
+              createDamageNumber(targetPos.x, targetPos.y - 50, dmg, isCritical);
 
               // Add critical flash
               if (isCritical) {
