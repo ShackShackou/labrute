@@ -2293,22 +2293,30 @@ const PixiFight: React.FC<Props> = ({
         return container;
       };
 
-      // Placeholder visuel pour un renfort humain (ally) — silhouette simple
+      // Renfort humain (ally) basé sur SpineBoy (mêmes assets que les mains)
       const createAllySpine = (side: 'L'|'R') => {
-        const cont = new Container();
-        const body = new Graphics();
-        // Silhouette stylisée
-        body.roundRect(-10, -28, 20, 40, 4).fill({ color: 0x444444 });
-        const head = new Graphics();
-        head.circle(0, -34, 8).fill({ color: 0x666666 });
-        cont.addChild(body, head);
-        // Ombre au sol
-        const shadow = new Graphics();
-        shadow.ellipse(0, 0, 12, 4).fill({ color: 0x000000, alpha: 0.25 });
-        cont.addChildAt(shadow, 0);
-        // Miroir côté droit
-        if (side === 'R') { cont.scale.x = -1; }
-        return cont;
+        try {
+          const ally = Spine.from({ skeleton: 'spineboyData', atlas: 'spineboyAtlas', scale: 1 });
+          // Échelle identique aux mains si dispo
+          const baseScale = Math.abs((spinesRef.current.L as any)?.scale?.x ?? 0.18) || 0.18;
+          ally.scale.set(baseScale, baseScale);
+          if (side === 'R') ally.scale.x = -Math.abs(ally.scale.x);
+          try { (ally as any).state?.setAnimation(0, 'idle', true); } catch {}
+          return ally;
+        } catch {
+          // Fallback silhouette si Spine indisponible
+          const cont = new Container();
+          const body = new Graphics();
+          body.roundRect(-10, -28, 20, 40, 4).fill({ color: 0x444444 });
+          const head = new Graphics();
+          head.circle(0, -34, 8).fill({ color: 0x666666 });
+          cont.addChild(body, head);
+          const shadow = new Graphics();
+          shadow.ellipse(0, 0, 12, 4).fill({ color: 0x000000, alpha: 0.25 });
+          cont.addChildAt(shadow, 0);
+          if (side === 'R') { cont.scale.x = -1; }
+          return cont;
+        }
       };
       
       const attachWeaponToFighter = (fighter: any, weaponName: string) => {
@@ -2697,6 +2705,52 @@ const PixiFight: React.FC<Props> = ({
                   if (actor === leftMainIdx) { (hudL as any)?.setHypnosisFreeze?.(false); }
                   if (actor === rightMainIdx) { (hudR as any)?.setHypnosisFreeze?.(false); }
                 }
+                // TODO: ajouter cleanups spécifiques (fierceBrute ghosts) si utilisés
+              }
+            } catch {}
+            break; }
+
+          // SkillActivate: déclenche FX pour certains supers
+          case 28: {
+            try {
+              const skillId: number | undefined = (s as any)?.s;
+              const pos = getPos(src.node);
+              if (skillId === (SkillId as any).cryOfTheDamned) {
+                floatText(pos.x, pos.y - 30, 'CRY!', 0xFFD700);
+                // Trois ondes simples
+                for (let i = 0; i < 3; i++) {
+                  const ring = new Graphics();
+                  ring.circle(0, 0, 6 + i * 4).stroke({ width: 2, color: 0xFFD700, alpha: 0.8 });
+                  ring.position.set(pos.x, pos.y - 30);
+                  scene.addChild(ring);
+                  let t = 0; const tick = (tk:any) => {
+                    const dm = typeof tk?.deltaMS === 'number' ? tk.deltaMS : 16.7; t += dm;
+                    ring.scale.set(1 + t/200); ring.alpha = Math.max(0, 0.8 * (1 - t/300));
+                    if (t >= 300) { app.ticker.remove(tick); try { scene.removeChild(ring); ring.destroy(); } catch {} }
+                  }; addTick(tick);
+                }
+              } else if (skillId === (SkillId as any).fierceBrute) {
+                floatText(pos.x, pos.y - 30, 'FIERCE!', 0xFF4500);
+                // Fantômes simples derrière le main pendant un court laps
+                const ghosts: Graphics[] = [];
+                const makeGhost = () => {
+                  const g = new Graphics(); g.rect(-6, -18, 12, 24).fill({ color: 0xFF4500, alpha: 0.15 });
+                  g.position.set(getPos(src.node).x - (src===right?20: -20), getPos(src.node).y);
+                  scene.addChild(g); ghosts.push(g);
+                };
+                for (let i=0;i<4;i++) setTimeout(makeGhost, i*80);
+                let t=0; const tick=(tk:any)=>{
+                  const dm = typeof tk?.deltaMS === 'number' ? tk.deltaMS : 16.7; t+=dm;
+                  ghosts.forEach((g)=>{ try { g.alpha = Math.max(0, g.alpha - dm/600); } catch {} });
+                  if (t>=700) { app.ticker.remove(tick); ghosts.forEach(g=>{ try { scene.removeChild(g); g.destroy(); } catch {} }); }
+                }; addTick(tick);
+              } else if (skillId === (SkillId as any).flashFlood) {
+                // Déclencher l’effet flashFlood minimal (vague + shake)
+                const wave = new Graphics();
+                wave.rect(0, 0, W, 16).fill({ color: 0x1E90FF, alpha: 0.65 });
+                wave.position.set(0, pos.y - 40); scene.addChild(wave);
+                let t=0; const tick=(tk:any)=>{ const dm=typeof tk?.deltaMS==='number'?tk.deltaMS:16.7; t+=dm; wave.alpha=Math.max(0,0.65*(1-t/500)); if(t>=500){app.ticker.remove(tick); try{scene.removeChild(wave); wave.destroy();}catch{}}}; addTick(tick);
+                await shake(4, 150);
               }
             } catch {}
             break; }
@@ -2704,21 +2758,28 @@ const PixiFight: React.FC<Props> = ({
           // Leave: actor exits the arena (pets or fighters)
           case 1: {
             try {
-              // Determine object (pet or main fighter)
-              const obj = src.node;
+              // Sélectionner strictement l'acteur: pet, ally, ou main si l'index correspond
+              let obj: any | null = null;
+              let kind: 'pet'|'ally'|'main'|null = null;
+              if (actorIdx !== null && petSpines.has(actorIdx)) { obj = petSpines.get(actorIdx); kind = 'pet'; }
+              else if (actorIdx !== null && allySpines.has(actorIdx)) { obj = allySpines.get(actorIdx); kind = 'ally'; }
+              else if (actorIdx === leftMainIdx) { obj = left.node; kind = 'main'; }
+              else if (actorIdx === rightMainIdx) { obj = right.node; kind = 'main'; }
+              else { break; } // ne rien faire si l'index ne correspond à aucune entité
+
               const start = getPos(obj);
               // Head off-screen horizontally depending on side
               const tx = (actorSide === 'L') ? -60 : (W + 60);
               const ty = start.y;
               // Play movement animation
-              playAnim(src, 'walk', true);
+              try { if (kind !== 'main') playAnim({ node: obj }, 'walk', true); } catch {}
               // Duration proportional to distance, aligned with move speed
               const dist = Math.abs(tx - start.x);
               const dur = (durationMoveMs(dist) * (actorSide === 'R' ? mulR : mulL)) / Math.max(0.001, speed);
               await tweenTo(obj, tx, ty, dur);
 
-              // Cleanup: if it was a pet, remove its spine and HUD; for mains, just hide
-              if (actorIdx !== null && petSpines.has(actorIdx)) {
+              // Cleanup: retirer pet/ally; pour main on évite de le cacher si ce n'est pas attendu
+              if (kind === 'pet' && actorIdx !== null) {
                 const pet = petSpines.get(actorIdx);
                 try { if ((pet as any).petTick) { app.ticker.remove((pet as any).petTick); } } catch {}
                 try { scene.removeChild(pet); } catch {}
@@ -2728,9 +2789,14 @@ const PixiFight: React.FC<Props> = ({
                   const hud = petHudByIndex.get(actorIdx);
                   if (hud) { ui.removeChild(hud.cont); petHudByIndex.delete(actorIdx); }
                 } catch {}
-              } else {
-                // Hide main fighter node (rare in practice)
-                try { (obj as any).visible = false; (obj as any).renderable = false; } catch {}
+              } else if (kind === 'ally' && actorIdx !== null) {
+                const ally = allySpines.get(actorIdx);
+                try { scene.removeChild(ally); } catch {}
+                try { (ally as any).destroy?.(); } catch {}
+                allySpines.delete(actorIdx);
+              } else if (kind === 'main') {
+                // Pour un main, ne pas le masquer par défaut: l'officiel conserve le main à l'écran
+                // (laisser au StepType suivant la responsabilité de cacher si nécessaire)
               }
             } catch {}
             break; }
@@ -2775,7 +2841,14 @@ const PixiFight: React.FC<Props> = ({
                 if ((pet as any).petTick) {
                   addTick((pet as any).petTick);
                 }
-              } else if (actor && !actor.master && actorIdx !== null && actor.type !== 'pet' && actorIdx !== leftMainIdx && actorIdx !== rightMainIdx) {
+              } else if (
+                actor && actorIdx !== null && actor.type !== 'pet'
+                // Considérer comme ALLY si différent des mains (par index) OU par id (backup a souvent un id négatif/différent)
+                && (
+                  (actorIdx !== leftMainIdx && actorIdx !== rightMainIdx)
+                  || (typeof actor.id === 'number' && (actor.id < 0 || (actor.id !== (leftMain?.id ?? actor.id) && actor.id !== (rightMain?.id ?? actor.id))))
+                )
+              ) {
                 // ALLY arrival (Backup): créer une silhouette humaine indépendante
                 const ally = createAllySpine(actorSide);
                 allySpines.set(actorIdx, ally);
@@ -2793,6 +2866,18 @@ const PixiFight: React.FC<Props> = ({
                   await tweenTo(ally, targetX, targetY + Math.max(3, arriveArc*0.15), Math.max(60, arriveMs*0.18));
                   await tweenTo(ally, targetX, targetY, Math.max(60, arriveMs*0.20));
                 }
+                // Assurer le bon z-index (devant selon y)
+                try { (ally as any).zIndex = targetY; } catch {}
+                // Petit fondu d'entrée si besoin
+                try {
+                  let a = 0; const total = Math.max(1, 180 / Math.max(0.001, speed)); let t = 0;
+                  const fade = (tk:any) => {
+                    const dm = typeof tk?.deltaMS === 'number' ? tk.deltaMS : 16.7; t += dm; a = Math.min(1, t/total);
+                    try { ally.alpha = a; } catch {}
+                    if (a >= 1) { app.ticker.remove(fade); }
+                  };
+                  addTick(fade);
+                } catch {}
               } else {
                 // Main fighter arrival
                 if (actorSide === 'L') {
@@ -3677,8 +3762,8 @@ const PixiFight: React.FC<Props> = ({
             lastWeaponByActor.delete(targetIdx ?? -1);
             break; }
           
-          // Sabotage (also releases traps)
-          case 27: {
+          // Sabotage (StepType.Sabotage)
+          case 22: {
             const tpos = getPos(tgt.node);
             floatText(tpos.x, tpos.y, 'SABOTAGED!', 0xFFA500);
             try {
@@ -3699,6 +3784,32 @@ const PixiFight: React.FC<Props> = ({
                   }
                 };
                 addTick(fade);
+              }
+            } catch {}
+            break; }
+
+          // Spy (swap weapons between actor and target)
+          case 30: {
+            const tpos = getPos(tgt.node);
+            floatText(tpos.x, tpos.y, 'SPY!', 0x87CEFA);
+            try {
+              if (actorIdx !== null && targetIdx !== null) {
+                const aName = lastWeaponByActor.get(actorIdx) || '';
+                const tName = lastWeaponByActor.get(targetIdx) || '';
+                // Swap in tracking
+                lastWeaponByActor.set(actorIdx, tName);
+                lastWeaponByActor.set(targetIdx, aName);
+                // HUD update
+                if (actor === leftMain) {
+                  if (tName) barL.updateWeapon(tName);
+                } else if (actor === rightMain) {
+                  if (tName) barR.updateWeapon(tName);
+                }
+                if (target === leftMain) {
+                  if (aName) barL.updateWeapon(aName);
+                } else if (target === rightMain) {
+                  if (aName) barR.updateWeapon(aName);
+                }
               }
             } catch {}
             break; }
@@ -3957,7 +4068,26 @@ const PixiFight: React.FC<Props> = ({
             };
             addTick(starTick);
             break; }
-          
+
+          // FlashFlood
+          case 10: {
+            // Effet simple: vague horizontale + secousse
+            const wave = new Graphics();
+            const h = 16;
+            wave.rect(0, 0, W, h).fill({ color: 0x1E90FF, alpha: 0.65 });
+            wave.position.set(0, (getPos(src.node).y - 40));
+            scene.addChild(wave);
+            let t = 0;
+            const tick = (tk:any) => {
+              const dm = typeof tk?.deltaMS === 'number' ? tk.deltaMS : 16.7; t += dm;
+              wave.y += Math.sin(t * 0.02) * 0.6;
+              wave.alpha = Math.max(0, 0.65 * (1 - t / 600));
+              if (t >= 600) { app.ticker.remove(tick); try { scene.removeChild(wave); wave.destroy(); } catch {} }
+            };
+            addTick(tick);
+            await shake(4, 180);
+            break; }
+
           // Haste (status buff)
           case 32: {
             const apos = getPos(src.node);
@@ -3997,6 +4127,18 @@ const PixiFight: React.FC<Props> = ({
               }
             };
             addTick(tick);
+            break; }
+
+          // Resist
+          case 7: {
+            const tpos = getPos(src.node);
+            floatText(tpos.x, tpos.y, 'RESIST!', 0x87CEEB);
+            break; }
+
+          // Survive
+          case 8: {
+            const tpos = getPos(src.node);
+            floatText(tpos.x, tpos.y, 'SURVIVE!', 0xFFD700);
             break; }
 
           // Vampirism
