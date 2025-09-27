@@ -2066,6 +2066,7 @@ const PixiFight: React.FC<Props> = ({
       // Weapon and Pet Spine Animated Placeholders
       const weaponSpines = new Map<any, any>();
       const petSpines = new Map<number, any>();
+      const allySpines = new Map<number, any>(); // renforts (Backup) humains supplémentaires
       // Track active nets per target (to break on hit)
       const activeNets = new Map<number, Container>();
       const petHudByIndex = new Map<number, { cont: Container, set: (r:number)=>void }>();
@@ -2290,6 +2291,24 @@ const PixiFight: React.FC<Props> = ({
         }
         
         return container;
+      };
+
+      // Placeholder visuel pour un renfort humain (ally) — silhouette simple
+      const createAllySpine = (side: 'L'|'R') => {
+        const cont = new Container();
+        const body = new Graphics();
+        // Silhouette stylisée
+        body.roundRect(-10, -28, 20, 40, 4).fill({ color: 0x444444 });
+        const head = new Graphics();
+        head.circle(0, -34, 8).fill({ color: 0x666666 });
+        cont.addChild(body, head);
+        // Ombre au sol
+        const shadow = new Graphics();
+        shadow.ellipse(0, 0, 12, 4).fill({ color: 0x000000, alpha: 0.25 });
+        cont.addChildAt(shadow, 0);
+        // Miroir côté droit
+        if (side === 'R') { cont.scale.x = -1; }
+        return cont;
       };
       
       const attachWeaponToFighter = (fighter: any, weaponName: string) => {
@@ -2573,14 +2592,18 @@ const PixiFight: React.FC<Props> = ({
           // Check if actor is a pet
           const actorPet = actorIdx !== null ? petSpines.get(actorIdx) : null;
           const targetPet = targetIdx !== null ? petSpines.get(targetIdx) : null;
+          const actorAlly = actorIdx !== null ? allySpines.get(actorIdx) : null;
+          const targetAlly = targetIdx !== null ? allySpines.get(targetIdx) : null;
 
           // If actor is a pet, use the pet as src; otherwise use main fighter
           const src = actorPet ? { node: actorPet, baseX: actorPet.x, baseY: actorPet.y, type: 'pet', width: 30 }
-                               : (actorSide === 'L' ? left : right);
+                    : actorAlly ? { node: actorAlly, baseX: actorAlly.x, baseY: actorAlly.y, type: 'ally', width: 40 }
+                    : (actorSide === 'L' ? left : right);
 
           // If target is a pet, use the pet as tgt; otherwise use main fighter
           const tgt = targetPet ? { node: targetPet, baseX: targetPet.x, baseY: targetPet.y, type: 'pet', width: 30 }
-                               : (targetSide ? (targetSide === 'L' ? left : right) : (src === left ? right : left));
+                    : targetAlly ? { node: targetAlly, baseX: targetAlly.x, baseY: targetAlly.y, type: 'ally', width: 40 }
+                    : (targetSide ? (targetSide === 'L' ? left : right) : (src === left ? right : left));
 
           // Track Equip to update known weapon (real data)
           try {
@@ -2751,6 +2774,24 @@ const PixiFight: React.FC<Props> = ({
                 // Start pet animation
                 if ((pet as any).petTick) {
                   addTick((pet as any).petTick);
+                }
+              } else if (actor && !actor.master && actorIdx !== null && actor.type !== 'pet' && actorIdx !== leftMainIdx && actorIdx !== rightMainIdx) {
+                // ALLY arrival (Backup): créer une silhouette humaine indépendante
+                const ally = createAllySpine(actorSide);
+                allySpines.set(actorIdx, ally);
+                scene.addChild(ally);
+
+                // Position proche du main de l'équipe, entrée depuis le bord
+                const mate = actorSide === 'L' ? left : right;
+                const matePos = getPos(mate.node);
+                const targetX = matePos.x + (actorSide === 'L' ? -30 : 30);
+                const targetY = matePos.y + 6;
+                if (actorSide === 'L') ally.position.set(-60, targetY + 12); else ally.position.set(W + 60, targetY + 12);
+                ally.alpha = 0;
+                await jumpTo(ally, targetX, targetY, arriveMs, arriveArc*0.7);
+                if (arriveBounce) {
+                  await tweenTo(ally, targetX, targetY + Math.max(3, arriveArc*0.15), Math.max(60, arriveMs*0.18));
+                  await tweenTo(ally, targetX, targetY, Math.max(60, arriveMs*0.20));
                 }
               } else {
                 // Main fighter arrival
