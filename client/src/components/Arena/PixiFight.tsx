@@ -2683,7 +2683,7 @@ const PixiFight: React.FC<Props> = ({
 
           switch (a) {
           // SkillExpire: clear relevant HUD statuses
-          case 29: {
+          case StepType.SkillExpire: {
             try {
               const skillId: number | undefined = (s as any)?.s;
               const actor = (typeof (s as any).b === 'number') ? (s as any).b : (typeof (s as any).f === 'number' ? (s as any).f : null);
@@ -2756,7 +2756,7 @@ const PixiFight: React.FC<Props> = ({
             break; }
           
           // Leave: actor exits the arena (pets or fighters)
-          case 1: {
+          case StepType.Leave: {
             try {
               // Sélectionner strictement l'acteur: pet, ally, ou main si l'index correspond
               let obj: any | null = null;
@@ -2802,7 +2802,7 @@ const PixiFight: React.FC<Props> = ({
             break; }
 
           // Arrive: pick lane using largest-gap strategy (official-like)
-          case 2: {
+          case StepType.Arrive: {
             try {
               // Check if this is a pet arrival
               if (actor?.type === 'pet' && actor?.master && actorIdx !== null) {
@@ -2910,7 +2910,7 @@ const PixiFight: React.FC<Props> = ({
             } catch {}
             break; }
           // Move
-          case 15: {
+          case StepType.Move: {
             // Set pet moving state if it's a pet
             const petSpine = petSpines.get(actorIdx ?? -1);
             if (petSpine && (petSpine as any).setMoving) {
@@ -2946,7 +2946,7 @@ const PixiFight: React.FC<Props> = ({
             playAnim(src, 'idle', true);
             break; }
           // AttemptHit
-          case 19: {
+          case StepType.AttemptHit: {
             if (traceEnabled && !traceOnRef.current) { traceOnRef.current = true; traceT0Ref.current = performance.now()/1000; }
             try {
               const tpos = getPos(tgt.node);
@@ -2980,7 +2980,7 @@ const PixiFight: React.FC<Props> = ({
             playAnim(src, 'idle', true);
             break; }
           // Hit / variants - EXACT LIKE OFFICIAL LABRUTE
-          case 9: case 10: case 11: case 12: {
+          case StepType.Hit: case StepType.FlashFlood: case StepType.Hammer: case StepType.Poison: {
             const dmg = s.d ?? s.damage ?? 0;
             const isCritical = (s?.c === 1); // Rouge uniquement si critique (logique officielle)
             const isFlash = false; // réservé à d'autres cas, non utilisé pour la couleur
@@ -3275,7 +3275,7 @@ const PixiFight: React.FC<Props> = ({
             } catch {}
             break; }
           // Heal (potion, drink, etc.)
-          case 6: {
+          case StepType.Heal: {
             const healAmount = Math.max(0, Number(s.h ?? s.v ?? s.d ?? 0));
             const healerPos = getPos(src.node);
 
@@ -3332,7 +3332,7 @@ const PixiFight: React.FC<Props> = ({
             break; }
 
           // Trash (drop current weapon without throwing at target)
-          case 3: {
+          case StepType.Trash: {
             try {
               if (actorIdx == null) break;
               // Resolve current weapon name from step or last known
@@ -3447,7 +3447,7 @@ const PixiFight: React.FC<Props> = ({
             break; }
 
           // Block
-          case 20: {
+          case StepType.Block: {
             const tpos = getPos(tgt.node); 
             floatText(tpos.x, tpos.y, 'BLOCK', 0x4169E1);
             // Small knockback effect
@@ -3457,7 +3457,7 @@ const PixiFight: React.FC<Props> = ({
             await tweenTo(tgt.node, cur.x, cur.y, 50);
             break; }
           // Evade/Dodge
-          case 21: {
+          case StepType.Evade: {
             const tpos = getPos(tgt.node); 
             floatText(tpos.x, tpos.y, 'MISS', 0xFFD700);
             
@@ -3490,7 +3490,7 @@ const PixiFight: React.FC<Props> = ({
             await Promise.all([dodgePromise, attackPromise]);
             break; }
           // MoveBack
-          case 17: {
+          case StepType.MoveBack: {
             // Check if this is after a disarm (previous step was disarm)
             const prevStep = steps[steps.indexOf(s) - 1];
             const isAfterDisarm = prevStep && prevStep.a === 23;
@@ -3518,7 +3518,7 @@ const PixiFight: React.FC<Props> = ({
             playAnim(src, 'idle', true);
             break; }
           // Death
-          case 24: {
+          case StepType.Death: {
             // Use the same logic as Hit to identify who died
             const diedIdx = actorIdx; // Fix: Define diedIdx like in official LaBrute
             const diedFighter = actor;
@@ -3555,7 +3555,7 @@ const PixiFight: React.FC<Props> = ({
             }
             break; }
           // Throw (projectile weapon)
-          case 25: {
+          case StepType.Throw: {
             const spos = getPos(src.node);
             const tpos = getPos(tgt.node);
             
@@ -3680,7 +3680,7 @@ const PixiFight: React.FC<Props> = ({
             break; }
           
           // Disarm
-          case 23: {
+          case StepType.Disarm: {
             const tpos = getPos(tgt.node);
             floatText(tpos.x, tpos.y, 'DISARMED!', 0xFF6347);
             
@@ -3732,7 +3732,7 @@ const PixiFight: React.FC<Props> = ({
             break; }
           
           // Steal (weapon steal)
-          case 4: {
+          case StepType.Steal: {
             const spos = getPos(src.node);
             const tpos = getPos(tgt.node);
             floatText(tpos.x, tpos.y, 'STOLEN!', 0x9370DB);
@@ -3815,7 +3815,7 @@ const PixiFight: React.FC<Props> = ({
             break; }
           
           // Net (trap)
-          case 28: {
+          case StepType.Trap: {
             const tpos = getPos(tgt.node);
             floatText(tpos.x, tpos.y, 'TRAPPED!', 0x8B4513);
             
@@ -3920,7 +3920,7 @@ const PixiFight: React.FC<Props> = ({
             break; }
           
           // Bomb
-          case 13: {
+          case StepType.Bomb: {
             const tpos = getPos(tgt.node);
             
             // Create animated bomb with Spine-like parts
@@ -4026,7 +4026,7 @@ const PixiFight: React.FC<Props> = ({
             break; }
           
           // Hammer (stun)
-          case 11: {
+          case StepType.Hammer: {
             const tpos = getPos(tgt.node);
             floatText(tpos.x, tpos.y, 'STUNNED!', 0x4B0082);
             
@@ -4070,7 +4070,7 @@ const PixiFight: React.FC<Props> = ({
             break; }
 
           // FlashFlood
-          case 10: {
+          case StepType.FlashFlood: {
             // Effet simple: vague horizontale + secousse
             const wave = new Graphics();
             const h = 16;
@@ -4089,7 +4089,7 @@ const PixiFight: React.FC<Props> = ({
             break; }
 
           // Haste (status buff)
-          case 32: {
+          case StepType.Haste: {
             const apos = getPos(src.node);
             floatText(apos.x, apos.y, 'HASTE!', 0xFFD700);
             // HUD status icon for haste on actor side + aura
@@ -4142,7 +4142,7 @@ const PixiFight: React.FC<Props> = ({
             break; }
 
           // Vampirism
-          case 31: {
+          case StepType.Vampirism: {
             console.log('VAMPIRISM ACTION FULL DETAILS:', s);
             console.log('Actor from b:', s.b, 'Target from t:', s.t);
             console.log('Actor from f:', s.f, 'Target still t:', s.t);
@@ -4382,7 +4382,7 @@ const PixiFight: React.FC<Props> = ({
             break; }
 
           // Hypnotise
-          case 14: {
+          case StepType.Hypnotise: {
             const spos = getPos(src.node);
             const tpos = getPos(tgt.node);
             floatText(tpos.x, tpos.y, 'HYPNOTIZED!', 0x9932CC);
@@ -4448,7 +4448,7 @@ const PixiFight: React.FC<Props> = ({
             break; }
           
           // Treat (healing potion)
-          case 33: {
+          case StepType.Treat: {
             const healAmount = s.h || s.v || s.d || 0;
             const targetPos = getPos(tgt.node);
 
@@ -4534,7 +4534,7 @@ const PixiFight: React.FC<Props> = ({
             break; }
 
           // Poison
-          case 12: {
+          case StepType.Poison: {
             const targetPos = getPos(tgt.node);
             
             // Create particle effect
@@ -4589,7 +4589,7 @@ const PixiFight: React.FC<Props> = ({
             break; }
 
           // DropShield
-          case 34: {
+          case StepType.DropShield: {
             // Visual cue
             const tpos = getPos(tgt.node);
             floatText(tpos.x, tpos.y, 'SHIELD BROKEN', 0x1E90FF);
@@ -4622,7 +4622,7 @@ const PixiFight: React.FC<Props> = ({
             break; }
 
           // Regeneration (subtle sparkles, no full-screen flash) + mise à jour HP
-          case 35: {
+          case StepType.Regeneration: {
             const apos = getPos(src.node);
             floatText(apos.x, apos.y, 'REGEN', 0x00FF75);
             const cont = new Container();
@@ -4675,7 +4675,7 @@ const PixiFight: React.FC<Props> = ({
             break; }
 
           // End
-          case 26: {
+          case StepType.End: {
             try {
               const qp = new URLSearchParams(window.location.search);
               const auto = (qp.get("pixiTraceAuto") === "1" || localStorage.getItem("compare.pixiTraceAuto") === "1");
