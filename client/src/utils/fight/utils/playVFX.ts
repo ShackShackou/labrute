@@ -1,6 +1,7 @@
 /* eslint-disable no-void */
 import { randomBetween } from '@labrute/core';
 import { Application, AnimatedSprite } from 'pixi-legacy';
+import { ColorOverlayFilter } from '@pixi/filter-color-overlay';
 import { AnimationFighter } from './findFighter';
 import getHitDistance from './getHitDistance';
 
@@ -53,11 +54,11 @@ const playHitEffect = (
     throw new Error('Spritesheet not found');
   }
 
-  const HIT_VFX = ['blood', 'impact-1', 'impact-2'];
-
-  const vfx = fighter.type === 'pet'
-    ? 'blood'
-    : VFX ?? HIT_VFX[randomBetween(0, HIT_VFX.length - 1)] ?? 'blood';
+  // Dans l'officiel, la plupart des coups standards affichent des étincelles jaunes (impact),
+  // alors que le sang est plus rare (ou pour certaines situations). On favorise donc "impact".
+  const vfx = VFX
+    ? VFX
+    : (fighter.type === 'pet' ? 'blood' : `impact-${randomBetween(1, 2)}`);
 
   // Create hit VFX
   const hitVfx = new AnimatedSprite(spritesheet.animations[vfx] || []);
@@ -66,6 +67,15 @@ const playHitEffect = (
   hitVfx.loop = false;
   hitVfx.scale.x = target.team === 'L' ? -1 : 1;
   hitVfx.anchor.set(0.5, 0.5);
+
+  // Teinte jaune et alpha réduit pour éviter les flashs blancs (impact)
+  try {
+    if (typeof vfx === 'string' && vfx.startsWith('impact')) {
+      hitVfx.filters = [new ColorOverlayFilter(0xFFD200, 1)];
+      hitVfx.alpha = 0.75;
+      hitVfx.animationSpeed = Math.max(0.2, speed.current / 5);
+    }
+  } catch {}
 
   const distance = Math.abs(fighter.animation.container.x - target.animation.container.x);
   const hitDistance = getHitDistance(fighter, target);

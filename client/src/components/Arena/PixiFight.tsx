@@ -3008,7 +3008,8 @@ const PixiFight: React.FC<Props> = ({
                 60 * (isLeftAttacking ? 1 : -1), -10,
                 80 * (isLeftAttacking ? 1 : -1), 10
               );
-              swoosh.stroke({ width: 3, color: 0xFFFFFF, alpha: 0.7 });
+              // Teinte jaune douce pour éviter les flashs blancs
+              swoosh.stroke({ width: 3, color: 0xFFD200, alpha: 0.55 });
 
               swoosh.position.set(startX, startY);
               swoosh.zIndex = 100;
@@ -3133,28 +3134,8 @@ const PixiFight: React.FC<Props> = ({
               requestAnimationFrame(animateNumber);
             };
 
-            // Create white flash for critical hits
-            const createCriticalFlash = () => {
-              const flash = new Graphics();
-              flash.rect(0, 0, W, H)
-                .fill({ color: 0xFFFFFF, alpha: 0.8 });
-              flash.zIndex = 9999;
-              scene.addChild(flash);
-
-              // Fade out flash
-              let alpha = 0.8;
-              const fadeFlash = () => {
-                alpha -= 0.1;
-                flash.alpha = alpha;
-                if (alpha <= 0) {
-                  scene.removeChild(flash);
-                  flash.destroy();
-                } else {
-                  requestAnimationFrame(fadeFlash);
-                }
-              };
-              requestAnimationFrame(fadeFlash);
-            };
+            // Retirer le flash plein écran sur critique (non présent dans l'officiel)
+            const createCriticalFlash = () => {};
 
             // Apply damage IMMEDIATELY (animation happens in parallel)
             // If there's damage, someone's HP must decrease
@@ -3166,10 +3147,7 @@ const PixiFight: React.FC<Props> = ({
               // Add floating damage number
               createDamageNumber(targetPos.x, targetPos.y - 50, dmg, isCritical);
 
-              // Add critical flash
-              if (isCritical) {
-                createCriticalFlash();
-              }
+              // Ne pas faire de flash plein écran; le critique est signalé par le texte rouge + secousse
               // Always update HP bars based on the actual target
               // Check if target is main fighter by ID
               if (target?.id === fight.brute1Id) {
@@ -3650,7 +3628,7 @@ const PixiFight: React.FC<Props> = ({
               if (trail && !trail.destroyed && typeof trail.clear === 'function') {
                 try { trail.clear(); } catch {}
               }
-              trail.stroke({ width: 2, color: 0xFFFFFF, alpha: 0.3 });
+              trail.stroke({ width: 2, color: 0xFFD200, alpha: 0.25 });
               if (trailPoints.length > 1) {
                 const firstPoint = trailPoints[0];
                 if (firstPoint) {
@@ -3970,7 +3948,7 @@ const PixiFight: React.FC<Props> = ({
                 // Inner core
                 const core = new Graphics();
                 core.circle(0, 0, 10)
-                  .fill({ color: 0xFFFFFF, alpha: 1 });
+                  .fill({ color: 0xFFD200, alpha: 0.85 });
                 
                 // Middle layer
                 const middle = new Graphics();
@@ -4443,8 +4421,22 @@ const PixiFight: React.FC<Props> = ({
               
               spirals.forEach((spiral, i) => {
                 spiral.rotation = spiralTime * (i % 2 === 0 ? 1 : -1);
-                spiral.scale.set(0.5 + Math.sin(spiralTime * 2) * 0.2);
-                spiral.alpha = 0.3 + Math.sin(spiralTime * 3 + i) * 0.3;
+                spiral.scale.set(0.5 + Math.sin(spiralTime * 2) * 0.12);
+                // Réduire les flashes blancs: limiter l'alpha et éviter 0xFFFFFF
+                try { (spiral as any).clear(); } catch {}
+                const draw = new Graphics();
+                const col = (i % 2 === 0) ? 0x9932CC : 0xAD3C8F; // violet seulement
+                draw.stroke({ width: 3, color: col, alpha: 0.35 });
+                // Réutiliser le même container: on dessine un court arc
+                const r = 16 + i * 6; const segs = 18;
+                for (let k = 0; k < segs; k++) {
+                  const ang0 = (k / segs) * Math.PI * 2;
+                  const ang1 = ((k+1) / segs) * Math.PI * 2;
+                  draw.moveTo(Math.cos(ang0)*r, Math.sin(ang0)*r);
+                  draw.lineTo(Math.cos(ang1)*r, Math.sin(ang1)*r);
+                }
+                try { spiral.addChild(draw); } catch {}
+                spiral.alpha = 0.25 + Math.sin(spiralTime * 2.6 + i) * 0.15;
               });
               
               spiralContainer.scale.set(1 + Math.sin(spiralTime * 2) * 0.1);
