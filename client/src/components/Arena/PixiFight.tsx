@@ -4111,12 +4111,46 @@ const PixiFight: React.FC<Props> = ({
           case StepType.Resist: {
             const tpos = getPos(src.node);
             floatText(tpos.x, tpos.y, 'RESIST!', 0x87CEEB);
+            // Halo protecteur bleu pâle
+            try {
+              const halo = new Graphics();
+              halo.lineStyle(3, 0x87CEEB, 0.8);
+              halo.drawCircle(0, 0, 18);
+              halo.endFill?.();
+              halo.position.set(tpos.x, tpos.y - 26);
+              halo.zIndex = 1000;
+              scene.addChild(halo);
+              let t = 0; const life = Math.max(1, 420 / Math.max(0.001, speed));
+              const tick = (tk:any) => {
+                const dm = typeof tk?.deltaMS === 'number' ? tk.deltaMS : 16.7;
+                t += dm; halo.alpha = Math.max(0, 1 - (t / life));
+                if (t >= life) { app.ticker.remove(tick); try { scene.removeChild(halo); halo.destroy(); } catch {} }
+              };
+              addTick(tick);
+            } catch {}
             break; }
 
           // Survive
           case StepType.Survive: {
             const tpos = getPos(src.node);
             floatText(tpos.x, tpos.y, 'SURVIVE!', 0xFFD700);
+            // Lueur dorée brève autour du buste
+            try {
+              const glow = new Graphics();
+              glow.beginFill(0xFFD700, 0.35);
+              glow.drawCircle(0, 0, 16);
+              glow.endFill?.();
+              glow.position.set(tpos.x, tpos.y - 28);
+              glow.zIndex = 999;
+              scene.addChild(glow);
+              let t = 0; const life = Math.max(1, 380 / Math.max(0.001, speed));
+              const tick = (tk:any) => {
+                const dm = typeof tk?.deltaMS === 'number' ? tk.deltaMS : 16.7;
+                t += dm; glow.alpha = Math.max(0, 0.35 * (1 - (t / life)));
+                if (t >= life) { app.ticker.remove(tick); try { scene.removeChild(glow); glow.destroy(); } catch {} }
+              };
+              addTick(tick);
+            } catch {}
             break; }
 
           // Eat (self heal)
