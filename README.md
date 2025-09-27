@@ -1,14 +1,14 @@
-# SHACKERSV10 - Viewer Phaser+Spine (LaBrute)
+# SHACKERSV10 - Viewer Pixi 8 + Spine (LaBrute)
 
-Goal: 100% faithful visual replay of official LaBrute fights using Phaser+Spine, without touching the official backend. This app proxies to http://localhost:9000 and replays steps from /api/fight/:id.
+Goal: 100% faithful visual replay of official LaBrute fights using Pixi 8 + Spine 2D, without touching the official backend. This app proxies to http://localhost:9000 and replays steps from /api/fight/:id.
 
 How to run
 - Dev: `npm run dev` then open `http://localhost:5199/?fight=UUID` or `http://localhost:5199/?brute=NAME`
-- Preview: `npm run build && npm run preview` → `http://localhost:5200/?fight=UUID` or `?brute=NAME`
+- Preview: `npm run build && npm run preview` then open `http://localhost:5200/?fight=UUID` or `?brute=NAME`
 
 Get a fight UUID
 - Prisma Studio: open http://localhost:5555, table Fight, copy an id.
-- Or API: `GET http://localhost:9000/api/log/list/:bruteName` → pick a log with a `fight` id, then `GET /api/fight/:id`.
+- Or API: `GET http://localhost:9000/api/log/list/:bruteName` then pick a log with a `fight` id, then `GET /api/fight/:id`.
 
 Notes
 - No RNG on client. The viewer only replays server steps.

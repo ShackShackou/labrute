@@ -5,7 +5,6 @@ import { useTranslation } from 'react-i18next';
 import { useNavigate, useParams } from 'react-router';
 import FightComponent from '../components/Arena/FightComponent';
 import CompareFight from '../components/Arena/CompareFight';
-import PhaserFight from '../components/Arena/PhaserFight';
 import PixiFight from '../components/Arena/PixiFight';
 import BoxBg from '../components/BoxBg';
 import Page from '../components/Page';
@@ -29,19 +28,6 @@ const FightView = () => {
 
   // Fight data
   const [fight, setFight] = useState<FightGetResponse | null>(null);
-
-  // Toggle renderer helper
-  const toggleRenderer = () => {
-    const url = new URL(window.location.href);
-    const qp = url.searchParams;
-    const current = qp.get('renderer');
-    if (current === 'pixi') {
-      qp.delete('renderer');
-    } else {
-      qp.set('renderer', 'pixi');
-    }
-    navigate(`${url.pathname}?${qp.toString()}`);
-  };
 
   // Fetch fight and brutes
   useEffect(() => {
@@ -111,13 +97,10 @@ const FightView = () => {
             <Box sx={{ display: 'flex', justifyContent: 'flex-end', gap: 1, mb: 1 }}>
               <Button size="small" variant={renderParam ? 'outlined' : 'contained'} onClick={() => navigate(window.location.pathname)}>Official</Button>
               <Button size="small" variant={renderParam === 'pixi' ? 'contained' : 'outlined'} onClick={() => navigate(`${window.location.pathname}?renderer=pixi`)}>Pixi</Button>
-              <Button size="small" variant={renderParam === 'phaser' ? 'contained' : 'outlined'} onClick={() => navigate(`${window.location.pathname}?renderer=phaser`)}>Phaser</Button>
               <Button size="small" variant={renderParam === 'compare' ? 'contained' : 'outlined'} onClick={() => navigate(`${window.location.pathname}?renderer=compare`)}>Compare</Button>
             </Box>
             {renderParam === 'compare' ? (
               <CompareFight fight={fight} />
-            ) : renderParam === 'phaser' ? (
-              <PhaserFight fight={fight} />
             ) : renderParam === 'pixi' ? (
               <PixiFight fight={fight} />
             ) : (

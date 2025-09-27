@@ -776,12 +776,28 @@ const PixiFight: React.FC<Props> = ({
         }
         return h >>> 0;
       };
+      // RNG/Event tracing (optional)
+      const rngTraceOn = (params.get('pixiLogRng') === '1' || localStorage.getItem('compare.pixiLogRng') === '1');
+      const eventTraceOn = (params.get('pixiLogEvents') === '1' || localStorage.getItem('compare.pixiLogEvents') === '1');
+      const rngTrace: { t:number, out:number }[] = [];
+      const eventTrace: { t:number, i:number, a:number, f:number|null, tId:number|null }[] = [];
+      const traceT0 = performance.now() / 1000;
+      try {
+        (window as any).pixiGetRngTrace = () => rngTrace.slice();
+        (window as any).pixiGetEventTrace = () => eventTrace.slice();
+      } catch {}
+
       let rngState = hash32(String((fight as any)?.id ?? 'fight')) || 123456789;
       const rand = () => {
-        if (!DETERMINISTIC) return Math.random();
-        // LCG: Numerical Recipes
-        rngState = (Math.imul(1664525, rngState) + 1013904223) | 0;
-        return ((rngState >>> 0) / 4294967296);
+        let out: number;
+        if (!DETERMINISTIC) out = Math.random();
+        else {
+          // LCG: Numerical Recipes
+          rngState = (Math.imul(1664525, rngState) + 1013904223) | 0;
+          out = ((rngState >>> 0) / 4294967296);
+        }
+        if (rngTraceOn) rngTrace.push({ t: performance.now() / 1000 - traceT0, out });
+        return out;
       };
 
       // Arrival jump tunables
@@ -1160,6 +1176,12 @@ const PixiFight: React.FC<Props> = ({
         
         const portraitContainer = new Container();
         portraitContainer.addChild(portraitBg, portrait);
+        // Freeze overlay (for hypnosis) - sits above portrait image
+        const freezeOverlay = new Graphics();
+        freezeOverlay.rect(2, 2, portraitSize - 4, portraitSize - 4)
+          .fill({ color: 0x7f3a9a, alpha: 0.35 });
+        freezeOverlay.visible = false;
+        portraitContainer.addChild(freezeOverlay);
         
         // PFP image in portrait (masked), with URL params override
         const p = new URLSearchParams(window.location.search);
@@ -1219,7 +1241,8 @@ const PixiFight: React.FC<Props> = ({
             spr.position.set(portraitSize / 2 + offX, portraitSize / 2 + offY);
             (spr as any).mask = mask;
             portraitContainer.addChild(spr);
-            // Ensure red X stays on top if it exists
+            // Ensure overlays stay on top if they exist
+            try { portraitContainer.addChild(freezeOverlay); } catch {}
             try { if (redX) portraitContainer.addChild(redX); } catch {}
           } catch {
             // Fallback to logo if loading fails
@@ -1238,6 +1261,7 @@ const PixiFight: React.FC<Props> = ({
               spr2.position.set(portraitSize / 2 + offX, portraitSize / 2 + offY);
               (spr2 as any).mask = mask;
               portraitContainer.addChild(spr2);
+              try { portraitContainer.addChild(freezeOverlay); } catch {}
               try { if (redX) portraitContainer.addChild(redX); } catch {}
             } catch {
               // Last resort: initial letter
@@ -1252,6 +1276,7 @@ const PixiFight: React.FC<Props> = ({
               initial.anchor.set(0.5);
               initial.position.set(portraitSize/2, portraitSize/2);
               portraitContainer.addChild(initial);
+              try { portraitContainer.addChild(freezeOverlay); } catch {}
               try { if (redX) portraitContainer.addChild(redX); } catch {}
             }
           }
@@ -1362,11 +1387,62 @@ const PixiFight: React.FC<Props> = ({
         
         // Damage bar (shows lost HP in red)
         const dmgBar = new Graphics();
+        // Heal spark (shows tiny heals even < 1px)
+        const healBar = new Graphics();
         
-        barContainer.addChild(barBg, barInner, hpFill, dmgBar);
+        barContainer.addChild(barBg, barInner, hpFill, dmgBar, healBar);
         
         // Weapon icon (small, next to portrait)
         const weaponContainer = new Container();
+
+        // Status icons (buffs) container next to portrait
+        const statusContainer = new Container();
+        const statusIcons = new Map<string, Container>();
+        const layoutStatus = () => {
+          const gap = 4;
+          let x = 0;
+          const items = Array.from(statusIcons.values());
+          if (isL) {
+            for (const c of items) { c.position.set(x, 0); x += (c.width || 18) + gap; }
+          } else {
+            // Align from right to left
+            x = 0;
+            for (let i = items.length - 1; i >= 0; i--) {
+              const c = items[i]!; c.position.set(x, 0); x += (c.width || 18) + gap;
+            }
+          }
+        };
+        const makeStatusIcon = (emoji: string, bgColor: number) => {
+          const c = new Container();
+          const g = new Graphics();
+          g.circle(9, 9, 9).fill({ color: bgColor, alpha: 0.9 }).stroke({ width: 1, color: 0x111111, alpha: 0.9 });
+          const t = new Text(emoji, { fontSize: 12, fontWeight: '900' } as any);
+          t.anchor.set(0.5, 0.5);
+          t.position.set(9, 9);
+          c.addChild(g, t);
+          return c;
+        };
+        const setStatusFlag = (kind: 'vampirism'|'dropshield'|'haste'|'hypnosis') => {
+          if (statusIcons.has(kind)) return;
+          let icon: Container | null = null;
+          if (kind === 'vampirism') icon = makeStatusIcon('🩸', 0x7a0022);
+          else if (kind === 'dropshield') icon = makeStatusIcon('🛡', 0x0a4faa);
+          else if (kind === 'haste') icon = makeStatusIcon('⚡', 0xb58900);
+          else if (kind === 'hypnosis') icon = makeStatusIcon('🌀', 0x5e2c6c);
+          if (icon) {
+            statusIcons.set(kind, icon);
+            statusContainer.addChild(icon);
+            layoutStatus();
+          }
+        };
+        const clearStatusFlag = (kind: 'vampirism'|'dropshield'|'haste'|'hypnosis') => {
+          const icon = statusIcons.get(kind);
+          if (!icon) return;
+          statusIcons.delete(kind);
+          try { statusContainer.removeChild(icon); } catch {}
+          try { icon.destroy(); } catch {}
+          layoutStatus();
+        };
         
         
         
@@ -1385,8 +1461,10 @@ const PixiFight: React.FC<Props> = ({
 
           // Weapon icon right next to portrait (to the right)
           weaponContainer.position.set(2 + portraitSize, 32);
+          // Status icons just below weapon icons
+          statusContainer.position.set(2 + portraitSize, 32 + 22);
           
-          fullBar.addChild(nameText, barContainer, portraitContainer, weaponContainer);
+          fullBar.addChild(nameText, barContainer, portraitContainer, weaponContainer, statusContainer);
           fullBar.position.set(5, 2);  // Back to edge, gap is in the middle now
         } else {
           // RIGHT SIDE - ORDER: Name at top, bar below, portrait below bar
@@ -1400,8 +1478,10 @@ const PixiFight: React.FC<Props> = ({
 
           // Weapon icons to the left of portrait, growing leftward
           weaponContainer.position.set(0, 32);  // Container starts at left edge of HUD
+          // Status icons under weapons
+          statusContainer.position.set(0, 32 + 22);
           
-          fullBar.addChild(nameText, barContainer, portraitContainer, weaponContainer);
+          fullBar.addChild(nameText, barContainer, portraitContainer, weaponContainer, statusContainer);
           fullBar.position.set(W - 5 - barW, 2);  // Back to edge, gap is in the middle now
         }
         
@@ -1409,16 +1489,21 @@ const PixiFight: React.FC<Props> = ({
         
         // HP management
         let currentHp = 1;
-        let displayHp = 1;
+        let displayHp = 1; // utilisé pour la traîne rouge (perte de PV)
+        let lastRatio = 1; // dernier ratio affiché pour détecter un heal même < 1px
         
         const set = (ratio: number) => {
-          currentHp = Math.max(0, Math.min(1, ratio));
+          const clamped = Math.max(0, Math.min(1, ratio));
+          const prev = lastRatio;
+          currentHp = clamped;
+          lastRatio = clamped;
+          const isHeal = currentHp > prev + 1e-6;
           
           // Animate HP bar
           // Ensure minimum visible width - at least 10% of bar width for visibility
           const targetWidth = currentHp > 0 ? barW * currentHp : 0;
           
-          // Update HP bar graphics safely
+          // Update HP bar graphics en garantissant une largeur minimale visible
           if (hpBar && !hpBar.destroyed && typeof hpBar.clear === 'function') {
             try {
               hpBar.clear();
@@ -1428,17 +1513,16 @@ const PixiFight: React.FC<Props> = ({
             
             // Only draw if there's health
             if (currentHp > 0) {
-              // Don't subtract anything from targetWidth - use it directly
-              const drawWidth = targetWidth;
+              const drawWidth = Math.max(1, (isHeal ? Math.ceil(targetWidth - 2) : Math.floor(targetWidth - 2)));
               
               // Always yellow HP bar - like official LaBrute
               if (isL) {
                 // Left bar fills from left to right with rounded corners
-                hpBar.roundRect(1, 1, drawWidth - 2, barH - 2, 3);
+                hpBar.roundRect(1, 1, drawWidth, barH - 2, 3);
               } else {
                 // Right bar fills from right to left with rounded corners
-                const startX = barW - drawWidth + 1;
-                hpBar.roundRect(startX, 1, drawWidth - 2, barH - 2, 3);
+                const startX = barW - drawWidth - 1;
+                hpBar.roundRect(startX, 1, drawWidth, barH - 2, 3);
               }
               hpBar.fill({ color: 0xFFD700 }); // Gold/yellow
             }
@@ -1487,6 +1571,47 @@ const PixiFight: React.FC<Props> = ({
             }
           }
           
+          // HEAL SPARK: for very small heals (< 2px), afficher une bande verte temporaire
+          if (isHeal) {
+            // Sur heal, on annule toute traîne rouge restante
+            if (currentHp > displayHp) displayHp = currentHp;
+            // calcul en coordonnées "intérieures" (barre avec bordure 1px)
+            const prevW = Math.max(0, Math.floor(barW * prev - 2));
+            const currW = Math.max(0, Math.ceil(barW * currentHp - 2));
+            let d = Math.max(0, currW - prevW);
+            if (d < 2) {
+              try { healBar.clear(); } catch {}
+              const sparkW = Math.max(2, d || 2);
+              const y0 = 1;
+              const h = barH - 2;
+              if (isL) {
+                // intérieur commence à x=1; dessiner après l'ancienne largeur
+                const startX = 1 + prevW;
+                healBar.rect(startX, y0, sparkW, h).fill({ color: 0x7CFC00, alpha: 0.9 });
+              } else {
+                // côté droit: bord gauche intérieur = (barW - 1) - largeur
+                const newLeft = (barW - 1) - currW;
+                healBar.rect(newLeft, y0, sparkW, h).fill({ color: 0x7CFC00, alpha: 0.9 });
+              }
+              // Fade out spark
+              let a = 0.9;
+              const tick = (tk:any) => {
+                const dm = typeof tk?.deltaMS === 'number' ? tk.deltaMS : 16.7;
+                a -= dm / 400;
+                try { healBar.alpha = Math.max(0, a); } catch {}
+                if (a <= 0) {
+                  try { app.ticker.remove(tick); } catch {}
+                  try { healBar.clear(); healBar.alpha = 1; } catch {}
+                }
+              };
+              addTick(tick);
+            } else {
+              try { healBar.clear(); } catch {}
+            }
+          } else {
+            try { healBar.clear(); } catch {}
+          }
+
           // Show RED TRAILING EFFECT for lost HP - like official LaBrute
           if (dmgBar && !dmgBar.destroyed && typeof dmgBar.clear === 'function' && currentHp < displayHp) {
             try {
@@ -1681,6 +1806,63 @@ const PixiFight: React.FC<Props> = ({
         
         const follow = () => {};
 
+        // Haste aura around portrait (pulsing ring)
+        let hasteRing: Graphics | null = null;
+        let hasteTick: ((tk:any)=>void) | null = null;
+        const setHasteAura = (on: boolean) => {
+          if (on) {
+            if (!hasteRing) {
+              hasteRing = new Graphics();
+              const r = Math.round(portraitSize/2 + 6);
+              hasteRing.circle(portraitSize/2, portraitSize/2, r)
+                .stroke({ width: 3, color: 0x2c8eea, alpha: 0.9 });
+              portraitContainer.addChild(hasteRing);
+              // keep overlays order
+              try { portraitContainer.addChild(freezeOverlay); } catch {}
+              try { if (redX) portraitContainer.addChild(redX); } catch {}
+            }
+            if (!hasteTick) {
+              let t = 0;
+              hasteTick = (tk:any) => {
+                const dm = typeof tk?.deltaMS === 'number' ? tk.deltaMS : 16.7;
+                t += dm;
+                const a = 0.6 + 0.35 * Math.sin(t * 0.01);
+                if (hasteRing) { try { hasteRing.alpha = a; } catch {} }
+              };
+              addTick(hasteTick);
+            }
+          } else {
+            if (hasteTick) { try { app.ticker.remove(hasteTick); } catch {} hasteTick = null; }
+            if (hasteRing) { try { portraitContainer.removeChild(hasteRing); hasteRing.destroy(); } catch {} hasteRing = null; }
+          }
+        };
+
+        // Hypnosis freeze overlay on portrait
+        let hypnosisPulseTick: ((tk:any)=>void) | null = null;
+        const setHypnosisFreeze = (on: boolean) => {
+          if (!on) {
+            freezeOverlay.visible = false;
+            if (hypnosisPulseTick) { try { app.ticker.remove(hypnosisPulseTick); } catch {} hypnosisPulseTick = null; }
+          } else {
+            freezeOverlay.visible = true;
+          }
+        };
+        const pulseHypnosis = () => {
+          try { setHypnosisFreeze(true); } catch {}
+          let t = 0;
+          const total = 2200; // ms
+          hypnosisPulseTick = (tk:any) => {
+            const dm = typeof tk?.deltaMS === 'number' ? tk.deltaMS : 16.7; t += dm;
+            const a = 0.35 + 0.18 * Math.sin(t * 0.01);
+            try { freezeOverlay.alpha = a; } catch {}
+            if (t >= total) {
+              if (hypnosisPulseTick) { try { app.ticker.remove(hypnosisPulseTick); } catch {} hypnosisPulseTick = null; }
+              try { freezeOverlay.alpha = 0.35; } catch {}
+            }
+          };
+          addTick(hypnosisPulseTick);
+        };
+
         // Small HUD shake (used when taking a hit)
         const hitShake = (mag=2, dur=200) => {
           const base = { x: portraitContainer.x, y: portraitContainer.y };
@@ -1709,7 +1891,7 @@ const PixiFight: React.FC<Props> = ({
           } catch {}
         };
         
-        return { set, follow, nameText, updateWeapon, removeWeapon, clearWeapons, showDeathX, fullBar, hitShake };
+        return { set, follow, nameText, updateWeapon, removeWeapon, clearWeapons, showDeathX, fullBar, hitShake, setStatusFlag, clearStatusFlag, setHasteAura, setHypnosisFreeze, pulseHypnosis };
       };
 
       const parseArr = (x: any) => { try { return Array.isArray(x) ? x : JSON.parse(x); } catch { return []; } };
@@ -1884,6 +2066,8 @@ const PixiFight: React.FC<Props> = ({
       // Weapon and Pet Spine Animated Placeholders
       const weaponSpines = new Map<any, any>();
       const petSpines = new Map<number, any>();
+      // Track active nets per target (to break on hit)
+      const activeNets = new Map<number, Container>();
       const petHudByIndex = new Map<number, { cont: Container, set: (r:number)=>void }>();
       let petHudTickStarted = false;
 
@@ -2462,7 +2646,72 @@ const PixiFight: React.FC<Props> = ({
           const prevHpL = hpL;
           const prevHpR = hpR;
 
+          if (eventTraceOn) {
+            try { eventTrace.push({ t: performance.now()/1000 - traceT0, i: steps.indexOf(s), a, f: actorIdx, tId: targetIdx }); } catch {}
+          }
+
           switch (a) {
+          // SkillExpire: clear relevant HUD statuses
+          case 29: {
+            try {
+              const skillId: number | undefined = (s as any)?.s;
+              const actor = (typeof (s as any).b === 'number') ? (s as any).b : (typeof (s as any).f === 'number' ? (s as any).f : null);
+              const clear = (kind: 'vampirism'|'dropshield'|'haste'|'hypnosis') => {
+                if (actor === leftMainIdx) { (hudL as any)?.clearStatusFlag?.(kind); }
+                if (actor === rightMainIdx) { (hudR as any)?.clearStatusFlag?.(kind); }
+              };
+              if (typeof skillId === 'number') {
+                if (skillId === (SkillId as any).haste) clear('haste');
+                if (skillId === (SkillId as any).hypnosis) clear('hypnosis');
+                // Optional: clear vampirism if modeled as status
+                if (skillId === (SkillId as any).vampirism) clear('vampirism');
+                // Clear aura/freeze visuals
+                if (skillId === (SkillId as any).haste) {
+                  if (actor === leftMainIdx) { (hudL as any)?.setHasteAura?.(false); }
+                  if (actor === rightMainIdx) { (hudR as any)?.setHasteAura?.(false); }
+                }
+                if (skillId === (SkillId as any).hypnosis) {
+                  if (actor === leftMainIdx) { (hudL as any)?.setHypnosisFreeze?.(false); }
+                  if (actor === rightMainIdx) { (hudR as any)?.setHypnosisFreeze?.(false); }
+                }
+              }
+            } catch {}
+            break; }
+          
+          // Leave: actor exits the arena (pets or fighters)
+          case 1: {
+            try {
+              // Determine object (pet or main fighter)
+              const obj = src.node;
+              const start = getPos(obj);
+              // Head off-screen horizontally depending on side
+              const tx = (actorSide === 'L') ? -60 : (W + 60);
+              const ty = start.y;
+              // Play movement animation
+              playAnim(src, 'walk', true);
+              // Duration proportional to distance, aligned with move speed
+              const dist = Math.abs(tx - start.x);
+              const dur = (durationMoveMs(dist) * (actorSide === 'R' ? mulR : mulL)) / Math.max(0.001, speed);
+              await tweenTo(obj, tx, ty, dur);
+
+              // Cleanup: if it was a pet, remove its spine and HUD; for mains, just hide
+              if (actorIdx !== null && petSpines.has(actorIdx)) {
+                const pet = petSpines.get(actorIdx);
+                try { if ((pet as any).petTick) { app.ticker.remove((pet as any).petTick); } } catch {}
+                try { scene.removeChild(pet); } catch {}
+                try { (pet as any).destroy?.(); } catch {}
+                petSpines.delete(actorIdx);
+                try {
+                  const hud = petHudByIndex.get(actorIdx);
+                  if (hud) { ui.removeChild(hud.cont); petHudByIndex.delete(actorIdx); }
+                } catch {}
+              } else {
+                // Hide main fighter node (rare in practice)
+                try { (obj as any).visible = false; (obj as any).renderable = false; } catch {}
+              }
+            } catch {}
+            break; }
+
           // Arrive: pick lane using largest-gap strategy (official-like)
           case 2: {
             try {
@@ -2607,10 +2856,11 @@ const PixiFight: React.FC<Props> = ({
           // Hit / variants - EXACT LIKE OFFICIAL LABRUTE
           case 9: case 10: case 11: case 12: {
             const dmg = s.d ?? s.damage ?? 0;
-            const isCritical = a === 10; // HitCritical
-            const isFlash = a === 11; // HitFlash  
-            const isVersatile = a === 12; // HitVersatile
-            
+            const isCritical = (s?.c === 1); // Rouge uniquement si critique (logique officielle)
+            const isFlash = false; // réservé à d'autres cas, non utilisé pour la couleur
+            const isVersatile = false;
+            // Do NOT auto-break net on Hit; released only by dedicated steps
+
             // WEAPON ANIMATION AND DAMAGE IN PARALLEL
             // Start animation immediately and apply damage at the right moment
             
@@ -2853,18 +3103,18 @@ const PixiFight: React.FC<Props> = ({
             const tpos = getPos(tgt.node);
             if (isCritical) {
               floatText(tpos.x, tpos.y - 20, 'CRITICAL!', 0xFFD700);
-              floatText(tpos.x, tpos.y, `-${dmg}`, 0xFF0000);
+              floatText(tpos.x, tpos.y, `-${dmg}`, 0xFF0000); // rouge pour critique (comme officiel)
               await shake(4, 150);
             } else if (isFlash) {
               floatText(tpos.x, tpos.y - 20, 'FLASH!', 0x00FFFF);
-              floatText(tpos.x, tpos.y, `-${dmg}`, 0xff5555);
+              floatText(tpos.x, tpos.y, `-${dmg}`, 0xFFFFFF); // blanc pour non-critique
               await shake(3, 120);
             } else if (isVersatile) {
               floatText(tpos.x, tpos.y - 20, 'VERSATILE!', 0xFF69B4);
-              floatText(tpos.x, tpos.y, `-${dmg}`, 0xff5555);
+              floatText(tpos.x, tpos.y, `-${dmg}`, 0xFFFFFF); // blanc pour non-critique
               await shake(2, 100);
             } else {
-              floatText(tpos.x, tpos.y, `-${dmg}`, 0xff5555);
+              floatText(tpos.x, tpos.y, `-${dmg}`, 0xFFFFFF); // blanc pour non-critique
               await shake(2, 100);
             }
             
@@ -2900,83 +3150,176 @@ const PixiFight: React.FC<Props> = ({
             break; }
           // Heal (potion, drink, etc.)
           case 6: {
-            console.log('HEAL ACTION TRIGGERED - Full step data:', s);
-            console.log('HEAL ACTION DETAILS', {
-              actor,
-              actorIdx,
-              actorSide,
-              leftMainIdx,
-              rightMainIdx,
-              currentHpL: hpL,
-              currentHpR: hpR,
-              maxL,
-              maxR
-            });
-            // Try different properties for heal amount
-            const healAmount = s.h || s.v || s.d || (typeof s === 'number' ? s : 0);
-            console.log('Heal amount extracted:', healAmount, 'from step:', s);
-            // IMPORTANT: In Heal, the ACTOR heals themselves (drinks potion)
+            const healAmount = Math.max(0, Number(s.h ?? s.v ?? s.d ?? 0));
             const healerPos = getPos(src.node);
-            console.log(`${actor?.name} (idx:${actorIdx}, side:${actorSide}) healing for ${healAmount} HP`);
 
-            // Create healing particle effect on the healer
+            // Show heal text
+            floatText(healerPos.x, healerPos.y - 30, `+${healAmount}`, 0x00ff75);
+
             const particles: Graphics[] = [];
-            for (let i = 0; i < 15; i++) {
+            for (let i = 0; i < 14; i++) {
               const particle = new Graphics();
-              particle.circle(0, 0, 3)
-                .fill({ color: 0x00FF00, alpha: 0.8 });
+              particle.circle(0, 0, 3).fill({ color: 0x3ad66f, alpha: 0.85 });
               particle.position.set(
-                healerPos.x + (Math.random() - 0.5) * 30,
-                healerPos.y + 20
+                healerPos.x + (rand() - 0.5) * 28,
+                healerPos.y + (rand() * 12) + 10,
               );
               scene.addChild(particle);
               particles.push(particle);
+            }
 
-              // Animate particles upward
-              const startY = particle.y;
-              const animateParticle = () => {
-                particle.y -= 2;
-                particle.alpha -= 0.02;
-                if (particle.alpha > 0) {
-                  requestAnimationFrame(animateParticle);
-                } else {
+            const particleTicker = (tk: any) => {
+              const dm = typeof tk?.deltaMS === 'number' ? tk.deltaMS : 16.7;
+              let alive = false;
+              for (const particle of particles) {
+                if (particle.destroyed) { continue; }
+                particle.y -= 0.06 * dm;
+                particle.alpha -= 0.0025 * dm;
+                if (particle.alpha <= 0) {
                   scene.removeChild(particle);
                   particle.destroy();
+                } else {
+                  alive = true;
                 }
-              };
-              setTimeout(() => animateParticle(), i * 50);
+              }
+              if (!alive) {
+                try { app.ticker.remove(particleTicker); } catch {}
+              }
+            };
+            addTick(particleTicker);
+
+            if (typeof actorIdx === 'number') {
+              const hpEntry = hpByIndex.get(actorIdx) || { cur: 0, max: 1 };
+              hpEntry.cur = Math.min(hpEntry.max, hpEntry.cur + healAmount);
+              hpByIndex.set(actorIdx, hpEntry);
+              const petHud = petHudByIndex.get(actorIdx);
+              if (petHud) { petHud.set(hpEntry.cur / Math.max(1, hpEntry.max)); }
             }
 
-            // Show healing text on the healer
-            floatText(healerPos.x, healerPos.y - 30, `+${healAmount}`, 0x00FF00);
-
-            // Update HP bars - IMPORTANT: in Heal, the ACTOR heals themselves!
-            // Check who is healing based on actorSide
             if (actorSide === 'L') {
-              console.log(`LEFT fighter healing: ${hpL} + ${healAmount} = ${Math.min(maxL, hpL + healAmount)}`);
               hpL = Math.min(maxL, hpL + healAmount);
-              const newRatio = hpL / maxL;
-              console.log(`Setting left bar to ${newRatio} (${hpL}/${maxL})`);
-              barL.set(newRatio);
-              setTimeout(() => { console.log('Retry set left bar'); barL.set(newRatio); }, 50);
-              setTimeout(() => barL.set(newRatio), 100);
-              setTimeout(() => barL.set(newRatio), 200);
+              barL.set(hpL / maxL);
             } else if (actorSide === 'R') {
-              console.log(`RIGHT fighter healing: ${hpR} + ${healAmount} = ${Math.min(maxR, hpR + healAmount)}`);
               hpR = Math.min(maxR, hpR + healAmount);
-              const newRatio = hpR / maxR;
-              console.log(`Setting right bar to ${newRatio} (${hpR}/${maxR})`);
-              barR.set(newRatio);
-              // Force multiple updates to ensure the bar updates
-              setTimeout(() => barR.set(newRatio), 10);
-              setTimeout(() => barR.set(newRatio), 50);
-              setTimeout(() => barR.set(newRatio), 100);
-              setTimeout(() => barR.set(newRatio), 200);
-              setTimeout(() => barR.set(newRatio), 500);
-            } else {
-              console.warn('Could not determine which fighter to heal!', { actorSide, actor, actorIdx });
+              barR.set(hpR / maxR);
             }
             break; }
+
+          // Trash (drop current weapon without throwing at target)
+          case 3: {
+            try {
+              if (actorIdx == null) break;
+              // Resolve current weapon name from step or last known
+              const weaponId: number | undefined = (s as any).w;
+              const weaponName = (typeof weaponId === 'number') ? (WeaponById as any)[weaponId] : (lastWeaponByActor.get(actorIdx) || 'knife');
+
+              // Remove from HUD (like official)
+              if (actor === leftMain) { barL.removeWeapon(weaponName); }
+              else if (actor === rightMain) { barR.removeWeapon(weaponName); }
+
+              // Detach any weapon visual bound to fighter
+              const curWeapon = weaponSpines.get(src);
+              if (curWeapon) {
+                try { if ((curWeapon as any).weaponTick) app.ticker.remove((curWeapon as any).weaponTick); } catch {}
+                try { scene.removeChild(curWeapon); } catch {}
+                weaponSpines.delete(src);
+              }
+
+              // Clear tracking
+              lastWeaponByActor.delete(actorIdx);
+
+              // Visual drop
+              const pos = getPos(src.node);
+              const dropped = new Graphics();
+              // Simple blade-like shape
+              dropped.rect(-4, -10, 8, 20).fill({ color: 0x8A8A8A }).stroke({ width: 1, color: 0x666666 });
+              dropped.position.set(pos.x, pos.y - 30);
+              dropped.zIndex = pos.y - 1;
+              scene.addChild(dropped);
+
+              // Decide trajectory by an inferred "weight" (from damage proxy)
+              let weight = 20;
+              try {
+                const w = (weapons as any[]).find((it) => it?.name === weaponName);
+                if (w && typeof w.damage === 'number') weight = Math.max(1, Math.min(60, w.damage));
+              } catch {}
+              const throwBackward = Math.random() > Math.max(0.12, Math.min(0.88, weight / 40));
+
+              if (throwBackward) {
+                // Arc behind the actor, slight spin and fade
+                const dx = (actorSide === 'L') ? -70 : 70;
+                const targetX = pos.x + dx;
+                const targetY = pos.y + 15;
+                let t = 0;
+                const total = 360 / Math.max(0.001, speed);
+                const tick = (tk:any) => {
+                  const dm = typeof tk?.deltaMS === 'number' ? tk.deltaMS : 16.7; t += dm; const p = Math.min(1, t/total);
+                  const x = pos.x + (targetX - pos.x) * p;
+                  const y = (pos.y - 30) + (targetY - (pos.y - 30)) * p - Math.sin(p*Math.PI) * 20;
+                  dropped.position.set(x, y);
+                  try { dropped.rotation = p * Math.PI * 3 * (actorSide === 'L' ? -1 : 1); } catch {}
+                  dropped.alpha = 1 - p * 0.2;
+                  // Depth
+                  (dropped as any).zIndex = y;
+                  if (p >= 1) {
+                    try { app.ticker.remove(tick); } catch {}
+                    // small delay then fade out
+                    setTimeout(() => {
+                      let a = 1;
+                      const fade = (tk2:any) => {
+                        const dm2 = typeof tk2?.deltaMS === 'number' ? tk2.deltaMS : 16.7;
+                        a -= dm2 / (260 / Math.max(0.001, speed));
+                        dropped.alpha = Math.max(0, a);
+                        if (a <= 0) {
+                          try { app.ticker.remove(fade); } catch {}
+                          try { scene.removeChild(dropped); } catch {}
+                          try { dropped.destroy(); } catch {}
+                        }
+                      };
+                      app.ticker.add(fade);
+                    }, 140 / Math.max(0.001, speed));
+                  }
+                };
+                app.ticker.add(tick);
+              } else {
+                // Short ground bounce in front
+                const dx = (actorSide === 'L') ? 24 : -24;
+                const gx = pos.x + dx;
+                const gy = pos.y + 22;
+                let t = 0;
+                const total = 240 / Math.max(0.001, speed);
+                const tick = (tk:any) => {
+                  const dm = typeof tk?.deltaMS === 'number' ? tk.deltaMS : 16.7; t += dm; const p = Math.min(1, t/total);
+                  const x = pos.x + (gx - pos.x) * p;
+                  const y = (pos.y - 30) + (gy - (pos.y - 30)) * p - Math.sin(p*Math.PI) * 10;
+                  dropped.position.set(x, y);
+                  try { dropped.rotation = p * Math.PI * 1.5 * (actorSide === 'L' ? 1 : -1); } catch {}
+                  (dropped as any).zIndex = y;
+                  if (p >= 1) {
+                    try { app.ticker.remove(tick); } catch {}
+                    // Fade out on ground
+                    let a = 1;
+                    const fade = (tk2:any) => {
+                      const dm2 = typeof tk2?.deltaMS === 'number' ? tk2.deltaMS : 16.7;
+                      a -= dm2 / (360 / Math.max(0.001, speed));
+                      dropped.alpha = Math.max(0, a);
+                      if (a <= 0) {
+                        try { app.ticker.remove(fade); } catch {}
+                        try { scene.removeChild(dropped); } catch {}
+                        try { dropped.destroy(); } catch {}
+                      }
+                    };
+                    app.ticker.add(fade);
+                  }
+                };
+                app.ticker.add(tick);
+              }
+
+              // Return to idle
+              playAnim(src, 'idle', true);
+            } catch {}
+            break; }
+
           // Block
           case 20: {
             const tpos = getPos(tgt.node); 
@@ -3086,7 +3429,7 @@ const PixiFight: React.FC<Props> = ({
             }
             break; }
           // Throw (projectile weapon)
-          case 22: {
+          case 25: {
             const spos = getPos(src.node);
             const tpos = getPos(tgt.node);
             
@@ -3152,9 +3495,9 @@ const PixiFight: React.FC<Props> = ({
             projectileContainer.position.set(spos.x, spos.y - 20);
             scene.addChild(projectileContainer);
             
-            // Animate with rotation and trail
-            let throwTime = 0;
-            const throwDuration = 300 / speed;
+          // Animate with rotation and trail
+          let throwTime = 0;
+          const throwDuration = Math.max(220, 380 / Math.max(0.001, speed));
             const startX = spos.x;
             const startY = spos.y - 20;
             const endX = tpos.x;
@@ -3263,7 +3606,7 @@ const PixiFight: React.FC<Props> = ({
             break; }
           
           // Steal (weapon steal)
-          case 25: {
+          case 4: {
             const spos = getPos(src.node);
             const tpos = getPos(tgt.node);
             floatText(tpos.x, tpos.y, 'STOLEN!', 0x9370DB);
@@ -3293,10 +3636,30 @@ const PixiFight: React.FC<Props> = ({
             lastWeaponByActor.delete(targetIdx ?? -1);
             break; }
           
-          // Sabotage
+          // Sabotage (also releases traps)
           case 27: {
             const tpos = getPos(tgt.node);
             floatText(tpos.x, tpos.y, 'SABOTAGED!', 0xFFA500);
+            try {
+              if (targetIdx !== null && activeNets.has(targetIdx)) {
+                const net = activeNets.get(targetIdx)!;
+                activeNets.delete(targetIdx);
+                const follow = (net as any).__followTick;
+                if (follow) { try { app.ticker.remove(follow); } catch {} }
+                let apha = 1;
+                const fade = (tk:any) => {
+                  const dm = typeof tk?.deltaMS === 'number' ? tk.deltaMS : 16.7;
+                  apha -= dm / (240 / Math.max(0.001, speed));
+                  try { net.alpha = Math.max(0, apha); } catch {}
+                  if (apha <= 0) {
+                    app.ticker.remove(fade);
+                    try { scene.removeChild(net); } catch {}
+                    try { net.destroy(); } catch {}
+                  }
+                };
+                addTick(fade);
+              }
+            } catch {}
             break; }
           
           // Net (trap)
@@ -3324,8 +3687,20 @@ const PixiFight: React.FC<Props> = ({
             
             netContainer.position.set(tpos.x, tpos.y);
             scene.addChild(netContainer);
+            // Attach to target and follow its node position every tick
+            const follow = (tk:any) => {
+              try {
+                const p = getPos(tgt.node);
+                netContainer.position.set(p.x, p.y);
+              } catch {}
+            };
+            addTick(follow);
+            if (targetIdx !== null) {
+              try { (netContainer as any).__followTick = follow; } catch {}
+              try { activeNets.set(targetIdx, netContainer); } catch {}
+            }
             
-            // Animate net falling and settling
+            // Animate net falling and settling briefly, then keep attached
             let netTime = 0;
             const netTick = (tk: any) => {
               netTime += tk.deltaMS || 16.7;
@@ -3384,18 +3759,16 @@ const PixiFight: React.FC<Props> = ({
               
               netContainer.addChild(netGraphics);
               
-              // Remove after settling
-              if (netTime > 2500) {
+              // Stop physics after a short settle period; keep the net attached
+              if (netTime > 700) {
                 app.ticker.remove(netTick);
-                scene.removeChild(netContainer);
-                setTimeout(() => { try { netContainer.destroy(); } catch {} }, 0);
               }
             };
             addTick(netTick);
             break; }
           
           // Bomb
-          case 29: {
+          case 13: {
             const tpos = getPos(tgt.node);
             
             // Create animated bomb with Spine-like parts
@@ -3501,7 +3874,7 @@ const PixiFight: React.FC<Props> = ({
             break; }
           
           // Hammer (stun)
-          case 30: {
+          case 11: {
             const tpos = getPos(tgt.node);
             floatText(tpos.x, tpos.y, 'STUNNED!', 0x4B0082);
             
@@ -3544,11 +3917,45 @@ const PixiFight: React.FC<Props> = ({
             addTick(starTick);
             break; }
           
-          // Haste
-          case 30: {
-            // TODO: Implement haste animation
-            floatText(getPos(src.node).x, getPos(src.node).y, 'HASTE!', 0xFFD700);
+          // Haste (status buff)
+          case 32: {
+            const apos = getPos(src.node);
+            floatText(apos.x, apos.y, 'HASTE!', 0xFFD700);
+            // HUD status icon for haste on actor side + aura
+            try {
+              if (actorSide === 'L') { (hudL as any)?.setStatusFlag?.('haste'); (hudL as any)?.setHasteAura?.(true); }
+              else { (hudR as any)?.setStatusFlag?.('haste'); (hudR as any)?.setHasteAura?.(true); }
+            } catch {}
 
+            // Speed lines near actor to emphasize haste
+            const actorObj = (actorSide === 'L') ? left : right;
+            const lines = new Container();
+            const base = getPos(actorObj.node);
+            lines.position.set(base.x, base.y - 18);
+            scene.addChild(lines);
+            const count = 8;
+            for (let i = 0; i < count; i++) {
+              const g = new Graphics();
+              const len = 18 + Math.random() * 12;
+              const x0 = (actorSide === 'L') ? -len : len;
+              const x1 = (actorSide === 'L') ? 0 : 0;
+              const y = (Math.random() * 18) - 9;
+              g.moveTo(x0, y).lineTo(x1, y).stroke({ width: 2, color: 0x2c8eea, alpha: 0.85 });
+              lines.addChild(g);
+            }
+            // Fade and remove lines
+            let t = 0;
+            const tick = (tk:any) => {
+              const dm = typeof tk?.deltaMS === 'number' ? tk.deltaMS : 16.7; t += dm;
+              const p = Math.min(1, t / 600);
+              try { lines.alpha = 1 - p; } catch {}
+              if (p >= 1) {
+                app.ticker.remove(tick);
+                try { scene.removeChild(lines); } catch {}
+                try { lines.destroy({ children: true }); } catch {}
+              }
+            };
+            addTick(tick);
             break; }
 
           // Vampirism
@@ -3706,11 +4113,11 @@ const PixiFight: React.FC<Props> = ({
                 console.log(`Vampire RIGHT HP (heal): ${beforeVampireHP} -> ${hpR}, ratio: ${ratio}`);
                 barR.set(ratio);
               }
-              // Show damage number on target (red)
+              // Show damage number on target (officiel: blanc si non-critique)
               const damageText = new Text(`-${damage}`, {
                 fontSize: 22,
                 fontWeight: 'bold',
-                fill: '#FF0000',
+                fill: '#FFFFFF',
               });
               damageText.anchor.set(0.5);
               damageText.position.set(tpos.x, tpos.y - 50);
@@ -3782,11 +4189,17 @@ const PixiFight: React.FC<Props> = ({
               }
             }, 300); // Wait for vampire to reach victim
 
+            // HUD status icon for vampirism on actor side
+            try {
+              if (vampireSide === 'L') (hudL as any)?.setStatusFlag?.('vampirism');
+              else (hudR as any)?.setStatusFlag?.('vampirism');
+            } catch {}
+
             console.log(`AFTER VAMPIRISM: Left HP = ${hpL}/${maxL}, Right HP = ${hpR}/${maxR}`);
             break; }
 
-          // Hypnosis (was 31, keep old code)
-          case 99999: {
+          // Hypnotise
+          case 14: {
             const spos = getPos(src.node);
             const tpos = getPos(tgt.node);
             floatText(tpos.x, tpos.y, 'HYPNOTIZED!', 0x9932CC);
@@ -3842,10 +4255,17 @@ const PixiFight: React.FC<Props> = ({
               }
             };
             addTick(spiralTick);
+
+            // HUD: set hypnosis status on targets if they are main fighters + freeze portrait
+            try {
+              const targets: number[] = Array.isArray((s as any).t) ? (s as any).t : (typeof (s as any).t === 'number' ? [(s as any).t] : []);
+              if (targets.includes(leftMainIdx)) { (hudL as any)?.setStatusFlag?.('hypnosis'); (hudL as any)?.setHypnosisFreeze?.(true); (hudL as any)?.pulseHypnosis?.(); }
+              if (targets.includes(rightMainIdx)) { (hudR as any)?.setStatusFlag?.('hypnosis'); (hudR as any)?.setHypnosisFreeze?.(true); (hudR as any)?.pulseHypnosis?.(); }
+            } catch {}
             break; }
           
           // Treat (healing potion)
-          case 32: {
+          case 33: {
             const healAmount = s.h || s.v || s.d || 0;
             const targetPos = getPos(tgt.node);
 
@@ -3907,10 +4327,31 @@ const PixiFight: React.FC<Props> = ({
               }
             };
             addTick(particleTick);
+            // Release trap if any on self
+            try {
+              if (actorIdx !== null && activeNets.has(actorIdx)) {
+                const net = activeNets.get(actorIdx)!;
+                activeNets.delete(actorIdx);
+                const follow = (net as any).__followTick;
+                if (follow) { try { app.ticker.remove(follow); } catch {} }
+                let apha = 1;
+                const fade = (tk:any) => {
+                  const dm = typeof tk?.deltaMS === 'number' ? tk.deltaMS : 16.7;
+                  apha -= dm / (240 / Math.max(0.001, speed));
+                  try { net.alpha = Math.max(0, apha); } catch {}
+                  if (apha <= 0) {
+                    app.ticker.remove(fade);
+                    try { scene.removeChild(net); } catch {}
+                    try { net.destroy(); } catch {}
+                  }
+                };
+                addTick(fade);
+              }
+            } catch {}
             break; }
 
           // Poison
-          case 33: {
+          case 12: {
             const targetPos = getPos(tgt.node);
             
             // Create particle effect
@@ -3964,30 +4405,90 @@ const PixiFight: React.FC<Props> = ({
             addTick(particleTick);
             break; }
 
-          // Flashbang
-          case 35: {
+          // DropShield
+          case 34: {
+            // Visual cue
             const tpos = getPos(tgt.node);
-            floatText(tpos.x, tpos.y, 'BLINDED!', 0xFFFFFF);
+            floatText(tpos.x, tpos.y, 'SHIELD BROKEN', 0x1E90FF);
+            // HUD status icon
+            try {
+              if (actorSide === 'L') (hudL as any)?.setStatusFlag?.('dropshield');
+              else (hudR as any)?.setStatusFlag?.('dropshield');
+            } catch {}
+            // Release any active trap attached to actor
+            try {
+              if (actorIdx !== null && activeNets.has(actorIdx)) {
+                const net = activeNets.get(actorIdx)!;
+                activeNets.delete(actorIdx);
+                const follow = (net as any).__followTick;
+                if (follow) { try { app.ticker.remove(follow); } catch {} }
+                let a = 1;
+                const fade = (tk:any) => {
+                  const dm = typeof tk?.deltaMS === 'number' ? tk.deltaMS : 16.7;
+                  a -= dm / (240 / Math.max(0.001, speed));
+                  try { net.alpha = Math.max(0, a); } catch {}
+                  if (a <= 0) {
+                    app.ticker.remove(fade);
+                    try { scene.removeChild(net); } catch {}
+                    try { net.destroy(); } catch {}
+                  }
+                };
+                addTick(fade);
+              }
+            } catch {}
+            break; }
 
-            // Create flash effect
-            const flash = new Graphics();
-            flash.rect(0, 0, W, H)
-              .fill({ color: 0xFFFFFF, alpha: 1 });
-            ui.addChild(flash);
-
-            // Fade out flash
-            let flashTime = 0;
-            const flashTick = (tk: any) => {
-              flashTime += tk.deltaMS || 16.7;
-              flash.alpha = Math.max(0, 1 - flashTime / 200);
-
-              if (flashTime > 200) {
-                app.ticker.remove(flashTick);
-                ui.removeChild(flash);
-                setTimeout(() => { try { flash.destroy(); } catch {} }, 0);
+          // Regeneration (subtle sparkles, no full-screen flash) + mise à jour HP
+          case 35: {
+            const apos = getPos(src.node);
+            floatText(apos.x, apos.y, 'REGEN', 0x00FF75);
+            const cont = new Container();
+            cont.position.set(apos.x, apos.y);
+            scene.addChild(cont);
+            const sparks: Graphics[] = [];
+            for (let i = 0; i < 14; i++) {
+              const g = new Graphics();
+              g.circle(0, 0, 2 + Math.random()*1.5).fill({ color: 0x39d98a, alpha: 0.9 });
+              g.x = (Math.random()-0.5) * 26;
+              g.y = (Math.random()-0.5) * 20;
+              cont.addChild(g); sparks.push(g);
+            }
+            let t = 0;
+            const tick = (tk:any) => {
+              t += tk.deltaMS || 16.7;
+              const p = Math.min(1, t / (520 / Math.max(0.001, speed)));
+              for (const g of sparks) {
+                try { g.y -= 0.05 * (tk.deltaMS || 16.7); g.alpha = Math.max(0, 1 - p); } catch {}
+              }
+              if (p >= 1) {
+                app.ticker.remove(tick);
+                try { scene.removeChild(cont); } catch {}
+                setTimeout(() => { try { cont.destroy({ children: true }); } catch {} }, 0);
               }
             };
-            addTick(flashTick);
+            addTick(tick);
+
+            // Appliquer le heal du tick si présent (certains pas de regen portent la valeur)
+            try {
+              const healAmount = Math.max(0, Number((s as any).h ?? (s as any).v ?? 0));
+              if (healAmount > 0) {
+                if (actorIdx !== null) {
+                  // maj HP par index (pets, etc.)
+                  const hpEntry = hpByIndex.get(actorIdx) || { cur: 0, max: 1 };
+                  hpEntry.cur = Math.min(hpEntry.max, (hpEntry.cur ?? 0) + healAmount);
+                  hpByIndex.set(actorIdx, hpEntry);
+                  const petHud = petHudByIndex.get(actorIdx);
+                  if (petHud) { petHud.set(hpEntry.cur / Math.max(1, hpEntry.max)); }
+                }
+                if (actorSide === 'L') {
+                  hpL = Math.min(maxL, hpL + healAmount);
+                  barL.set(hpL / maxL);
+                } else if (actorSide === 'R') {
+                  hpR = Math.min(maxR, hpR + healAmount);
+                  barR.set(hpR / maxR);
+                }
+              }
+            } catch {}
             break; }
 
           // End

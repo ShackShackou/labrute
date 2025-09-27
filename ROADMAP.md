@@ -1,44 +1,43 @@
-# Roadmap vers 100% fidélité (Option A)
+# Roadmap vers 100% fidelite (Option A)
 
-Dernière mise à jour: maintenant
+Derniere mise a jour: maintenant
 
-Phase 0 — Setup propre (Terminé)
-- [x] Créer viewer Vite + Phaser + proxy API, scripts dev/preview.
-- [x] Assets Spineboy importés (json/atlas/png).
-- [x] Docs initiales (README, INTENTIONS, ROADMAP).
+Phase 0 - Setup propre (termine)
+- [x] Creer viewer Vite + React + Pixi 8 + Spine + proxy API.
+- [x] Importer assets Spineboy (json/atlas/png).
+- [x] Documenter les choix (README, INTENTIONS, ROADMAP).
 
-Phase 1 — Replays de base (En cours)
-- [x] Mapping StepType minimal → Move/AttemptHit/Hit/MoveBack/Death/End.
-- [x] Paramètres `?fight=UUID` et `?brute=NAME` (auto‑résolution via `/api/log/list/:name`).
-- [x] Parsing tolérant des payloads (`steps`/`fighters` string ou array).
-- [x] Ajout HUD minimal: barres HP + dégât flottant; cadence via `dt` si présent.
+Phase 1 - Replays de base (en cours)
+- [x] Mapping StepType minimal -> Move/AttemptHit/Hit/MoveBack/Death/End.
+- [x] Parametres ?fight=UUID et ?brute=NAME (auto-resolution via /api/log/list/:name).
+- [x] Parsing tolerant des payloads (steps/ighters string ou array).
+- [x] HUD minimal: barres HP + degats flottants; cadence via dt si present.
 
-Phase 2 — Spine et posing (À faire)
-- [ ] Poses Spineboy: idle, walk, attack, hit, death (mapping propre).
-- [ ] Échelle perspective + z‑order cohérent + ombres dynamiques.
+Phase 2 - Spine et posing (a faire)
+- [ ] Poses Spine: idle, walk, attack, hit, death (mapping propre).
+- [ ] Echelle perspective + z-order coherents + ombres dynamiques.
 
-Phase 3 — Parité visuelle (À faire)
-- [ ] Timings par step (dt), hitstop plus précis, camera shake par intensité.
+Phase 3 - Parite visuelle (a faire)
+- [ ] Timings par step (dt), hitstop precis, camera shake par intensite.
 - [ ] Indicateurs MISS/BLOCK/DODGE + flashes/FX simples.
 
-Phase 4 — Couverture des steps (À faire)
-- [ ] Net, Hypnosis, Bomb, Hammer, Vampirism, Haste, Treat… (visuels only, pas de logique client).
+Phase 4 - Couverture des steps (a faire)
+- [ ] Net, Hypnosis, Bomb, Hammer, Vampirism, Haste, Treat, etc. (visuels only, pas de logique client).
 
-Phase 5 — QA & Diff (À faire)
-- [ ] Lot de replays réels, instrumentation d’évènements, diff auto vs viewer Pixi.
-- [ ] Ajustements jusqu’à parité visuelle acceptable.
+Phase 5 - QA & diff (a faire)
+- [ ] Lot de replays referents, instrumentation d'evenements, diff auto vs renderer historique.
+- [ ] Ajustements jusqu'a parite visuelle acceptable.
 
-Phase 6 — Intégration client officiel (À faire)
-- [ ] Commutateur de renderer (Pixi ↔ Phaser) sans changer l’API.
+Phase 6 - Integration client officiel (a faire)
+- [ ] Commutateur definitif vers Pixi 8 + Spine dans le client.
 
-Livrables clés
-- `src/viewer/*` (mapping), `public/assets/spine/*`, scripts de test.
-- Doc: README, INTENTIONS, ROADMAP mis à jour à chaque itération.
+Livrables cles
+- client/src/components/Arena/PixiFight.tsx, client/public/backgrounds/*, scripts de test.
+- Documentation tenue a jour.
 
-Prochaines tâches (ordre court)
-1) Mapper les 5 poses Spineboy + refactor anim helpers.
-2) Stabiliser HUD HP (suiveur sur mouvements) + indicateurs MISS/BLOCK/DODGE.
-3) Hitstop/camera shake paramétrés par type de step.
+Prochaines taches (ordre court)
+1) Mapper les poses Spine + refactor anim helpers.
+2) Stabiliser HUD HP (suivi des mouvements) + indicateurs MISS/BLOCK/DODGE.
+3) Hitstop/camera shake parametrables par step.
 4) Support visuel Net/Hypnosis/Bomb/Hammer.
-5) Harness de comparaison replays (Pixi vs Phaser) et rapport.
-
+5) Harness de comparaison replays (Pixi vs officiel) et rapport.
