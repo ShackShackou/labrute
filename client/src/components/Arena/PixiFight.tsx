@@ -3763,7 +3763,7 @@ const PixiFight: React.FC<Props> = ({
             break; }
           
           // Sabotage (StepType.Sabotage)
-          case 22: {
+          case StepType.Sabotage: {
             const tpos = getPos(tgt.node);
             floatText(tpos.x, tpos.y, 'SABOTAGED!', 0xFFA500);
             try {
@@ -3789,7 +3789,7 @@ const PixiFight: React.FC<Props> = ({
             break; }
 
           // Spy (swap weapons between actor and target)
-          case 30: {
+          case StepType.Spy: {
             const tpos = getPos(tgt.node);
             floatText(tpos.x, tpos.y, 'SPY!', 0x87CEFA);
             try {
@@ -4130,15 +4130,33 @@ const PixiFight: React.FC<Props> = ({
             break; }
 
           // Resist
-          case 7: {
+          case StepType.Resist: {
             const tpos = getPos(src.node);
             floatText(tpos.x, tpos.y, 'RESIST!', 0x87CEEB);
             break; }
 
           // Survive
-          case 8: {
+          case StepType.Survive: {
             const tpos = getPos(src.node);
             floatText(tpos.x, tpos.y, 'SURVIVE!', 0xFFD700);
+            break; }
+
+          // Eat (self heal)
+          case StepType.Eat: {
+            const healAmount = (s as any)?.h ?? (s as any)?.v ?? 0;
+            const apos = getPos(src.node);
+            floatText(apos.x, apos.y - 20, 'EAT!', 0x90EE90);
+            if (healAmount > 0) {
+              if (actorIdx !== null) {
+                const hpEntry = hpByIndex.get(actorIdx) || { cur: 0, max: 1 };
+                hpEntry.cur = Math.min(hpEntry.max, (hpEntry.cur ?? 0) + healAmount);
+                hpByIndex.set(actorIdx, hpEntry);
+                const petHud = petHudByIndex.get(actorIdx);
+                if (petHud) { petHud.set(hpEntry.cur / Math.max(1, hpEntry.max)); }
+              }
+              if (actorSide === 'L') { hpL = Math.min(maxL, hpL + healAmount); barL.set(hpL / maxL); }
+              else if (actorSide === 'R') { hpR = Math.min(maxR, hpR + healAmount); barR.set(hpR / maxR); }
+            }
             break; }
 
           // Vampirism
