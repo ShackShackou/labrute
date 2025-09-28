@@ -2066,6 +2066,51 @@ const PixiFight: React.FC<Props> = ({
       // Weapon and Pet Spine Animated Placeholders
       const weaponSpines = new Map<any, any>();
       const petSpines = new Map<number, any>();
+      // Scene shields (visual overlay) per fighter index
+      const shields = new Map<number, Graphics>();
+      const attachShield = (fighterIdx: number, node: any, side: 'L'|'R') => {
+        try {
+          if (!node || shields.has(fighterIdx)) return;
+          const g = new Graphics();
+          // Rounded rectangular shield with subtle highlight
+          g.lineStyle(2, 0x9ac7ff, 0.9);
+          g.beginFill(0x3a78b3, 0.25);
+          g.drawRoundedRect(-16, -26, 32, 44, 10);
+          g.endFill();
+          const edge = new Graphics();
+          edge.lineStyle(2, 0xffffff, 0.3);
+          edge.moveTo(-14, -20); edge.lineTo(14, -20);
+          edge.moveTo(-12, -8); edge.lineTo(12, -8);
+          g.addChild(edge);
+          // Slightly in front of the fighter depending on side
+          g.position.set(side === 'L' ? 18 : -18, -5);
+          try { (g as any).zIndex = 5; } catch {}
+          node.addChild(g);
+          shields.set(fighterIdx, g);
+        } catch {}
+      };
+      const dropShield = (fighterIdx: number) => {
+        try {
+          const g = shields.get(fighterIdx);
+          if (!g) return;
+          const parent = g.parent; if (!parent) { shields.delete(fighterIdx); return; }
+          let t = 0; const startY = g.y; const dir = g.x >= 0 ? 1 : -1;
+          const tick = (tk:any) => {
+            const dm = typeof tk?.deltaMS === 'number' ? tk.deltaMS : 16.7; t += dm;
+            const p = Math.min(1, t / (250 / Math.max(0.001, speed)));
+            g.y = startY + p * 28;
+            g.alpha = 1 - p;
+            g.rotation = dir * p * 0.6;
+            if (p >= 1) {
+              try { parent.removeChild(g); } catch {}
+              try { g.destroy(); } catch {}
+              app.ticker.remove(tick);
+              shields.delete(fighterIdx);
+            }
+          };
+          app.ticker.add(tick);
+        } catch {}
+      };
       const allySpines = new Map<number, any>(); // renforts (Backup) humains supplémentaires
       // Track active nets per target (to break on hit)
       const activeNets = new Map<number, Container>();
@@ -2707,6 +2752,8 @@ const PixiFight: React.FC<Props> = ({
                 }
                 // TODO: ajouter cleanups spécifiques (fierceBrute ghosts) si utilisés
               }
+              // Attach shield overlay for main fighters if they have one
+              try { if (actor?.shield && actorIdx !== null) attachShield(actorIdx, src.node, actorSide); } catch {}
             } catch {}
             break; }
 
@@ -4642,6 +4689,8 @@ const PixiFight: React.FC<Props> = ({
               if (actorSide === 'L') (hudL as any)?.setStatusFlag?.('dropshield');
               else (hudR as any)?.setStatusFlag?.('dropshield');
             } catch {}
+            // Remove scene shield if present
+            try { if (actorIdx !== null) dropShield(actorIdx); } catch {}
             // Release any active trap attached to actor
             try {
               if (actorIdx !== null && activeNets.has(actorIdx)) {
@@ -4796,7 +4845,12 @@ const PixiFight: React.FC<Props> = ({
             return; }
         }
         {
-          const ideal = Math.max(60, Math.min(260, s.dt ?? 120)) / Math.max(0.001, speed);
+          // Slightly slow down healing steps to avoid too-fast chaining
+          let base = Math.max(60, Math.min(260, s.dt ?? 120));
+          if (a === StepType.Heal || a === StepType.Treat || a === StepType.Regeneration) {
+            base = Math.max(base, 200);
+          }
+          const ideal = base / Math.max(0.001, speed);
           const elapsed = performance.now() - stepT0;
           const wait = Math.max(0, ideal - elapsed);
           await delay(wait);
