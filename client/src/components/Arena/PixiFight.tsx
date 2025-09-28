@@ -4,7 +4,7 @@ import { useTranslation } from 'react-i18next';
 import { Application, Container, Graphics, Text, Assets, Sprite, Rectangle, BlurFilter } from 'pixi.js';
 // @ts-ignore - official Spine v8 runtime for Pixi v8
 import { Spine } from '@esotericsoftware/spine-pixi-v8';
-import { FightGetResponse, WeaponById, WeaponId, weapons, StepType, WeaponType, SkillId, SkillById, skills } from '@labrute/core';
+import { FightGetResponse, WeaponById, WeaponId, weapons, StepType, WeaponType, SkillId, SkillById, SkillByName, skills } from '@labrute/core';
 
 // SKILL CATEGORIZATION - Based on core/src/brute/skills.ts
 // This is the OFFICIAL and COMPLETE categorization from LaBrute source
@@ -643,8 +643,20 @@ const PixiFight: React.FC<Props> = ({
         const agility = Math.round(fighter.agility || fighter.agi || 0);
         const speed = Math.round(fighter.speed || fighter.spd || 0);
 
-        // Get skills - Using OFFICIAL categorization from core/src/brute/skills.ts
-        const skills = fighter.skills || [];
+        // Get skills - normalize to numeric SkillId[] (value can be numbers or strings in some data)
+        const rawSkills = fighter.skills || [];
+        const skills: number[] = Array.isArray(rawSkills) ? (rawSkills as unknown[])
+          .map((s) => {
+            if (typeof s === 'number' && Number.isFinite(s)) return s;
+            if (typeof s === 'string') {
+              const byName = (SkillByName as any)[s];
+              if (typeof byName === 'number') return byName as number;
+              const asNum = Number(s);
+              if (Number.isFinite(asNum)) return asNum;
+            }
+            return undefined;
+          })
+          .filter((n): n is number => typeof n === 'number' && Number.isFinite(n)) : [];
 
         // Supers: ONLY 'super' category (talents go to Skills in official UI)
         const supers = skills.filter((id: number) => isSuper(id));
@@ -676,12 +688,15 @@ const PixiFight: React.FC<Props> = ({
           } catch { return `Skill${id}`; }
         };
 
-        const supersText = supers.length > 0
-          ? supers.map((id:number)=>({ id, n: getSkillName(id) })).sort((a,b)=>a.n.localeCompare(b.n)).map(s=>s.n).join(', ')
-          : '';
-        const skillsText = normalSkills.length > 0
-          ? normalSkills.map((id:number)=>({ id, n: getSkillName(id) })).sort((a,b)=>a.n.localeCompare(b.n)).map(s=>s.n).join(', ')
-          : '';
+        type SkillDisplay = { id: number; n: string };
+        const toDisplayList = (ids: number[]) => ids
+          .map((id): SkillDisplay => ({ id, n: getSkillName(id) }))
+          .sort((a: SkillDisplay, b: SkillDisplay) => a.n.localeCompare(b.n))
+          .map((s: SkillDisplay) => s.n)
+          .join(', ');
+
+        const supersText = supers.length > 0 ? toDisplayList(supers) : '';
+        const skillsText = normalSkills.length > 0 ? toDisplayList(normalSkills) : '';
 
         // Create HTML content EXACTLY like the reference image
         tooltipDiv.innerHTML = `
