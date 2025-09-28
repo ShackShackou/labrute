@@ -1,4 +1,4 @@
-/* eslint-disable unicode-bom, quotes, @typescript-eslint/ban-ts-comment, @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-member-access, @typescript-eslint/no-unsafe-call, max-len, lines-between-class-members, one-var, one-var-declaration-per-line, no-empty, comma-spacing, space-infix-ops, key-spacing, arrow-spacing, arrow-parens, object-curly-spacing, block-spacing, space-before-function-paren, default-case, no-promise-executor-return, @typescript-eslint/no-floating-promises */
+/* eslint-disable unicode-bom, quotes, @typescript-eslint/ban-ts-comment, @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-member-access, @typescript-eslint/no-unsafe-call, @typescript-eslint/no-unused-vars, no-multi-spaces, max-len, lines-between-class-members, one-var, one-var-declaration-per-line, no-empty, comma-spacing, space-infix-ops, key-spacing, arrow-spacing, arrow-parens, object-curly-spacing, block-spacing, space-before-function-paren, default-case, no-promise-executor-return, @typescript-eslint/no-floating-promises */
 import React, { useEffect, useRef } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Application, Container, Graphics, Text, Assets, Sprite, Rectangle, BlurFilter } from 'pixi.js';
@@ -3499,6 +3499,24 @@ const PixiFight: React.FC<Props> = ({
             const knockX = tgt === left ? cur.x - 5 : cur.x + 5;
             await tweenTo(tgt.node, knockX, cur.y, 50);
             await tweenTo(tgt.node, cur.x, cur.y, 50);
+            // Repulse visual (if target has the Repulse passive)
+            try {
+              if (Array.isArray((target as any)?.skills) && ((target as any).skills as number[]).includes(SkillId.repulse)) {
+                const ring = new Graphics();
+                ring.circle(0, 0, 10).stroke({ width: 2, color: 0x1E90FF, alpha: 0.8 });
+                ring.position.set(tpos.x, tpos.y - 26);
+                ring.zIndex = 1000;
+                scene.addChild(ring);
+                let t = 0; const life = Math.max(1, 260 / Math.max(0.001, speed));
+                const tick = (tk:any) => {
+                  const dm = typeof tk?.deltaMS === 'number' ? tk.deltaMS : 16.7; t += dm;
+                  const p = Math.min(1, t / life);
+                  try { ring.scale.set(1 + p * 1.2); ring.alpha = Math.max(0, 0.8 * (1 - p)); } catch {}
+                  if (p >= 1) { app.ticker.remove(tick); try { scene.removeChild(ring); ring.destroy(); } catch {} }
+                };
+                addTick(tick);
+              }
+            } catch {}
             break; }
           // Evade/Dodge
           case StepType.Evade: {

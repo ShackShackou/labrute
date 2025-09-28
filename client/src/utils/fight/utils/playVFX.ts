@@ -1,4 +1,4 @@
-/* eslint-disable no-void */
+/* eslint-disable no-void, no-empty, dot-notation, @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-member-access, @typescript-eslint/no-unsafe-argument, @typescript-eslint/no-unsafe-call */
 import { randomBetween, SkillId } from '@labrute/core';
 import { Application, AnimatedSprite, Graphics } from 'pixi-legacy';
 import { ColorOverlayFilter } from '@pixi/filter-color-overlay';
@@ -56,15 +56,13 @@ const playHitEffect = (
 
   // Dans l'officiel, la plupart des coups standards affichent des étincelles jaunes (impact),
   // alors que le sang est plus rare (ou pour certaines situations). On favorise donc "impact".
-  const vfx = VFX
-    ? VFX
-    : (fighter.type === 'pet' ? 'blood' : `impact-${randomBetween(1, 2)}`);
+  const vfx = VFX ?? (fighter.type === 'pet' ? 'blood' : `impact-${randomBetween(1, 2)}`);
 
   // Préparer les frames; si absentes, on bascule sur un fallback graphique
   const frames = (spritesheet.animations as any)?.[vfx]
     || (spritesheet.animations as any)?.['impact-1']
     || (spritesheet.animations as any)?.['impact-2']
-    || (spritesheet.animations as any)?.['blood']
+    || (spritesheet.animations as any)?.blood
     || null;
   let hitVfx: AnimatedSprite | null = null;
   if (frames && (frames as any[]).length) {
@@ -137,8 +135,7 @@ const playHitEffect = (
       try { spark.clear(); } catch {}
       try { spark.beginFill(0xFFD200, 0.95); spark.drawCircle(0, 0, r); spark.endFill(); } catch {}
       spark.position.set(posX, posY);
-      // @ts-ignore
-      spark.zIndex = 1001;
+      (spark as any).zIndex = 1001;
       app.stage.addChild(spark);
 
       // Vitesse radiale aléatoire

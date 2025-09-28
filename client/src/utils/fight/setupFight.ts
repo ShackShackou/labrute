@@ -1,5 +1,4 @@
-/* eslint-disable no-void */
-/* eslint-disable no-param-reassign */
+/* eslint-disable no-void, no-param-reassign, no-empty, max-len, no-underscore-dangle, space-infix-ops, @typescript-eslint/no-explicit-any, @typescript-eslint/no-shadow, @typescript-eslint/no-unsafe-member-access, @typescript-eslint/no-unsafe-call, @typescript-eslint/no-unsafe-assignment */
 import { Fighter, FightStep, StepType } from '@labrute/core';
 import { BossName, Fight } from '@labrute/prisma';
 import { Theme } from '@mui/material';

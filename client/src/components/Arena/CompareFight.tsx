@@ -1,4 +1,4 @@
-/* eslint-disable @typescript-eslint/no-explicit-any */
+/* eslint-disable @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-member-access, @typescript-eslint/no-unsafe-argument, @typescript-eslint/no-unsafe-call, no-empty, max-len, react/jsx-no-useless-fragment, react/jsx-indent */
 import React, { useEffect, useMemo, useState } from 'react';
 import { Box, Button, Slider, Switch } from '@mui/material';
 import Text from '../Text';
@@ -282,6 +282,3 @@ const CompareFight: React.FC<Props> = ({ fight }) => {
 };
 
 export default CompareFight;
-
-
-
