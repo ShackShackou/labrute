@@ -39,6 +39,12 @@ export class OAuth {
     res.header('Access-Control-Allow-Origin', '*');
 
     try {
+      // Optional dev OAuth shortcut
+      if (process.env.FORCE_DEV_OAUTH === 'true' || process.env.DEV_OAUTH === 'true') {
+        res.send({ url: 'http://localhost:9000/api/dev/oauth?action=authorize' });
+        return;
+      }
+
       res.send({
         url: this.#oauthClient.getAuthorizationUri('base', ''),
       });
@@ -59,6 +65,39 @@ export class OAuth {
       
       if (!req.query.code || typeof req.query.code !== 'string') {
         throw new ExpectedError('Invalid code');
+      }
+
+      // Dev OAuth: accept local dev codes without contacting Eternaltwin
+      if (req.query.code.startsWith('dev-code-')) {
+        const userId = req.query.code.replace('dev-code-', '');
+
+        const user = await this.#prisma.user.findUnique({
+          where: { id: userId },
+          include: {
+            brutes: {
+              where: { deletedAt: null },
+              orderBy: [
+                { favorite: 'desc' },
+                { createdAt: 'asc' },
+              ],
+            },
+            following: { select: { id: true } },
+            notifications: { where: { read: false } },
+          },
+        });
+
+        if (!user) {
+          throw new ExpectedError('User not found for dev code');
+        }
+
+        if (!user.connexionToken) {
+          const token = `dev-token-${userId}`;
+          await this.#prisma.user.update({ where: { id: userId }, data: { connexionToken: token } });
+          user.connexionToken = token;
+        }
+
+        res.send(user);
+        return;
       }
 
       // ETwin Token
