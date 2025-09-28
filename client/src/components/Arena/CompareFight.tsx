@@ -59,6 +59,45 @@ const CompareFight: React.FC<Props> = ({ fight }) => {
 
   const [current, setCurrent] = useState({ index: 0, elapsed: 0 });
 
+  // Official trace export helpers
+  useEffect(() => {
+    // Build a CSV from current fight steps using reference dt values
+    const buildOfficialCsv = () => {
+      const header = 'idx,action,fighter,target,dt,cumulative';
+      let sum = 0;
+      const rows = steps.map((s: any, i: number) => {
+        const a = typeof s?.a === 'number' ? s.a : '';
+        const f = typeof s?.f === 'number' ? s.f : '';
+        const t = typeof s?.t === 'number' ? s.t : '';
+        const dt = clampDt(s);
+        sum += dt;
+        return `${i+1},${a},${f},${t},${dt},${sum}`;
+      });
+      return [header, ...rows].join('\n');
+    };
+
+    // Expose helpers on window for the toolbar buttons
+    try {
+      (window as any).offTraceStart = () => {
+        try { localStorage.setItem('compare.offTrace', '1'); } catch {}
+        try { localStorage.setItem('compare.offTraceAuto', '1'); } catch {}
+      };
+    } catch {}
+    try {
+      (window as any).offTraceDownload = () => {
+        const csv = buildOfficialCsv();
+        const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url; a.download = 'official_trace.csv';
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        URL.revokeObjectURL(url);
+      };
+    } catch {}
+  }, [steps]);
+
   // Persist sliders
   useEffect(() => { writeNum('compare.pixiScale', pixiScale); }, [pixiScale]);
   useEffect(() => { writeNum('compare.pixiBoost', pixiBoost); }, [pixiBoost]);
