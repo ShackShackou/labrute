@@ -58,6 +58,7 @@ const CompareFight: React.FC<Props> = ({ fight }) => {
   }, [steps]);
 
   const [current, setCurrent] = useState({ index: 0, elapsed: 0 });
+  const [pixiElapsedByStep, setPixiElapsedByStep] = useState<number[]>([]);
 
   // Official trace export helpers
   useEffect(() => {
@@ -152,10 +153,28 @@ const CompareFight: React.FC<Props> = ({ fight }) => {
 
   const onPixiStep = (index: number, _step: any, elapsedMs: number) => {
     setCurrent({ index, elapsed: elapsedMs });
+    setPixiElapsedByStep((prev) => {
+      const next = prev.length === steps.length ? [...prev] : Array.from({ length: steps.length }, (_, i) => prev[i] ?? 0);
+      next[index] = elapsedMs;
+      return next;
+    });
   };
 
   const target = dtCumulative[current.index] ?? 0;
   const delta = Math.round(current.elapsed - target);
+
+  // Metrics: compute RMSE and p95 of absolute deltas (using current pixiElapsedByStep)
+  const metrics = useMemo(() => {
+    if (!steps.length || pixiElapsedByStep.length !== steps.length) return null as null | { rmse: number, p95: number, mean: number };
+    const official = dtCumulative;
+    const deltas = pixiElapsedByStep.map((v, i) => (v || 0) - (official[i] || 0));
+    const abs = deltas.map((d) => Math.abs(d));
+    const mean = deltas.reduce((a, b) => a + b, 0) / deltas.length;
+    const rmse = Math.sqrt(deltas.reduce((a, b) => a + b * b, 0) / deltas.length);
+    const sortedAbs = [...abs].sort((a, b) => a - b);
+    const p95 = sortedAbs[Math.min(sortedAbs.length - 1, Math.floor(sortedAbs.length * 0.95))] || 0;
+    return { rmse, p95, mean };
+  }, [steps.length, pixiElapsedByStep, dtCumulative]);
 
   return (
     <Box>
@@ -195,6 +214,36 @@ const CompareFight: React.FC<Props> = ({ fight }) => {
           <Button size="small" variant="outlined" onClick={() => { try { (window as any).offTraceStart?.(); } catch {} }} sx={{ ml: 1 }}>Start Official Trace</Button>
           <Button size="small" variant="outlined" onClick={() => { try { (window as any).offTraceDownload?.(); } catch {} }}>Download Official CSV</Button>
         </Box>
+        {/* Diff export */}
+        <Button
+          size="small"
+          variant="contained"
+          color="info"
+          onClick={() => {
+            try {
+              const header = 'idx,official_ms,pixi_ms,delta_ms';
+              const rows: string[] = [];
+              const len = steps.length;
+              for (let i = 0; i < len; i++) {
+                const off = dtCumulative[i] || 0;
+                const px = pixiElapsedByStep[i] || 0;
+                const d = px - off;
+                rows.push(`${i+1},${Math.round(off)},${Math.round(px)},${Math.round(d)}`);
+              }
+              const csv = [header, ...rows].join('\n');
+              const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+              const url = URL.createObjectURL(blob);
+              const a = document.createElement('a');
+              a.href = url; a.download = 'diff_trace.csv';
+              document.body.appendChild(a);
+              a.click();
+              document.body.removeChild(a);
+              URL.revokeObjectURL(url);
+            } catch {}
+          }}
+        >
+          Download Diff CSV
+        </Button>
         {/* Basique: identique à l'ancienne version */}
         {!advanced && (
           <>
@@ -280,6 +329,11 @@ const CompareFight: React.FC<Props> = ({ fight }) => {
         <Box sx={{ ml: 4 }}>
           <Text color="text.primary" typo="GameFont" upperCase sx={{ fontSize: 10 }}>Step {current.index + 1}/{steps.length}</Text>
           <Text color="text.primary" typo="GameFont" upperCase sx={{ fontSize: 10 }}>Pixi {Math.round(current.elapsed)} ms • Ref(dt) {Math.round(target)} ms • Δ {delta} ms</Text>
+          {metrics && (
+            <Text color="text.primary" typo="GameFont" upperCase sx={{ fontSize: 10 }}>
+              Mean {metrics.mean.toFixed(1)} ms • RMSE {metrics.rmse.toFixed(1)} ms • p95 {metrics.p95.toFixed(0)} ms
+            </Text>
+          )}
         </Box>
       </Box>
       <Box sx={{ display: 'flex', gap: 2, overflowX: 'auto' }}>
