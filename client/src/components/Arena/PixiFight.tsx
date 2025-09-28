@@ -646,23 +646,37 @@ const PixiFight: React.FC<Props> = ({
         // Get skills - Using OFFICIAL categorization from core/src/brute/skills.ts
         const skills = fighter.skills || [];
 
-        // Supers section: includes both 'super' and 'talent' types (as in original LaBrute)
-        const supers = skills.filter((id: number) => isSuperOrTalent(id));
+        // Supers: ONLY 'super' category (talents go to Skills in official UI)
+        const supers = skills.filter((id: number) => isSuper(id));
 
-        // Skills section: everything else (passive and booster types)
-        const normalSkills = skills.filter((id: number) => !isSuperOrTalent(id));
+        // Skills section: everything else (passive, booster, talent)
+        const normalSkills = skills.filter((id: number) => !isSuper(id));
 
-        // Map skill IDs to names
+        // Display names: camelCase -> Title Case (handles small words)
+        const toTitle = (raw: string) => {
+          try {
+            const parts = raw.replace(/([a-z])([A-Z])/g, '$1 $2').replace(/_/g, ' ').trim().split(/\s+/);
+            const lower = new Set(['of', 'the', 'and', 'to', 'in']);
+            return parts.map((w,i)=>{
+              const lw = w.toLowerCase();
+              if (i>0 && lower.has(lw)) return lw;
+              return lw.charAt(0).toUpperCase() + lw.slice(1);
+            }).join(' ');
+          } catch { return raw; }
+        };
         const getSkillName = (id: number) => {
           try {
-            return SkillById[id as SkillId] || `Skill${id}`;
-          } catch {
-            return `Skill${id}`;
-          }
+            const raw = (SkillById[id as SkillId] as unknown as string) || `Skill${id}`;
+            return toTitle(raw);
+          } catch { return `Skill${id}`; }
         };
 
-        const supersText = supers.length > 0 ? supers.map(getSkillName).join(', ') : '';
-        const skillsText = normalSkills.length > 0 ? normalSkills.map(getSkillName).join(', ') : '';
+        const supersText = supers.length > 0
+          ? supers.map((id:number)=>({ id, n: getSkillName(id) })).sort((a,b)=>a.n.localeCompare(b.n)).map(s=>s.n).join(', ')
+          : '';
+        const skillsText = normalSkills.length > 0
+          ? normalSkills.map((id:number)=>({ id, n: getSkillName(id) })).sort((a,b)=>a.n.localeCompare(b.n)).map(s=>s.n).join(', ')
+          : '';
 
         // Create HTML content EXACTLY like the reference image
         tooltipDiv.innerHTML = `
@@ -683,7 +697,7 @@ const PixiFight: React.FC<Props> = ({
               <div style="display: flex; align-items: center; height: 9px;">
                 <span style="width: 10px; font-size: 8px;">💪</span>
                 <div style="flex: 1; position: relative; height: 8px; background: #E8E8E8; border: 1px solid #AAA; margin: 0 3px; overflow: hidden;">
-                  <div style="position: absolute; height: 100%; background: linear-gradient(to bottom, #FFD700, #FFA500); width: ${Math.min(100, (strength / 50) * 100)}%;"></div>
+                  <div style="position: absolute; height: 100%; background: linear-gradient(to bottom, #FFD700, #FFA500); width: ${Math.min(100, (strength / 20) * 100)}%;"></div>
                 </div>
                 <span style="color: #4169E1; font-weight: bold; width: 14px; font-size: 9px; text-align: right;">${strength}</span>
               </div>
@@ -691,7 +705,7 @@ const PixiFight: React.FC<Props> = ({
               <div style="display: flex; align-items: center; height: 9px;">
                 <span style="width: 10px; font-size: 8px;">🪶</span>
                 <div style="flex: 1; position: relative; height: 8px; background: #E8E8E8; border: 1px solid #AAA; margin: 0 3px; overflow: hidden;">
-                  <div style="position: absolute; height: 100%; background: linear-gradient(to bottom, #FFD700, #FFA500); width: ${Math.min(100, (agility / 50) * 100)}%;"></div>
+                  <div style="position: absolute; height: 100%; background: linear-gradient(to bottom, #FFD700, #FFA500); width: ${Math.min(100, (agility / 20) * 100)}%;"></div>
                 </div>
                 <span style="color: #4169E1; font-weight: bold; width: 14px; font-size: 9px; text-align: right;">${agility}</span>
               </div>
@@ -699,7 +713,7 @@ const PixiFight: React.FC<Props> = ({
               <div style="display: flex; align-items: center; height: 9px;">
                 <span style="width: 10px; font-size: 8px;">⚡</span>
                 <div style="flex: 1; position: relative; height: 8px; background: #E8E8E8; border: 1px solid #AAA; margin: 0 3px; overflow: hidden;">
-                  <div style="position: absolute; height: 100%; background: linear-gradient(to bottom, #FFD700, #FFA500); width: ${Math.min(100, (speed / 50) * 100)}%;"></div>
+                  <div style="position: absolute; height: 100%; background: linear-gradient(to bottom, #FFD700, #FFA500); width: ${Math.min(100, (speed / 20) * 100)}%;"></div>
                 </div>
                 <span style="color: #4169E1; font-weight: bold; width: 14px; font-size: 9px; text-align: right;">${speed}</span>
               </div>
