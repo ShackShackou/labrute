@@ -667,6 +667,11 @@ const PixiFight: React.FC<Props> = ({
         const getSkillName = (id: number) => {
           try {
             const raw = (SkillById[id as SkillId] as unknown as string) || `Skill${id}`;
+            // Prefer localized label if available; fallback to Title Case
+            try {
+              const localized = t(raw);
+              if (localized && typeof localized === 'string' && localized !== raw) return localized;
+            } catch {}
             return toTitle(raw);
           } catch { return `Skill${id}`; }
         };
@@ -4066,6 +4071,9 @@ const PixiFight: React.FC<Props> = ({
           
           // Hammer (stun)
           case StepType.Hammer: {
+            // Official: Hammer drops both shields; ensure visuals reflect it
+            try { if (actorIdx !== null) dropShield(actorIdx); } catch {}
+            try { if (targetIdx !== null) dropShield(targetIdx); } catch {}
             const tpos = getPos(tgt.node);
             floatText(tpos.x, tpos.y, 'STUNNED!', 0x4B0082);
             
@@ -4110,6 +4118,8 @@ const PixiFight: React.FC<Props> = ({
 
           // FlashFlood
           case StepType.FlashFlood: {
+            // Official: Flash Flood drops the attacker's shield before damage
+            try { if (actorIdx !== null) dropShield(actorIdx); } catch {}
             // Effet simple: vague horizontale + secousse
             const wave = new Graphics();
             const h = 16;
