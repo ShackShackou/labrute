@@ -62,6 +62,12 @@ const flashFlood = async (
   // Shield throw
   if (step.s) {
     fighter.animation.shield = false;
+    // Remove overlay if present
+    try {
+      const parent = fighter.animation.container;
+      const prev = parent.children.find((c) => c.name === '__shieldOverlay__');
+      if (prev) { parent.removeChild(prev); prev.destroy(); }
+    } catch {}
     thrownItem = new Sprite(miscSpritesheet.textures['shield.png']);
 
   // Weapon throw

@@ -3,6 +3,7 @@ import {
 } from '@labrute/core';
 import { SkillName, WeaponName } from '@labrute/prisma';
 import { getFighterStat } from './getFighterStat.js';
+import { rand } from './rng.js';
 
 export const getDamage = (
   fighter: DetailedFighter,
@@ -109,17 +110,17 @@ export const getDamage = (
   if (thrown) {
     damage = Math.floor(
       (base + fighter.strength * 0.1 + fighter.agility * 0.15)
-      * (1 + Math.random() * 0.5) * skillsMultiplier,
+      * (1 + rand() * 0.5) * skillsMultiplier,
     );
   } else if (piledriver) {
     damage = Math.floor(
       (10 + opponent.strength * 0.6)
-      * (0.8 + Math.random() * 0.4) * skillsMultiplier,
+      * (0.8 + rand() * 0.4) * skillsMultiplier,
     );
   } else {
     damage = Math.floor(
       (base + fighter.strength * (0.2 + base * 0.05))
-      * (0.8 + Math.random() * 0.4) * skillsMultiplier,
+      * (0.8 + rand() * 0.4) * skillsMultiplier,
     );
   }
 
@@ -130,7 +131,7 @@ export const getDamage = (
 
   // Critical hit
   const criticalChance = getFighterStat(fighter, FightStat.CRITICAL_CHANCE);
-  const criticalHit = !!criticalChance && Math.random() < criticalChance;
+  const criticalHit = !!criticalChance && rand() < criticalChance;
   if (criticalHit) {
     damage = Math.floor(damage * getFighterStat(fighter, FightStat.CRITICAL_DAMAGE));
   }

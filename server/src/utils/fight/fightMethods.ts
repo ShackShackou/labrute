@@ -5,7 +5,7 @@ import {
   DetailedFight, DetailedFighter,
   FightStat, HasteStep, HitStep, LeaveStep,
   NO_WEAPON_TOSS,
-  randomBetween, randomItem,
+  randomBetween as coreRandomBetween, randomItem as coreRandomItem,
   Skill,
   SkillActivateStep,
   SkillByName, SkillModifiers, StepType, TreatStep, updateAchievement, Weapon,
@@ -15,6 +15,20 @@ import {
 import { FightModifier, PetName, SkillName } from '@labrute/prisma';
 import { getDamage } from './getDamage.js';
 import { getFighterStat } from './getFighterStat.js';
+import { rand, hasSeed, randomBetweenSeeded } from './rng.js';
+
+// Seed-aware wrappers
+const randomBetween = (min: number, max: number) => (
+  hasSeed() ? randomBetweenSeeded(min, max) : coreRandomBetween(min, max)
+);
+const randomItem = <T>(items: T[]): T => {
+  if (!items.length) throw new Error('No items');
+  if (items.length === 1) return items[0] as T;
+  const idx = randomBetween(0, items.length - 1);
+  const item = items[idx];
+  if (!item) throw new Error('No item');
+  return item;
+};
 
 export type Stats = Record<string, {
   userId: string | null;
@@ -219,7 +233,7 @@ export const orderFighters = (fightData: DetailedFight) => {
     if (b.stunned) return -1;
     // Random is initiatives are equal
     if (a.initiative === b.initiative) {
-      return Math.random() > 0.5 ? 1 : -1;
+      return rand() > 0.5 ? 1 : -1;
     }
     // Lower initiative first
     return a.initiative - b.initiative;
@@ -574,7 +588,7 @@ const registerHit = ({
     // HP healed (100 - 200% of damage)
     const finalDamage = actualDamage[opponent.index] ?? damage;
     const heal = Math.floor(
-      Math.min(finalDamage * (1 + Math.random()), fighter.maxHp - fighter.hp),
+      Math.min(finalDamage * (1 + rand()), fighter.maxHp - fighter.hp),
     );
     healFighter(stats, fighter, heal);
 
@@ -746,7 +760,7 @@ const drawWeapon = (
   const possibleWeapon = randomlyDrawWeapon(fightData, fighter.weapons, forceDraw);
 
   // Decrease `keepWeaponChance` each turn and abort until true
-  if (fighter.activeWeapon && !drawEveryWeapon && Math.random() < fighter.keepWeaponChance) {
+  if (fighter.activeWeapon && !drawEveryWeapon && rand() < fighter.keepWeaponChance) {
     fighter.keepWeaponChance *= 0.5;
     return false;
   }
@@ -902,7 +916,7 @@ const activateSuper = (
       break;
     }
     case SkillName.tragicPotion: {
-      let hpHealed = Math.floor(fighter.maxHp * (0.25 + Math.random() * 0.25));
+      let hpHealed = Math.floor(fighter.maxHp * (0.25 + rand() * 0.25));
       let poisonHeal = false;
 
       // Limit hp to max
@@ -1156,7 +1170,7 @@ const activateSuper = (
 
       for (const pet of opponentPets) {
         // 90% success chance
-        if (Math.random() > 0.90) continue;
+        if (rand() > 0.90) continue;
         hypnotisedPets.push(pet.index);
 
         // Change pet owner
@@ -1199,7 +1213,7 @@ const activateSuper = (
       }
 
       // Shuffle weapons
-      const shuffledWeapons = [...fighter.weapons].sort(() => Math.random() - 0.5);
+      const shuffledWeapons = [...fighter.weapons].sort(() => rand() - 0.5);
       // Get 3 weapons
       const weaponsToThrow = shuffledWeapons.slice(0, fighter.activeWeapon ? 2 : 3);
 
@@ -1490,7 +1504,7 @@ const counterAttack = (fighter: DetailedFighter, opponent: DetailedFighter) => {
   // No counter attack if opponent is hypnotized
   if (opponent.hypnotized) return false;
 
-  const random = Math.random();
+  const random = rand();
 
   const valueToBeat = (
     opponent.counter * 10
@@ -1539,7 +1553,7 @@ const block = ({
     opponentBlock += SkillModifiers[SkillName.survival][FightStat.BLOCK]?.percent ?? 0;
   }
 
-  return Math.random() * ease
+  return rand() * ease
     < Math.min(
       opponentBlock - getFighterStat(fighter, 'accuracy'),
       0.9 * ease,
@@ -1582,7 +1596,7 @@ const evade = (fighter: DetailedFighter, opponent: DetailedFighter, difficulty =
     40,
   );
 
-  const random = Math.random();
+  const random = rand();
 
   return random * difficulty
     < Math.min(
@@ -1620,14 +1634,14 @@ const disarmAttacker = (fighter: DetailedFighter, opponent: DetailedFighter) => 
   if (!opponent.ironHead) return false;
 
   // 50% chance to disarm the attacker
-  return Math.random() < 0.5;
+  return rand() < 0.5;
 };
 
 const reversal = (opponent: DetailedFighter, blocked: boolean) => {
   // No reversal if stunned
   if (opponent.stunned) return false;
 
-  const random = Math.random();
+  const random = rand();
 
   let reversalStat = getFighterStat(opponent, 'reversal');
 
@@ -1654,7 +1668,7 @@ const deflectProjectile = (fighter: DetailedFighter, timesDeflected: number) => 
     || fighter.skills.some((skill) => skill.name === SkillName.hideaway)
     || fighter.activeWeapon?.types.includes('thrown');
 
-  const random = Math.random();
+  const random = rand();
 
   return random < getFighterStat(fighter, 'deflect', deflectWithWeapon ? undefined : 'fighter');
 };
@@ -1748,7 +1762,7 @@ const attack = (
   // Check if the fighter sabotages an opponent's weapon
   if (damage && fighter.sabotage) {
     // 90% chance to sabotage
-    if (opponent.weapons.length && Math.random() < 0.9) {
+    if (opponent.weapons.length && rand() < 0.9) {
       // Remove a random weapon
       const weapon = opponent.weapons.splice(randomBetween(0, opponent.weapons.length - 1), 1)[0];
 
@@ -1828,7 +1842,7 @@ const attack = (
     && !damage
     && fighter.determination
     && !fighter.hypnotized
-    && Math.random() < 0.7) {
+    && rand() < 0.7) {
     fighter.retryAttack = true;
   }
 
@@ -1918,7 +1932,7 @@ const startAttack = (
 
   // Repeat attack only if not countering
   if (!isCounter) {
-    let random = Math.random();
+    let random = rand();
     while (!attackResult.reversed && (random < combo || fighter.retryAttack)) {
       // Reset retry attack flag
       fighter.retryAttack = false;
@@ -1960,7 +1974,7 @@ const startAttack = (
       // Opponent cannot be trapped starting from the second attack
       opponentWasTrapped = false;
 
-      random = Math.random();
+      random = rand();
     }
 
     // Check if the opponent reverses the attack
@@ -2182,7 +2196,7 @@ export const playFighterTurn = (
     && !fighter.hypnotized) {
     const opponentHypnosis = opponent.skills.find((skill) => skill.name === SkillName.hypnosis);
     // 90% success chance
-    if (opponentHypnosis && Math.random() < 0.90) {
+    if (opponentHypnosis && rand() < 0.90) {
       // Activate hypnosis
       if (activateSuper(fightData, opponent, opponentHypnosis, stats, achievements)) {
         // Cancel turn if fighter is pet as it may have a new master
@@ -2266,7 +2280,7 @@ export const playFighterTurn = (
 
     // Get combo chances
     let combo = getFighterStat(fighter, 'combo') + (fighter.agility * 0.01);
-    let random = Math.random();
+    let random = rand();
 
     while (firstThrow || (keepWeapon && random < combo)) {
       if (!fighter.activeWeapon) {
@@ -2419,7 +2433,7 @@ export const playFighterTurn = (
 
       firstThrow = false;
       combo *= 0.5;
-      random = Math.random();
+      random = rand();
     }
 
     // Check if a fighter is dead

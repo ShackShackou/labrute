@@ -11,6 +11,7 @@ import { getRandomPosition } from './utils/fightPositions';
 import updateWeapons from './updateWeapons';
 import { playDustEffect } from './utils/playVFX';
 import { updateShadow, airbornMove } from './utils/updateShadow';
+import * as PIXI from 'pixi-legacy';
 
 const arrive = async (
   app: Application,
@@ -98,6 +99,37 @@ const arrive = async (
 
   // Set animation to `idle`
   fighter.animation.setAnimation('idle');
+
+  // Attach a small visual shield overlay if the fighter currently has a shield
+  try {
+    const hasShield = !!fighter.animation.shield;
+    const parent = fighter.animation.container;
+    if (hasShield && parent) {
+      // Cleanup existing overlay
+      const prev = parent.children.find((c) => c.name === '__shieldOverlay__');
+      if (prev) { try { parent.removeChild(prev); prev.destroy(); } catch {} }
+
+      const overlay = new PIXI.Graphics();
+      overlay.name = '__shieldOverlay__';
+      // Rounded rectangular shield with subtle highlight
+      overlay.lineStyle(2, 0x9ac7ff, 0.9);
+      overlay.beginFill(0x3a78b3, 0.25);
+      overlay.drawRoundedRect(-16, -26, 32, 44, 10);
+      overlay.endFill();
+      const edge = new PIXI.Graphics();
+      edge.lineStyle(2, 0xffffff, 0.3);
+      edge.moveTo(-14, -20); edge.lineTo(14, -20);
+      edge.moveTo(-12, -8); edge.lineTo(12, -8);
+      overlay.addChild(edge);
+      // Position slightly in front depending on side
+      const side: 'L'|'R' = fighter.team;
+      overlay.position.set(side === 'L' ? 18 : -18, -5);
+      // Ensure in front of body
+      overlay.zIndex = (parent.zIndex || 0) + 2;
+      parent.addChild(overlay);
+      try { (parent as any).sortableChildren = true; } catch {}
+    }
+  } catch {}
 };
 
 export default arrive;

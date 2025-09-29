@@ -8,9 +8,10 @@ import {
   Fighter, ForbiddenError, SkillByName,
   StepType, WeaponByName, bossBackground, bosses,
   fightBackgrounds,
-  randomItem,
+  randomItem as coreRandomItem,
   tournamentBackground,
-  weightedRandom,
+  weightedRandom as coreWeightedRandom,
+  FightBackground,
 } from '@labrute/core';
 import {
   Brute, FightModifier, InventoryItemType, LogType, Prisma, PrismaClient,
@@ -25,6 +26,37 @@ import {
 import { getFighters } from './getFighters.js';
 import { handleStats } from './handleStats.js';
 import { updateAchievements } from './updateAchievements.js';
+import { setSeed, clearSeed, hasSeed, randomBetweenSeeded } from './rng.js';
+
+// Seed-aware wrappers
+const randomItem = <T>(items: T[]): T => {
+  if (!items.length) throw new Error('No items');
+  if (items.length === 1) return items[0] as T;
+  if (hasSeed()) {
+    const idx = randomBetweenSeeded(0, items.length - 1);
+    const item = items[idx];
+    if (!item) throw new Error('No item');
+    return item;
+  }
+  return coreRandomItem(items);
+};
+
+const weightedRandom = <T extends { odds: number }>(items: T[]): T => {
+  if (!items.length) throw new Error('No items');
+  if (!hasSeed()) return coreWeightedRandom(items);
+  const firstItem = items[0];
+  const totalOdds = items.reduce((acc, item) => acc + item.odds, 0);
+  let i = 0;
+  const weights: number[] = [];
+  for (i = 0; i < items.length; i++) {
+    weights[i] = ((items[i]?.odds || 0) / totalOdds) + (weights[i - 1] || 0);
+  }
+  const r = Math.random() * (weights[weights.length - 1] || 0);
+  for (i = 0; i < weights.length; i++) {
+    if ((weights[i] || 0) > r) break;
+  }
+  return (items[i] || firstItem) as T;
+};
 
 export type GenerateFightResult = {
   data: Prisma.FightCreateInput;
@@ -65,11 +97,20 @@ export const generateFight = async ({
   clanId,
   clanWar,
 }: GenerateFightParams): Promise<GenerateFightResult> => {
+  // Initialize RNG seed (deterministic during this generation)
+  const seedStr = [
+    team1.brutes?.map((b) => b.id).join('-') ?? '',
+    team2.brutes?.map((b) => b.id).join('-') ?? '',
+    modifiers.join(','),
+    String(Date.now()),
+  ].join('|');
+  setSeed(seedStr);
+  try {
   if (team1.brutes?.some((brute) => team2.brutes?.some((b) => b.id === brute.id))) {
     throw new ForbiddenError('Attempted to created a fight between the same brutes');
   }
 
-  const background = (team1.bosses?.length || team2.bosses?.length)
+  const background: FightBackground = (team1.bosses?.length || team2.bosses?.length)
     ? bossBackground
     : tournament
       ? tournamentBackground
@@ -487,4 +528,7 @@ export const generateFight = async ({
     await updateAchievements(prisma, achievementsStore, !!tournament);
   }
   return result;
+  } finally {
+    clearSeed();
+  }
 };

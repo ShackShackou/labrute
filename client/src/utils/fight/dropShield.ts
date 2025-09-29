@@ -3,6 +3,7 @@ import { Application } from 'pixi-legacy';
 
 import findFighter, { AnimationFighter } from './utils/findFighter';
 import itemDrop from './itemDrop';
+import * as PIXI from 'pixi-legacy';
 
 const dropShield = (
   app: Application,
@@ -20,6 +21,12 @@ const dropShield = (
   }
 
   target.animation.shield = false;
+  // Remove shield overlay if present
+  try {
+    const parent = target.animation.container;
+    const prev = parent.children.find((c) => c.name === '__shieldOverlay__');
+    if (prev) { parent.removeChild(prev); prev.destroy(); }
+  } catch {}
 
   // position middle of target
   const initialPosition = {
