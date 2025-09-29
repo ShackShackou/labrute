@@ -2,80 +2,34 @@
 import React, { useEffect, useRef } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Application, Container, Graphics, Text, Assets, Sprite, Rectangle, BlurFilter } from 'pixi.js';
+import { MotionBlurFilter } from '@pixi/filter-motion-blur';
+import { GlowFilter } from '@pixi/filter-glow';
+import { AdjustmentFilter } from '@pixi/filter-adjustment';
 // @ts-ignore - official Spine v8 runtime for Pixi v8
 import { Spine } from '@esotericsoftware/spine-pixi-v8';
 import { FightGetResponse, WeaponById, WeaponId, weapons, StepType, WeaponType, SkillId, SkillById, SkillByName, skills } from '@labrute/core';
+import { getRendererConfig } from '../../config/renderer';
+import { getWeaponTexturePath } from '../../assets/weaponSprites';
 
-// SKILL CATEGORIZATION - Based on core/src/brute/skills.ts
-// This is the OFFICIAL and COMPLETE categorization from LaBrute source
-// IDs are based on the SkillId enum (starting from 0)
-const SKILL_CATEGORIES = {
-  // Type 'super' - Active combat skills with limited uses
-  SUPERS: [
-    27, // thief
-    28, // fierceBrute
-    29, // tragicPotion
-    30, // net
-    31, // bomb
-    32, // hammer
-    33, // cryOfTheDamned
-    34, // hypnosis
-    35, // flashFlood
-    36, // tamer
-    48, // vampirism
-    50, // haste
-    51, // treat
-  ],
-
-  // Type 'talent' - Special abilities (shown in "Supers" section in UI)
-  TALENTS: [
-    41, // regeneration
-    42, // chef
-    43, // spy
-    44, // saboteur
-    45, // backup
-    46, // hideaway
-    47, // monk
-  ],
-
-  // Type 'booster' - Stat boosting skills
-  BOOSTERS: [
-    0,  // herculeanStrength
-    1,  // felineAgility
-    2,  // lightningBolt
-    3,  // vitality
-    4,  // immortality
-    5,  // reconnaissance
-  ],
-
-  // Type 'passive' - All passive combat skills
-  PASSIVES: [
-    6,  // weaponsMaster
-    7,  // martialArts
-    8,  // sixthSense
-    9,  // hostility
-    10, // fistsOfFury
-    11, // shield
-    12, // armor
-    13, // toughenedSkin
-    14, // untouchable
-    15, // sabotage
-    16, // shock
-    17, // bodybuilder
-    18, // relentless
-    19, // survival
-    20, // leadSkeleton
-    21, // balletShoes
-    22, // determination
-    23, // firstStrike
-    24, // resistant
-    25, // counterAttack
-    26, // ironHead
-    49, // chaining (PASSIVE, not super!)
-    52, // repulse (PASSIVE, not super!)
-    53, // fastMetabolism (PASSIVE, not super!)
-  ],
-};
+// SKILL CATEGORIZATION (dérivé dynamiquement de @labrute/core)
+// Évite tout décalage si l'énumération SkillId évolue
+const SKILL_CATEGORIES = (() => {
+  const cats = { SUPERS: [] as number[], TALENTS: [] as number[], BOOSTERS: [] as number[], PASSIVES: [] as number[] };
+  try {
+    (skills as any[]).forEach((s: any) => {
+      const id = (SkillByName as any)[s.name];
+      if (typeof id !== 'number') return;
+      switch (s.type) {
+        case 'super': cats.SUPERS.push(id); break;
+        case 'talent': cats.TALENTS.push(id); break;
+        case 'booster': cats.BOOSTERS.push(id); break;
+        case 'passive': cats.PASSIVES.push(id); break;
+        default: break;
+      }
+    });
+  } catch {}
+  return cats;
+})();
 
 // Helper to check skill type
 const isSuper = (skillId: number) => SKILL_CATEGORIES.SUPERS.includes(skillId);
@@ -139,6 +93,14 @@ const PixiFight: React.FC<Props> = ({
   contactBias = 5,
   returnFactor = 2,
 }) => {
+  // Apply centralised defaults when props not provided
+  try {
+    const cfg = getRendererConfig();
+    if (typeof charPx !== 'number') charPx = cfg.charPx;
+    if (typeof drift !== 'number') drift = cfg.drift;
+    if (typeof contactBias !== 'number') contactBias = cfg.contactBias;
+    if (typeof returnFactor !== 'number') returnFactor = cfg.returnFactor;
+  } catch {}
   const { t } = useTranslation();
   const containerRef = useRef<HTMLDivElement | null>(null);
   const appRef = useRef<Application | null>(null);
@@ -658,11 +620,11 @@ const PixiFight: React.FC<Props> = ({
           })
           .filter((n): n is number => typeof n === 'number' && Number.isFinite(n)) : [];
 
-        // Supers: ONLY 'super' category (talents go to Skills in official UI)
-        const supers = skills.filter((id: number) => isSuper(id));
+        // Supers: super OR talent
+        const supers = skills.filter((id: number) => isSuperOrTalent(id));
 
-        // Skills section: everything else (passive, booster, talent)
-        const normalSkills = skills.filter((id: number) => !isSuper(id));
+        // Skills section: everything else (passive, booster)
+        const normalSkills = skills.filter((id: number) => !isSuperOrTalent(id));
 
         // Display names: camelCase -> Title Case (handles small words)
         const toTitle = (raw: string) => {
@@ -1751,11 +1713,86 @@ const PixiFight: React.FC<Props> = ({
             weaponBorder.roundRect(1, 1, 26, 26, 2)
               .stroke({ width: 1.5, color: 0x8B6534, alpha: 0.8 });
             
-            // Weapon icon - better shapes
-            const weaponIcon = new Graphics();
-            
-            // Determine weapon type and draw appropriate icon
+            // Weapon icon - sprite if available, else vector
             const lowerName = weaponName.toLowerCase();
+            const texturePath = getWeaponTexturePath(lowerName);
+            let weaponIcon: any = null;
+            if (texturePath) {
+              try {
+                const sp = Sprite.from(texturePath);
+                sp.width = 22; sp.height = 22; sp.anchor.set(0.5, 0.5);
+                sp.position.set(14, 14);
+                weaponIcon = sp;
+              } catch { /* fallback below */ }
+            }
+            
+            if (!weaponIcon) {
+              const g = new Graphics();
+              weaponIcon = g;
+              // Determine weapon type and draw appropriate icon
+              if (lowerName.includes('sword') || lowerName.includes('scimitar')) {
+                g.rect(13, 5, 2, 14)
+                  .fill({ color: 0xE0E0E0 });
+                g.rect(10, 17, 8, 2)
+                  .rect(13, 19, 2, 4)
+                  .fill({ color: 0xB8860B });
+              } else if (lowerName.includes('axe') || lowerName.includes('hatchet')) {
+                g.rect(13, 8, 2, 12)
+                  .fill({ color: 0x654321 });
+                g.moveTo(11, 8)
+                  .lineTo(17, 8)
+                  .lineTo(19, 5)
+                  .lineTo(19, 11)
+                  .lineTo(17, 11)
+                  .lineTo(11, 11)
+                  .closePath()
+                  .fill({ color: 0x808080 });
+              } else if (lowerName.includes('hammer') || lowerName.includes('mace')) {
+                g.rect(13, 10, 2, 10)
+                  .fill({ color: 0x654321 });
+                g.rect(9, 6, 10, 5)
+                  .fill({ color: 0x696969 });
+              } else if (lowerName.includes('lance') || lowerName.includes('trident')) {
+                g.rect(13, 8, 2, 12)
+                  .fill({ color: 0x4682B4 });
+                g.moveTo(14, 8)
+                  .lineTo(17, 5)
+                  .lineTo(14, 5)
+                  .lineTo(11, 5)
+                  .lineTo(14, 8)
+                  .fill({ color: 0x4682B4 });
+              } else if (lowerName.includes('whip') || lowerName.includes('flail')) {
+                g.stroke({ width: 2, color: 0x8B4513 });
+                g.moveTo(10, 20);
+                g.bezierCurveTo(14, 18, 16, 12, 18, 8);
+              } else if (lowerName.includes('knife') || lowerName.includes('dagger')) {
+                g.moveTo(14, 8)
+                  .lineTo(16, 12)
+                  .lineTo(14, 16)
+                  .lineTo(12, 12)
+                  .closePath()
+                  .fill({ color: 0xC0C0C0 });
+                g.rect(13, 16, 2, 4)
+                  .fill({ color: 0x654321 });
+              } else if (lowerName.includes('club') || lowerName.includes('baton')) {
+                g.rect(13, 12, 2, 8)
+                  .ellipse(11, 6, 6, 8)
+                  .fill({ color: 0x654321 });
+              } else if (lowerName.includes('fan') || lowerName.includes('shuriken')) {
+                const points:number[] = [];
+                const outerRadius = 8; const innerRadius = 4;
+                for (let i = 0; i < 10; i++) {
+                  const radius = i % 2 === 0 ? outerRadius : innerRadius;
+                  const angle = (Math.PI * 2 * i) / 10 - Math.PI / 2;
+                  points.push(14 + Math.cos(angle) * radius, 14 + Math.sin(angle) * radius);
+                }
+                g.poly(points).fill({ color: 0x800080 });
+              } else {
+                g.rect(13, 6, 2, 16)
+                  .rect(11, 18, 6, 2)
+                  .fill({ color: 0x888888 });
+              }
+            }
           
           if (lowerName.includes('sword') || lowerName.includes('scimitar')) {
             // Sword - vertical blade with guard
@@ -2194,65 +2231,68 @@ const PixiFight: React.FC<Props> = ({
       
       // Create animated weapon using Spine runtime
       const createWeaponSpine = (weaponName: string) => {
-        // Create a container with animated parts
+        // Prefer a texture if available, fallback to vector shape
         const container = new Container();
-        
-        // Create base weapon mesh using Graphics (will animate it)
-        const weaponGraphics = new Graphics();
-        
-        // Color by weapon type
-        let color = 0x666666;
-        if (weaponName.includes('sword') || weaponName.includes('scimitar')) color = 0xC0C0C0;
-        else if (weaponName.includes('axe') || weaponName.includes('hatchet')) color = 0x8B4513;
-        else if (weaponName.includes('hammer') || weaponName.includes('mace')) color = 0x696969;
-        else if (weaponName.includes('lance') || weaponName.includes('trident')) color = 0x4682B4;
-        else if (weaponName.includes('whip') || weaponName.includes('baton')) color = 0x654321;
-        else if (weaponName.includes('shuriken') || weaponName.includes('fan')) color = 0x800080;
-        else if (weaponName.includes('keyboard') || weaponName.includes('book')) color = 0x228B22;
-        
-        if (weaponName.includes('hammer') || weaponName.includes('mace')) {
-          weaponGraphics.rect(-4, -25, 8, 20)  // Thicker: 6 -> 8
-            .rect(-8, -30, 16, 10); // Thicker: 12 -> 16, 8 -> 10
-        } else if (weaponName.includes('axe')) {
-          weaponGraphics.rect(-3, -25, 6, 20)  // Thicker: 4 -> 6
-            .moveTo(-10, -25)  // Wider: -8 -> -10
-            .lineTo(10, -25)   // Wider: 8 -> 10
-            .lineTo(8, -30)
-            .lineTo(-8, -30)
-            .closePath();
-        } else {
-          weaponGraphics.rect(-3, -30, 6, 30);  // Thicker: 4 -> 6
-          if (weaponName.includes('sword')) {
-            weaponGraphics.rect(-8, -30, 16, 4);  // Thicker: 12 -> 16, 3 -> 4
+        const path = getWeaponTexturePath(weaponName);
+        let sprite: Sprite | null = null;
+        if (path) {
+          try {
+            sprite = Sprite.from(path);
+            sprite.anchor.set(0.5, 1);
+            sprite.width = 30; sprite.height = 30;
+            container.addChild(sprite);
+          } catch {
+            sprite = null;
           }
         }
-        weaponGraphics.fill({ color: color });
-        
-        // Add glow effect
-        const glow = new Graphics();
-        glow.circle(0, -15, 20)
-          .fill({ color: color, alpha: 0.3 });
-        
-        container.addChild(glow, weaponGraphics);
-        
-        // Animate the weapon with swinging motion
-        let swingTime = 0;
-        const weaponTick = (tk: any) => {
-          const dt = typeof tk?.deltaMS === 'number' ? tk.deltaMS : 16.7;
-          swingTime += dt * 0.003;
-          
-          // Swing animation
-          weaponGraphics.rotation = Math.sin(swingTime) * 0.2;
-          weaponGraphics.scale.set(1 + Math.sin(swingTime * 2) * 0.05);
-          
-          // Glow pulse
-          glow.alpha = 0.3 + Math.sin(swingTime * 3) * 0.2;
-          glow.scale.set(1 + Math.sin(swingTime * 2) * 0.1);
-        };
-        
-        // Store tick function for cleanup
-        (container as any).weaponTick = weaponTick;
-        
+
+        if (!sprite) {
+          // Create base weapon mesh using Graphics (fallback)
+          const weaponGraphics = new Graphics();
+          let color = 0x666666;
+          const wn = weaponName.toLowerCase();
+          if (wn.includes('sword') || wn.includes('scimitar')) color = 0xC0C0C0;
+          else if (wn.includes('axe') || wn.includes('hatchet')) color = 0x8B4513;
+          else if (wn.includes('hammer') || wn.includes('mace')) color = 0x696969;
+          else if (wn.includes('lance') || wn.includes('trident')) color = 0x4682B4;
+          else if (wn.includes('whip') || wn.includes('baton')) color = 0x654321;
+          else if (wn.includes('shuriken') || wn.includes('fan')) color = 0x800080;
+          else if (wn.includes('keyboard') || wn.includes('book')) color = 0x228B22;
+
+          if (wn.includes('hammer') || wn.includes('mace')) {
+            weaponGraphics.rect(-4, -25, 8, 20)
+              .rect(-8, -30, 16, 10);
+          } else if (wn.includes('axe')) {
+            weaponGraphics.rect(-3, -25, 6, 20)
+              .moveTo(-10, -25)
+              .lineTo(10, -25)
+              .lineTo(8, -30)
+              .lineTo(-8, -30)
+              .closePath();
+          } else {
+            weaponGraphics.rect(-3, -30, 6, 30);
+            if (wn.includes('sword')) {
+              weaponGraphics.rect(-8, -30, 16, 4);
+            }
+          }
+          weaponGraphics.fill({ color });
+
+          const glow = new Graphics();
+          glow.circle(0, -15, 20).fill({ color, alpha: 0.3 });
+          container.addChild(glow, weaponGraphics);
+
+          let swingTime = 0;
+          const weaponTick = (tk: any) => {
+            const dt = typeof tk?.deltaMS === 'number' ? tk.deltaMS : 16.7;
+            swingTime += dt * 0.003;
+            weaponGraphics.rotation = Math.sin(swingTime) * 0.2;
+            weaponGraphics.scale.set(1 + Math.sin(swingTime * 2) * 0.05);
+            glow.alpha = 0.3 + Math.sin(swingTime * 3) * 0.2;
+            glow.scale.set(1 + Math.sin(swingTime * 2) * 0.1);
+          };
+          (container as any).weaponTick = weaponTick;
+        }
+
         return container;
       };
       
@@ -2783,6 +2823,14 @@ const PixiFight: React.FC<Props> = ({
                 if (skillId === (SkillId as any).hypnosis) {
                   if (actor === leftMainIdx) { (hudL as any)?.setHypnosisFreeze?.(false); }
                   if (actor === rightMainIdx) { (hudR as any)?.setHypnosisFreeze?.(false); }
+                  // Remove hypnosis filters
+                  try {
+                    const idx = actor as number;
+                    let node: any = null;
+                    if (idx === leftMainIdx) node = left.node; else if (idx === rightMainIdx) node = right.node; else if (petSpines.has(idx)) node = petSpines.get(idx); else if (allySpines.has(idx)) node = allySpines.get(idx);
+                    const base = hypnosisBaseFiltersRef.current.get(idx);
+                    if (node && base) { node.filters = base; hypnosisBaseFiltersRef.current.delete(idx); }
+                  } catch {}
                 }
                 // TODO: ajouter cleanups spécifiques (fierceBrute ghosts) si utilisés
               }
@@ -2812,6 +2860,29 @@ const PixiFight: React.FC<Props> = ({
                 }
               } else if (skillId === (SkillId as any).fierceBrute) {
                 floatText(pos.x, pos.y - 30, 'FIERCE!', 0xFF4500);
+                // Motion blur + glow trail using Pixi filters
+                try {
+                  const node = src.node as any;
+                  const baseFilters = Array.isArray(node.filters) ? node.filters.slice() : [];
+                  const velocity = actorSide === 'L' ? [120, 0] : [-120, 0];
+                  const motion = new MotionBlurFilter(velocity as any, 15);
+                  const glow = new GlowFilter({ distance: 12, outerStrength: 2.5, innerStrength: 0.6, color: 0xFF4500, quality: 0.5 });
+                  const adjust = new AdjustmentFilter({ saturation: 1.2, brightness: 1.15, contrast: 1.15 });
+                  node.filters = [...baseFilters, adjust, glow, motion];
+                  let elapsed = 0;
+                  const life = Math.max(1, 1200 / Math.max(0.001, speed));
+                  const tick = (tk:any) => {
+                    const dm = typeof tk?.deltaMS === 'number' ? tk.deltaMS : 16.7;
+                    elapsed += dm;
+                    const k = Math.max(0, 1 - (elapsed / life));
+                    try { (motion as any).velocity = [velocity[0] * k, 0]; } catch {}
+                    if (elapsed >= life) {
+                      app.ticker.remove(tick);
+                      try { node.filters = baseFilters; } catch {}
+                    }
+                  };
+                  addTick(tick);
+                } catch {}
                 // Fantômes simples derrière le main pendant un court laps
                 const ghosts: Graphics[] = [];
                 const makeGhost = () => {
@@ -3652,42 +3723,48 @@ const PixiFight: React.FC<Props> = ({
               lastWeaponByActor.delete(actorIdx ?? -1);
             }
             
-            // Create weapon sprite for throw animation
-            const weaponSprite = new Graphics();
-            // Draw weapon shape based on type
-            if (weaponName.includes('knife') || weaponName.includes('dagger')) {
-              weaponSprite.rect(-3, -15, 6, 30);
-            } else if (weaponName.includes('axe') || weaponName.includes('hatchet')) {
-              weaponSprite.moveTo(-10, -10)
-                .lineTo(10, -10)
-                .lineTo(5, 0)
-                .lineTo(0, 15)
-                .lineTo(-5, 0)
-                .closePath();
-            } else {
-              weaponSprite.rect(-5, -10, 10, 20);
+            // Create weapon sprite for throw animation (sprite if available)
+            const texPath = getWeaponTexturePath(weaponName.toLowerCase());
+            let projectile: any = null;
+            if (texPath) {
+              try {
+                const sp = Sprite.from(texPath);
+                sp.anchor.set(0.5, 0.5);
+                sp.width = 18; sp.height = 18;
+                projectile = sp;
+              } catch { /* fallback below */ }
             }
-            weaponSprite.fill({ color: 0x888888 })
-              .stroke({ width: 2, color: 0x666666 });
-            
-            const projectile = weaponSprite;
-            
-            if (weaponName.includes('shuriken')) {
-              // Spinning shuriken
-              projectile.stroke({ width: 2, color: 0x800080 });
-              for (let i = 0; i < 4; i++) {
-                const angle = (i * 90) * Math.PI / 180;
-                projectile.moveTo(0, 0);
-                projectile.lineTo(Math.cos(angle) * 8, Math.sin(angle) * 8);
+            if (!projectile) {
+              const weaponSprite = new Graphics();
+              if (weaponName.includes('knife') || weaponName.includes('dagger')) {
+                weaponSprite.rect(-3, -15, 6, 30);
+              } else if (weaponName.includes('axe') || weaponName.includes('hatchet')) {
+                weaponSprite.moveTo(-10, -10)
+                  .lineTo(10, -10)
+                  .lineTo(5, 0)
+                  .lineTo(0, 15)
+                  .lineTo(-5, 0)
+                  .closePath();
+              } else {
+                weaponSprite.rect(-5, -10, 10, 20);
               }
-            } else if (weaponName.includes('knife')) {
-              // Knife shape
-              projectile.rect(-1, -6, 2, 12)
-                .fill({ color: 0xC0C0C0 });
-            } else {
-              // Generic projectile
-              projectile.circle(0, 0, 4)
-                .fill({ color: 0x808080 });
+              weaponSprite.fill({ color: 0x888888 }).stroke({ width: 2, color: 0x666666 });
+              projectile = weaponSprite;
+            }
+            
+            if (projectile instanceof Graphics) {
+              if (weaponName.includes('shuriken')) {
+                projectile.stroke({ width: 2, color: 0x800080 });
+                for (let i = 0; i < 4; i++) {
+                  const angle = (i * 90) * Math.PI / 180;
+                  projectile.moveTo(0, 0);
+                  projectile.lineTo(Math.cos(angle) * 8, Math.sin(angle) * 8);
+                }
+              } else if (weaponName.includes('knife')) {
+                projectile.rect(-1, -6, 2, 12).fill({ color: 0xC0C0C0 });
+              } else {
+                projectile.circle(0, 0, 4).fill({ color: 0x808080 });
+              }
             }
             
             // Trail effect
@@ -4063,6 +4140,16 @@ const PixiFight: React.FC<Props> = ({
           
           // Hammer (stun)
           case StepType.Hammer: {
+            // Short motion blur on attacker at impact
+            try {
+              const anode = src.node as any;
+              const abase = Array.isArray(anode.filters) ? anode.filters.slice() : [];
+              const blur = new MotionBlurFilter([actorSide === 'L' ? 100 : -100, 0] as any, 12);
+              anode.filters = [...abase, blur];
+              let tH=0; const lifeH = Math.max(1, 360 / Math.max(0.001, speed));
+              const tickH = (tk:any)=>{ const dm = typeof tk?.deltaMS==='number'?tk.deltaMS:16.7; tH+=dm; const k = Math.max(0, 1 - tH/lifeH); try{ (blur as any).velocity=[(actorSide==='L'?100:-100)*k,0]; }catch{} if(tH>=lifeH){ app.ticker.remove(tickH); try{ anode.filters = abase; }catch{} } };
+              addTick(tickH);
+            } catch {}
             // Official: Hammer drops both shields; ensure visuals reflect it
             try { if (actorIdx !== null) dropShield(actorIdx); } catch {}
             try { if (targetIdx !== null) dropShield(targetIdx); } catch {}
@@ -4118,6 +4205,8 @@ const PixiFight: React.FC<Props> = ({
             wave.rect(0, 0, W, h).fill({ color: 0x1E90FF, alpha: 0.65 });
             wave.position.set(0, (getPos(src.node).y - 40));
             scene.addChild(wave);
+            // Add horizontal motion blur on the wave
+            try { (wave as any).filters = [new MotionBlurFilter([140, 0] as any, 11)]; } catch {}
             let t = 0;
             const tick = (tk:any) => {
               const dm = typeof tk?.deltaMS === 'number' ? tk.deltaMS : 16.7; t += dm;

@@ -140,7 +140,10 @@ const BruteTooltip = ({
                       return undefined;
                     })
                     .filter((n): n is number => typeof n === 'number')
-                    .filter((s) => skills.find((_s) => _s.name === SkillById[s])?.type === 'super')
+                    .filter((s) => {
+                      const type = skills.find((_s) => _s.name === SkillById[s])?.type;
+                      return type === 'super' || type === 'talent';
+                    })
                     .map((s) => t(SkillById[s]))
                 ).join(', ')}
               </Text>
@@ -158,7 +161,10 @@ const BruteTooltip = ({
                       return undefined;
                     })
                     .filter((n): n is number => typeof n === 'number')
-                    .filter((s) => skills.find((_s) => _s.name === SkillById[s])?.type !== 'super')
+                    .filter((s) => {
+                      const type = skills.find((_s) => _s.name === SkillById[s])?.type;
+                      return type !== 'super' && type !== 'talent';
+                    })
                     .map((s) => t(SkillById[s]))
                 ).join(', ')}
               </Text>

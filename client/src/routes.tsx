@@ -51,6 +51,7 @@ import { ClanAdminView } from './views/admin/ClanAdminView';
 import { CurrentEventsView } from './views/event/CurrentEventsView';
 import { EventRoundView } from './views/event/EventRoundView';
 import { UserLogView } from './views/admin/UserLogView';
+import RendererConfigView from './views/RendererConfigView';
 
 const routes: RouteObject[] = [
   {
@@ -64,6 +65,7 @@ const routes: RouteObject[] = [
       { path: 'generating-tournaments', element: <GeneratingView /> },
       { path: 'hall', element: <HallView /> },
       { path: 'patch-notes', element: <PatchNotesView /> },
+      { path: 'tools/renderer', element: <RendererConfigView /> },
       { path: 'wiki', element: <WikiView /> },
       { path: 'fight/:fightId', element: <FightView /> },
       {
