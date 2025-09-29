@@ -3998,107 +3998,66 @@ const PixiFight: React.FC<Props> = ({
           
           // Bomb
           case StepType.Bomb: {
+            const spos = getPos(src.node);
             const tpos = getPos(tgt.node);
-            
-            // Create animated bomb with Spine-like parts
+            floatText(spos.x, spos.y, 'BOMB!', 0xFF4500);
+
+            // Bomb visuals
             const bombContainer = new Container();
-            
-            // Bomb body
-            const bomb = new Graphics();
-            bomb.circle(0, 0, 8)
-              .fill({ color: 0x1C1C1C });
-            
-            // Fuse
-            const fuse = new Graphics();
-            fuse.stroke({ width: 2, color: 0x8B4513 });
-            fuse.moveTo(0, -8);
-            fuse.lineTo(0, -15);
-            
-            // Spark
-            const spark = new Graphics();
-            spark.star(0, -15, 5, 4, 2)
-              .fill({ color: 0xFFFF00 });
-            
+            const bomb = new Graphics(); bomb.circle(0, 0, 8).fill({ color: 0x1C1C1C });
+            const fuse = new Graphics(); fuse.stroke({ width: 2, color: 0x8B4513 }); fuse.moveTo(0, -8); fuse.lineTo(0, -15);
+            const spark = new Graphics(); spark.star(0, -15, 5, 4, 2).fill({ color: 0xFFFF00 });
             bombContainer.addChild(bomb, fuse, spark);
-            bombContainer.position.set(tpos.x, tpos.y - 30);
             scene.addChild(bombContainer);
-            
-            // Animate fuse burning
-            let fuseTime = 0;
-            const fuseTick = (tk: any) => {
-              fuseTime += tk.deltaMS || 16.7;
-              spark.y = -15 + (fuseTime / 500) * 7;
-              spark.scale.set(1 + Math.random() * 0.3);
-              spark.rotation += 0.2;
-              
-              if (fuseTime > 500) {
-                app.ticker.remove(fuseTick);
-                // Defer destruction to avoid batcher error
-                setTimeout(() => {
-                  if (scene && bombContainer && bombContainer.parent) {
-                    scene.removeChild(bombContainer);
-                    bombContainer.destroy(true);
-                  }
-                }, 0);
-                
-                // Create explosion with multiple layers
-                const explosion = new Container();
-                
-                // Inner core
-                const core = new Graphics();
-                core.circle(0, 0, 10)
-                  .fill({ color: 0xFFD200, alpha: 0.85 });
-                
-                // Middle layer
-                const middle = new Graphics();
-                middle.circle(0, 0, 20)
-                  .fill({ color: 0xFFA500, alpha: 0.8 });
-                
-                // Outer layer
-                const outer = new Graphics();
-                outer.circle(0, 0, 30)
-                  .fill({ color: 0xFF4500, alpha: 0.6 });
-                
-                // Shockwave ring
-                const ring = new Graphics();
-                ring.circle(0, 0, 5)
-                  .stroke({ width: 3, color: 0xFFFF00, alpha: 0.8 });
-                
-                explosion.addChild(outer, middle, core, ring);
-                explosion.position.set(tpos.x, tpos.y);
-                scene.addChild(explosion);
-                
-                // Animate explosion
-                let expTime = 0;
-                const expTick = (tk: any) => {
-                  expTime += tk.deltaMS || 16.7;
-                  const progress = expTime / 300;
-                  
-                  core.scale.set(1 + progress * 2);
-                  core.alpha = Math.max(0, 1 - progress);
-                  
-                  middle.scale.set(1 + progress * 1.5);
-                  middle.alpha = Math.max(0, 0.8 - progress);
-                  
-                  outer.scale.set(1 + progress);
-                  outer.alpha = Math.max(0, 0.6 - progress);
-                  
-                  ring.scale.set(1 + progress * 4);
-                  ring.alpha = Math.max(0, 0.8 - progress * 2);
-                  
-                  if (progress >= 1) {
-                    app.ticker.remove(expTick);
-                    scene.removeChild(explosion);
-                    setTimeout(() => { try { explosion.destroy(); } catch {} }, 0);
-                  }
-                };
-                addTick(expTick);
-              }
-            };
-            addTick(fuseTick);
-            
-            floatText(tpos.x, tpos.y, 'BOMB!', 0xFF4500);
-            await delay(600);
+
+            // Start near attacker hand
+            bombContainer.position.set(spos.x + (actorSide === 'L' ? 18 : -18), spos.y - 26);
+
+            // Animate fuse while traveling
+            let fuseTime = 0; const fuseTick = (tk: any) => {
+              const dm = typeof tk?.deltaMS === 'number' ? tk.deltaMS : 16.7; fuseTime += dm;
+              spark.y = -15 + (fuseTime / 500) * 7; spark.scale.set(1 + Math.random() * 0.3); spark.rotation += 0.2;
+            }; addTick(fuseTick);
+
+            // Travel with quadratic Bézier
+            const midY = Math.min(spos.y, tpos.y) - 40;
+            const p0 = { x: bombContainer.x, y: bombContainer.y };
+            const p1 = { x: (spos.x + tpos.x) / 2, y: midY };
+            const p2 = { x: tpos.x, y: tpos.y - 10 };
+            let tt = 0; await new Promise<void>((resolve) => {
+              const travel = (tk: any) => {
+                const dm = typeof tk?.deltaMS === 'number' ? tk.deltaMS : 16.7; tt += (dm / (400 / Math.max(0.001, speed)));
+                const tclamp = Math.min(1, tt);
+                const bx = (1-tclamp)*(1-tclamp)*p0.x + 2*(1-tclamp)*tclamp*p1.x + tclamp*tclamp*p2.x;
+                const by = (1-tclamp)*(1-tclamp)*p0.y + 2*(1-tclamp)*tclamp*p1.y + tclamp*tclamp*p2.y;
+                bombContainer.position.set(bx, by);
+                if (tclamp >= 1) { app.ticker.remove(travel); resolve(); }
+              }; addTick(travel);
+            });
+
+            // Remove bomb and fuse animation
+            try { app.ticker.remove(fuseTick); } catch {}
+            try { scene.removeChild(bombContainer); bombContainer.destroy(true); } catch {}
+
+            // Explosion
+            const explosion = new Container();
+            const core = new Graphics(); core.circle(0, 0, 10).fill({ color: 0xFFD200, alpha: 0.85 });
+            const middle = new Graphics(); middle.circle(0, 0, 20).fill({ color: 0xFFA500, alpha: 0.8 });
+            const outer = new Graphics(); outer.circle(0, 0, 30).fill({ color: 0xFF4500, alpha: 0.6 });
+            const ring = new Graphics(); ring.circle(0, 0, 5).stroke({ width: 3, color: 0xFFFF00, alpha: 0.8 });
+            explosion.addChild(outer, middle, core, ring);
+            explosion.position.set(tpos.x, tpos.y);
+            scene.addChild(explosion);
+
+            let expTime = 0; const expTick = (tk: any) => {
+              const dm = typeof tk?.deltaMS === 'number' ? tk.deltaMS : 16.7; expTime += dm; const progress = expTime / 300;
+              core.scale.set(1 + progress * 2); core.alpha = Math.max(0, 1 - progress);
+              middle.scale.set(1 + progress * 1.5); middle.alpha = Math.max(0, 0.8 - progress);
+              outer.scale.set(1 + progress); outer.alpha = Math.max(0, 0.6 - progress);
+              ring.scale.set(1 + progress * 4); ring.alpha = Math.max(0, 0.8 - progress * 2);
+              if (progress >= 1) { app.ticker.remove(expTick); try { scene.removeChild(explosion); explosion.destroy(); } catch {} }
+            }; addTick(expTick);
+
             await shake(6, 250);
             break; }
           

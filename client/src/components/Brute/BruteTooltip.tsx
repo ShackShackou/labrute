@@ -1,4 +1,4 @@
-import { FightStat, Fighter, SkillById, getFinalHP, getFinalStat, skills } from '@labrute/core';
+import { FightStat, Fighter, SkillById, SkillByName, getFinalHP, getFinalStat, skills } from '@labrute/core';
 import { Brute } from '@labrute/prisma';
 import { Box, SxProps, Tooltip, TooltipProps } from '@mui/material';
 import React from 'react';
@@ -128,11 +128,39 @@ const BruteTooltip = ({
             <>
               <Text sx={{ fontSize: 12, lineHeight: 1.2 }}>
                 <Text component="span" bold sx={{ lineHeight: 1.2 }}>{t('supers')}: </Text>
-                {fighter.skills.filter((s) => skills.find((_s) => _s.name === SkillById[s])?.type === 'super').map((s) => t(SkillById[s])).join(', ')}
+                {(
+                  (Array.isArray(fighter.skills) ? fighter.skills : [])
+                    .map((s: any) => {
+                      if (typeof s === 'number') return s;
+                      if (typeof s === 'string') {
+                        const id = (SkillByName as any)[s];
+                        if (typeof id === 'number') return id as number;
+                        const asNum = Number(s); if (Number.isFinite(asNum)) return asNum as number;
+                      }
+                      return undefined;
+                    })
+                    .filter((n): n is number => typeof n === 'number')
+                    .filter((s) => skills.find((_s) => _s.name === SkillById[s])?.type === 'super')
+                    .map((s) => t(SkillById[s]))
+                ).join(', ')}
               </Text>
               <Text sx={{ fontSize: 12, lineHeight: 1.2 }}>
                 <Text component="span" bold sx={{ lineHeight: 1.2 }}>{t('skills')}: </Text>
-                {fighter.skills.filter((s) => skills.find((_s) => _s.name === SkillById[s])?.type !== 'super').map((s) => t(SkillById[s])).join(', ')}
+                {(
+                  (Array.isArray(fighter.skills) ? fighter.skills : [])
+                    .map((s: any) => {
+                      if (typeof s === 'number') return s;
+                      if (typeof s === 'string') {
+                        const id = (SkillByName as any)[s];
+                        if (typeof id === 'number') return id as number;
+                        const asNum = Number(s); if (Number.isFinite(asNum)) return asNum as number;
+                      }
+                      return undefined;
+                    })
+                    .filter((n): n is number => typeof n === 'number')
+                    .filter((s) => skills.find((_s) => _s.name === SkillById[s])?.type !== 'super')
+                    .map((s) => t(SkillById[s]))
+                ).join(', ')}
               </Text>
             </>
           )}
