@@ -26,7 +26,7 @@ import {
 import { getFighters } from './getFighters.js';
 import { handleStats } from './handleStats.js';
 import { updateAchievements } from './updateAchievements.js';
-import { setSeed, clearSeed, hasSeed, randomBetweenSeeded } from './rng.js';
+import { setSeed, clearSeed, hasSeed, randomBetweenSeeded, rand } from './rng.js';
 
 // Seed-aware wrappers
 const randomItem = <T>(items: T[]): T => {
@@ -51,7 +51,7 @@ const weightedRandom = <T extends { odds: number }>(items: T[]): T => {
   for (i = 0; i < items.length; i++) {
     weights[i] = ((items[i]?.odds || 0) / totalOdds) + (weights[i - 1] || 0);
   }
-  const r = Math.random() * (weights[weights.length - 1] || 0);
+  const r = (hasSeed() ? rand() : Math.random()) * (weights[weights.length - 1] || 0);
   for (i = 0; i < weights.length; i++) {
     if ((weights[i] || 0) > r) break;
   }
