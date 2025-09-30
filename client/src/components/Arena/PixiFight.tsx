@@ -66,6 +66,8 @@ type Props = {
 };
 
 const W = 500; const H = 300;
+// Hotfix: disable in-hand weapon overlay to prevent ghost weapons
+const OVERLAY_WEAPONS = true;
 
 const PixiFight: React.FC<Props> = ({
   fight,
@@ -183,8 +185,30 @@ const PixiFight: React.FC<Props> = ({
     let disposed = false;
     const ticks = new Set<(tk:any)=>void>();
     const timeouts = new Set<number>();
-    const addTick = (fn:(tk:any)=>void) => { ticks.add(fn); app.ticker.add(fn); };
+    // Safe ticker wrapper: catches exceptions and auto-unsubscribes when disposed
+    const addTick = (fn:(tk:any)=>void) => {
+      const wrapped = (tk:any) => {
+        if (disposed) { try { app.ticker.remove(wrapped); } catch {} ticks.delete(wrapped); return; }
+        try { fn(tk); } catch (err) {
+          try { app.ticker.remove(wrapped); } catch {}
+          ticks.delete(wrapped);
+          try { console.error('Ticker error:', err); } catch {}
+        }
+      };
+      ticks.add(wrapped);
+      app.ticker.add(wrapped);
+      return wrapped;
+    };
     const removeAllTicks = () => { ticks.forEach((fn)=>{ try{ app.ticker.remove(fn); } catch{} }); ticks.clear(); };
+
+    // Safely (deferred) set filters to avoid changing pipelines during render
+    const safeSetFilters = (node: any, filters: any[]) => {
+      try {
+        setTimeout(() => {
+          try { if (node && !(node as any).destroyed) { (node as any).filters = filters; } } catch (err) { try { console.error('Filter set error:', err); } catch {} }
+        }, 0);
+      } catch {}
+    };
     const clearAllTimeouts = () => { timeouts.forEach((id)=>{ try{ clearTimeout(id); } catch{} }); timeouts.clear(); };
 
     const mediaSprites: Sprite[] = [];
@@ -549,6 +573,7 @@ const PixiFight: React.FC<Props> = ({
       const clampMax = Number(params.get('pixiClampMax') ?? `${clampYMaxRatio}`);
       const clampY = (y:number) => Math.max(H * clampMin, Math.min(H * clampMax, y));
       const preferVideo = (params.get('bgVideo') === '1' || params.get('bgVideo') === 'true') || !!preferVideoBackground;
+      const disableFx = (params.get('pixiSafe') === '1' || params.get('pixiNoFx') === '1' || localStorage.getItem('compare.pixiNoFx') === '1');
       const debugDiag = false; // DISABLED - debug diagnostics
       // const debugDiag = (params.get('pixiDiag') === '1' || localStorage.getItem('compare.pixiDiag') === '1');
       const traceEnabled = false; // DISABLED - debug traces
@@ -1139,6 +1164,9 @@ const PixiFight: React.FC<Props> = ({
         };
         left = { node: L, baseX: L.x, baseY: L.y, type: 'spine', width: scaledWidth(L) };
         right = { node: R, baseX: R.x, baseY: R.y, type: 'spine', width: scaledWidth(R) };
+        // Attach initial shield overlays if fighters start with shield skill
+        try { if (leftMain?.shield) { attachShield(leftMainIdx, left.node, 'L'); } } catch {}
+        try { if (rightMain?.shield) { attachShield(rightMainIdx, right.node, 'R'); } } catch {}
         shadowL?.destroy(); shadowR?.destroy();
         shadowL = addShadow(left);
         shadowR = addShadow(right);
@@ -2136,36 +2164,50 @@ const PixiFight: React.FC<Props> = ({
 
       // Weapon and Pet Spine Animated Placeholders
       const weaponSpines = new Map<any, any>();
+      const weaponSpinesByIdx = new Map<number, any>();
       const petSpines = new Map<number, any>();
       // Scene shields (visual overlay) per fighter index
       const shields = new Map<number, Graphics>();
       const attachShield = (fighterIdx: number, node: any, side: 'L'|'R') => {
         try {
           if (!node || shields.has(fighterIdx)) return;
-          const g = new Graphics();
-          // Rounded rectangular shield with subtle highlight
-          g.lineStyle(2, 0x9ac7ff, 0.9);
-          g.beginFill(0x3a78b3, 0.25);
-          g.drawRoundedRect(-16, -26, 32, 44, 10);
-          g.endFill();
+          const overlay = new Graphics();
+          // Shield shape
+          overlay.lineStyle(2, 0x9ac7ff, 0.9);
+          overlay.beginFill(0x3a78b3, 0.25);
+          overlay.drawRoundedRect(-16, -26, 32, 44, 10);
+          overlay.endFill();
           const edge = new Graphics();
           edge.lineStyle(2, 0xffffff, 0.3);
           edge.moveTo(-14, -20); edge.lineTo(14, -20);
           edge.moveTo(-12, -8); edge.lineTo(12, -8);
-          g.addChild(edge);
-          // Slightly in front of the fighter depending on side
-          g.position.set(side === 'L' ? 18 : -18, -5);
-          try { (g as any).zIndex = 5; } catch {}
-          node.addChild(g);
-          shields.set(fighterIdx, g);
+          overlay.addChild(edge);
+          try { (overlay as any).zIndex = 5; } catch {}
+          scene.addChild(overlay);
+          // Follow fighter position from scene root
+          const follow = () => {
+            try {
+              if (!node || (node as any).destroyed) return false;
+              const p = getPos(node);
+              // Raise the shield more (from -12 to -22)
+              overlay.position.set(p.x + (side === 'L' ? 18 : -18), p.y - 22);
+              return true;
+            } catch { return false; }
+          };
+          // Initial set
+          follow();
+          const tick = (tk:any) => { if (!follow()) { try { app.ticker.remove(tick); } catch {} } };
+          app.ticker.add(tick);
+          (overlay as any).__followTick = tick;
+          shields.set(fighterIdx, overlay);
         } catch {}
       };
       const dropShield = (fighterIdx: number) => {
         try {
           const g = shields.get(fighterIdx);
           if (!g) return;
-          const parent = g.parent; if (!parent) { shields.delete(fighterIdx); return; }
-          let t = 0; const startY = g.y; const dir = g.x >= 0 ? 1 : -1;
+          try { const tick = (g as any).__followTick; if (tick) app.ticker.remove(tick); } catch {}
+          const startY = g.y; const dir = g.x >= 0 ? 1 : -1; let t = 0;
           const tick = (tk:any) => {
             const dm = typeof tk?.deltaMS === 'number' ? tk.deltaMS : 16.7; t += dm;
             const p = Math.min(1, t / (250 / Math.max(0.001, speed)));
@@ -2173,16 +2215,25 @@ const PixiFight: React.FC<Props> = ({
             g.alpha = 1 - p;
             g.rotation = dir * p * 0.6;
             if (p >= 1) {
-              try { parent.removeChild(g); } catch {}
-              try { g.destroy(); } catch {}
               app.ticker.remove(tick);
               shields.delete(fighterIdx);
+              try { g.visible = false; g.renderable = false; } catch {}
+              setTimeout(() => { try { scene.removeChild(g); g.destroy(); } catch {} }, 0);
             }
           };
           app.ticker.add(tick);
         } catch {}
       };
       const allySpines = new Map<number, any>(); // renforts (Backup) humains supplémentaires
+      const getNodeForIndex = (idx: number): any | null => {
+        try {
+          if (idx === leftMainIdx) return left.node;
+          if (idx === rightMainIdx) return right.node;
+          if (petSpines.has(idx)) return petSpines.get(idx);
+          if (allySpines.has(idx)) return allySpines.get(idx);
+        } catch {}
+        return null;
+      };
       // Track active nets per target (to break on hit)
       const activeNets = new Map<number, Container>();
       const petHudByIndex = new Map<number, { cont: Container, set: (r:number)=>void }>();
@@ -2412,6 +2463,34 @@ const PixiFight: React.FC<Props> = ({
         return container;
       };
 
+      // Spawn a static weapon on the ground (horizontal), no ticking
+      const spawnGroundWeapon = (weaponName: string, x: number, y: number) => {
+        try {
+          const cont = new Container();
+          const tex = getWeaponTexturePath(weaponName.toLowerCase());
+          let node: any = null;
+          if (tex) {
+            try {
+              const sp = Sprite.from(tex);
+              sp.anchor.set(0.5, 0.5);
+              sp.width = 20; sp.height = 20;
+              node = sp;
+            } catch {}
+          }
+          if (!node) {
+            const g = new Graphics();
+            g.rect(-8, -3, 16, 6).fill({ color: 0x808080 });
+            node = g;
+          }
+          cont.addChild(node);
+          cont.position.set(x, y);
+          try { cont.rotation = Math.PI / 2; } catch {}
+          try { (cont as any).zIndex = y - 0.01; } catch {}
+          scene.addChild(cont);
+          return cont;
+        } catch { return null; }
+      };
+
       // Renfort humain (ally) basé sur SpineBoy (mêmes assets que les mains)
       const createAllySpine = (side: 'L'|'R') => {
         try {
@@ -2438,51 +2517,44 @@ const PixiFight: React.FC<Props> = ({
         }
       };
       
-      const attachWeaponToFighter = (fighter: any, weaponName: string) => {
-        // Remove old weapon if exists
-        const oldWeapon = weaponSpines.get(fighter);
-        if (oldWeapon) {
-          if ((oldWeapon as any).weaponTick) {
-            app.ticker.remove((oldWeapon as any).weaponTick);
-          }
-          scene.removeChild(oldWeapon);
-          weaponSpines.delete(fighter);
+      const detachWeaponOverlay = (actorIndex: number) => {
+        const w = weaponSpinesByIdx.get(actorIndex);
+        if (w) {
+          // Stop any local animation tick
+          try { const wt=(w as any).weaponTick; if (wt) app.ticker.remove(wt); } catch {}
+          try { const par=(w as any).parent; if (par) par.removeChild(w); } catch {}
+          weaponSpinesByIdx.delete(actorIndex);
         }
-        
-        // Create and attach new animated weapon
-        if (weaponName && weaponName !== 'none') {
-          const weapon = createWeaponSpine(weaponName);
-          weaponSpines.set(fighter, weapon);
-          scene.addChild(weapon);
-          
-          // Start weapon animation
-          if ((weapon as any).weaponTick) {
-            addTick((weapon as any).weaponTick);
-          }
-          
-          // Position update tick
-          const updateWeaponPosition = () => {
-            const pos = getPos(fighter.node);
-            const side = fighter === left ? 'L' : 'R';
-            weapon.position.set(
-              pos.x + (side === 'L' ? 15 : -15), 
-              pos.y - 25  // Raised from -10 to -25 for higher position
-            );
-            // @ts-ignore
-            weapon.zIndex = pos.y + 0.1;
-          };
-          
-          updateWeaponPosition();
-          
-          const positionTick = (tk: any) => {
-            if (disposed || !weaponSpines.has(fighter)) {
-              app.ticker.remove(positionTick);
-              return;
-            }
-            updateWeaponPosition();
-          };
-          addTick(positionTick);
+      };
+
+      const attachWeaponToFighter = (actorIndex: number, side: 'L'|'R', weaponName: string) => {
+        if (!OVERLAY_WEAPONS) return;
+        // Remove old overlay if any
+        detachWeaponOverlay(actorIndex);
+
+        if (!weaponName || weaponName === 'none') return;
+        const owner = getNodeForIndex(actorIndex);
+        if (!owner) return;
+
+        // Ensure owner can order children via zIndex
+        try { (owner as any).sortableChildren = true; } catch {}
+
+        const weapon = createWeaponSpine(weaponName);
+        weaponSpinesByIdx.set(actorIndex, weapon);
+        try { owner.addChild(weapon); } catch {}
+
+        // Start weapon animation if provided by spine/gfx
+        if ((weapon as any).weaponTick) {
+          addTick((weapon as any).weaponTick);
         }
+
+        // Local position relative to owner (no scene follow tick needed)
+        try {
+          weapon.position.set((side === 'L' ? 15 : -15), -25);
+          // Render above owner parts
+          // @ts-ignore
+          (weapon as any).zIndex = 10;
+        } catch {}
       };
 
       const getPos = (o:any) => ({ x: (o?.position?.x ?? o?.x) as number, y: clampY((o?.position?.y ?? o?.y) as number) });
@@ -2732,6 +2804,13 @@ const PixiFight: React.FC<Props> = ({
                     : targetAlly ? { node: targetAlly, baseX: targetAlly.x, baseY: targetAlly.y, type: 'ally', width: 40 }
                     : (targetSide ? (targetSide === 'L' ? left : right) : (src === left ? right : left));
 
+          // Ensure shield overlay is present for shielded fighters as soon as they act
+          try {
+            if (actor?.shield && actorIdx !== null && src?.node && !shields.has(actorIdx)) {
+              attachShield(actorIdx, src.node, actorSide);
+            }
+          } catch {}
+
           // Track Equip to update known weapon (real data)
           try {
             if (typeof (StepType as any) !== 'undefined' && a === (StepType as any).Equip && actorIdx !== null && typeof (s as any).w !== 'undefined') {
@@ -2770,16 +2849,18 @@ const PixiFight: React.FC<Props> = ({
               
               lastWeaponByActor.set(actorIdx, newWeaponName);
               // Attach weapon placeholder to fighter
-              attachWeaponToFighter(src, newWeaponName);
+              if (actorIdx !== null) attachWeaponToFighter(actorIdx, actorSide, newWeaponName);
               
-              // HIDE weapon icon when weapon is drawn - LIKE OFFICIAL
+              // HIDE weapon icon when weapon is drawn - LIKE OFFICIAL (only if overlay is enabled)
               const weaponKey = `${actorIdx}:${newWeaponName}`;
               drawnWeapons.add(weaponKey);
               
-              if (actor === leftMain) {
-                barL.removeWeapon(newWeaponName); // Remove this specific weapon icon when drawn
-              } else if (actor === rightMain) {
-                barR.removeWeapon(newWeaponName); // Remove this specific weapon icon when drawn
+              if (OVERLAY_WEAPONS) {
+                if (actor === leftMain) {
+                  barL.removeWeapon(newWeaponName); // Remove this specific weapon icon when drawn
+                } else if (actor === rightMain) {
+                  barR.removeWeapon(newWeaponName); // Remove this specific weapon icon when drawn
+                }
               }
             }
           } catch {}
@@ -2861,25 +2942,22 @@ const PixiFight: React.FC<Props> = ({
               } else if (skillId === (SkillId as any).fierceBrute) {
                 floatText(pos.x, pos.y - 30, 'FIERCE!', 0xFF4500);
                 // Motion blur + glow trail using Pixi filters
-                try {
-                  const node = src.node as any;
-                  const baseFilters = Array.isArray(node.filters) ? node.filters.slice() : [];
-                  const velocity = actorSide === 'L' ? [120, 0] : [-120, 0];
-                  const motion = new MotionBlurFilter(velocity as any, 15);
-                  const glow = new GlowFilter({ distance: 12, outerStrength: 2.5, innerStrength: 0.6, color: 0xFF4500, quality: 0.5 });
-                  const adjust = new AdjustmentFilter({ saturation: 1.2, brightness: 1.15, contrast: 1.15 });
-                  node.filters = [...baseFilters, adjust, glow, motion];
+            try {
+              const node = src.node as any;
+              const baseFilters = Array.isArray(node.filters) ? node.filters.slice() : [];
+              const velocity = actorSide === 'L' ? [120, 0] : [-120, 0];
+              const motion = new MotionBlurFilter(velocity as any, 15);
+              const glow = new GlowFilter({ distance: 12, outerStrength: 2.5, innerStrength: 0.6, color: 0xFF4500, quality: 0.5 });
+              const adjust = new AdjustmentFilter({ saturation: 1.2, brightness: 1.15, contrast: 1.15 });
+              if (!disableFx) safeSetFilters(node, [...baseFilters, adjust, glow, motion]);
                   let elapsed = 0;
                   const life = Math.max(1, 1200 / Math.max(0.001, speed));
                   const tick = (tk:any) => {
                     const dm = typeof tk?.deltaMS === 'number' ? tk.deltaMS : 16.7;
                     elapsed += dm;
                     const k = Math.max(0, 1 - (elapsed / life));
-                    try { (motion as any).velocity = [velocity[0] * k, 0]; } catch {}
-                    if (elapsed >= life) {
-                      app.ticker.remove(tick);
-                      try { node.filters = baseFilters; } catch {}
-                    }
+                    try { if (!disableFx) (motion as any).velocity = [velocity[0] * k, 0]; } catch {}
+                    if (elapsed >= life) { app.ticker.remove(tick); if (!disableFx) safeSetFilters(node, baseFilters); }
                   };
                   addTick(tick);
                 } catch {}
@@ -3099,6 +3177,18 @@ const PixiFight: React.FC<Props> = ({
             break; }
           // AttemptHit
           case StepType.AttemptHit: {
+            // Ensure weapon overlay is attached to attacker with the correct weapon (guarded by overlay toggle)
+            try {
+              if (OVERLAY_WEAPONS && actorIdx !== null) {
+                const weaponId: number | undefined = (s as any).w;
+                const weaponName = (typeof weaponId === 'number') ? (WeaponById as any)[weaponId] : (lastWeaponByActor.get(actorIdx) || '');
+                if (weaponName) {
+                  // attach if missing or name changed
+                  const cur = weaponSpinesByIdx.get(actorIdx);
+                  if (!cur) attachWeaponToFighter(actorIdx, actorSide, weaponName);
+                }
+              }
+            } catch {}
             if (traceEnabled && !traceOnRef.current) { traceOnRef.current = true; traceT0Ref.current = performance.now()/1000; }
             try {
               const tpos = getPos(tgt.node);
@@ -3169,17 +3259,17 @@ const PixiFight: React.FC<Props> = ({
 
               // Fade out swoosh
               let alpha = 0.7;
-              const fadeSwoosh = () => {
-                alpha -= 0.05;
-                swoosh.alpha = alpha;
-                if (alpha <= 0) {
-                  scene.removeChild(swoosh);
-                  swoosh.destroy();
-                } else {
-                  requestAnimationFrame(fadeSwoosh);
+              const fadeSwoosh = (tk:any) => {
+                const dm = typeof tk?.deltaMS === 'number' ? tk.deltaMS : 16.7;
+                alpha -= 0.05 * (dm / 16.7);
+                try { swoosh.alpha = alpha; } catch {}
+                if (alpha <= 0 || disposed) {
+                  try { app.ticker.remove(fadeSwoosh); } catch {}
+                  try { swoosh.visible = false; swoosh.renderable = false; } catch {}
+                  setTimeout(() => { try { scene.removeChild(swoosh); swoosh.destroy(); } catch {} }, 0);
                 }
               };
-              requestAnimationFrame(fadeSwoosh);
+              app.ticker.add(fadeSwoosh);
             };
 
             // Create swoosh effect
@@ -3187,8 +3277,8 @@ const PixiFight: React.FC<Props> = ({
 
             // Start weapon animation if weapon equipped
             let weaponAnimPromise: Promise<void> | null = null;
-            if (typeof s.w !== 'undefined') {
-              const weapon = weaponSpines.get(src);
+            if (OVERLAY_WEAPONS && typeof s.w !== 'undefined') {
+              const weapon = (actorIdx !== null) ? weaponSpinesByIdx.get(actorIdx) : null;
               if (weapon) {
                 const originalRotation = weapon.rotation;
                 const originalY = weapon.y;
@@ -3230,21 +3320,20 @@ const PixiFight: React.FC<Props> = ({
                 let gravity = 0.5;
                 let alpha = 0.9;
 
-                const animateParticle = () => {
-                  particle.x += vx;
-                  particle.y += vy + gravity;
-                  gravity += 0.3;
-                  alpha -= 0.03;
-                  particle.alpha = alpha;
-
-                  if (alpha <= 0) {
-                    scene.removeChild(particle);
-                    particle.destroy();
-                  } else {
-                    requestAnimationFrame(animateParticle);
+                const animateParticle = (tk:any) => {
+                  const dm = typeof tk?.deltaMS === 'number' ? tk.deltaMS : 16.7;
+                  particle.x += vx * (dm / 16.7);
+                  particle.y += (vy + gravity) * (dm / 16.7);
+                  gravity += 0.3 * (dm / 16.7);
+                  alpha -= 0.03 * (dm / 16.7);
+                  try { particle.alpha = alpha; } catch {}
+                  if (alpha <= 0 || disposed) {
+                    try { app.ticker.remove(animateParticle); } catch {}
+                    try { particle.visible = false; particle.renderable = false; } catch {}
+                    setTimeout(() => { try { scene.removeChild(particle); particle.destroy(); } catch {} }, 0);
                   }
                 };
-                requestAnimationFrame(animateParticle);
+                app.ticker.add(animateParticle);
               }
             };
 
@@ -3267,23 +3356,27 @@ const PixiFight: React.FC<Props> = ({
               damageText.zIndex = 1000;
               scene.addChild(damageText);
 
-              // Animate floating up and fading
+              // Animate floating up and fading (use Pixi ticker to avoid rAF teardown issues)
               let vy = -3;
               let alpha = 1;
-              const animateNumber = () => {
-                damageText.y += vy;
-                vy *= 0.95; // Slow down
-                alpha -= 0.02;
-                damageText.alpha = alpha;
-
-                if (alpha <= 0) {
-                  scene.removeChild(damageText);
-                  damageText.destroy();
-                } else {
-                  requestAnimationFrame(animateNumber);
-                }
-              };
-              requestAnimationFrame(animateNumber);
+          const numberTick = (tk:any) => {
+            if (disposed || !damageText || (damageText as any).destroyed) {
+              try { app.ticker.remove(numberTick); } catch {}
+              try { (damageText as any).visible = false; (damageText as any).renderable = false; } catch {}
+              setTimeout(() => { try { scene.removeChild(damageText); damageText.destroy(); } catch {} }, 0);
+              return;
+            }
+            damageText.y += vy;
+            vy *= 0.95; // Slow down
+            alpha -= 0.02;
+            damageText.alpha = alpha;
+            if (alpha <= 0) {
+              try { app.ticker.remove(numberTick); } catch {}
+              try { (damageText as any).visible = false; (damageText as any).renderable = false; } catch {}
+              setTimeout(() => { try { scene.removeChild(damageText); damageText.destroy(); } catch {} }, 0);
+            }
+          };
+          app.ticker.add(numberTick);
             };
 
             // Retirer le flash plein écran sur critique (non présent dans l'officiel)
@@ -3474,11 +3567,11 @@ const PixiFight: React.FC<Props> = ({
               else if (actor === rightMain) { barR.removeWeapon(weaponName); }
 
               // Detach any weapon visual bound to fighter
-              const curWeapon = weaponSpines.get(src);
+              const curWeapon = (actorIdx !== null) ? weaponSpinesByIdx.get(actorIdx) : null;
               if (curWeapon) {
                 try { if ((curWeapon as any).weaponTick) app.ticker.remove((curWeapon as any).weaponTick); } catch {}
                 try { scene.removeChild(curWeapon); } catch {}
-                weaponSpines.delete(src);
+                if (actorIdx !== null) weaponSpinesByIdx.delete(actorIdx);
               }
 
               // Clear tracking
@@ -3820,13 +3913,10 @@ const PixiFight: React.FC<Props> = ({
               
               if (progress >= 1) {
                 app.ticker.remove(throwTick);
-                scene.removeChild(projectileContainer);
-                // Destroy all children properly
-                try {
-                  projectile.destroy();
-                  trail.destroy();
-                  projectileContainer.destroy();
-                } catch {}
+                try { projectileContainer.visible = false; projectileContainer.renderable = false; } catch {}
+                setTimeout(() => { try { scene.removeChild(projectileContainer); projectile.destroy(); trail.destroy(); projectileContainer.destroy(); } catch {} }, 0);
+                try { spawnGroundWeapon(weaponName, x, Math.max(y, 0)); } catch {}
+                try { if (actorIdx !== null) detachWeaponOverlay(actorIdx); } catch {}
               }
             };
             addTick(throwTick);
@@ -3860,20 +3950,21 @@ const PixiFight: React.FC<Props> = ({
               
               if (progress >= 1) {
                 app.ticker.remove(flyTick);
-                scene.removeChild(weaponFly);
-                weaponFly.destroy();
+                try { weaponFly.visible = false; weaponFly.renderable = false; } catch {}
+                setTimeout(() => { try { scene.removeChild(weaponFly); weaponFly.destroy(); } catch {} }, 0);
+                try { spawnGroundWeapon(disarmedWeapon, weaponFly.x, weaponFly.y + 10); } catch {}
               }
             };
             app.ticker.add(flyTick);
             
             // Remove weapon visual from target
-            const targetWeapon = weaponSpines.get(tgt);
+            const targetWeapon = (targetIdx !== null) ? weaponSpinesByIdx.get(targetIdx) : null;
             if (targetWeapon) {
               if ((targetWeapon as any).weaponTick) {
                 app.ticker.remove((targetWeapon as any).weaponTick);
               }
-              scene.removeChild(targetWeapon);
-              weaponSpines.delete(tgt);
+              try { scene.removeChild(targetWeapon); } catch {}
+              if (targetIdx !== null) weaponSpinesByIdx.delete(targetIdx);
             }
             // Remove weapon icon from HUD - LIKE OFFICIAL
             if (target === leftMain && disarmedWeapon) {
@@ -3890,11 +3981,18 @@ const PixiFight: React.FC<Props> = ({
             const spos = getPos(src.node);
             const tpos = getPos(tgt.node);
             floatText(tpos.x, tpos.y, 'STOLEN!', 0x9370DB);
-            // Transfer weapon visual
-            const targetWeapon = weaponSpines.get(tgt);
+            // Transfer weapon visual (by fighter index)
+            if (targetIdx !== null && actorIdx !== null) {
+              const targetWeapon = weaponSpinesByIdx.get(targetIdx);
             if (targetWeapon) {
-              weaponSpines.delete(tgt);
-              weaponSpines.set(src, targetWeapon);
+              detachWeaponOverlay(targetIdx);
+              // Ensure we know the stolen weapon name
+              try {
+                const weaponId: number | undefined = (s as any).w;
+                const weaponName = (typeof weaponId === 'number') ? (WeaponById as any)[weaponId] : (stolenWeapon || '');
+                if (weaponName) attachWeaponToFighter(actorIdx, actorSide, weaponName);
+              } catch {}
+            }
             }
             // Get the stolen weapon name from target
             const stolenWeapon = lastWeaponByActor.get(targetIdx ?? -1) || '';
@@ -4212,7 +4310,11 @@ const PixiFight: React.FC<Props> = ({
               const dm = typeof tk?.deltaMS === 'number' ? tk.deltaMS : 16.7; t += dm;
               wave.y += Math.sin(t * 0.02) * 0.6;
               wave.alpha = Math.max(0, 0.65 * (1 - t / 600));
-              if (t >= 600) { app.ticker.remove(tick); try { scene.removeChild(wave); wave.destroy(); } catch {} }
+              if (t >= 600) {
+                app.ticker.remove(tick);
+                try { wave.visible = false; wave.renderable = false; } catch {}
+                setTimeout(() => { try { scene.removeChild(wave); wave.destroy(); } catch {} }, 0);
+              }
             };
             addTick(tick);
             await shake(4, 180);
@@ -4226,6 +4328,19 @@ const PixiFight: React.FC<Props> = ({
             try {
               if (actorSide === 'L') { (hudL as any)?.setStatusFlag?.('haste'); (hudL as any)?.setHasteAura?.(true); }
               else { (hudR as any)?.setStatusFlag?.('haste'); (hudR as any)?.setHasteAura?.(true); }
+            } catch {}
+            // Optional: motion-blur + slight color adjust (guarded by disableFx)
+            try {
+              const node = src.node as any;
+              const baseF = Array.isArray(node.filters) ? node.filters.slice() : [];
+              if (!disableFx) {
+                const motion = new MotionBlurFilter([actorSide === 'L' ? 80 : -80, 0] as any, 9);
+                const adjust = new AdjustmentFilter({ saturation: 1.05, brightness: 1.08, contrast: 1.05 });
+                safeSetFilters(node, [...baseF, adjust, motion]);
+                let tH=0; const lifeH = Math.max(1, 700 / Math.max(0.001, speed));
+                const tickH=(tk:any)=>{ const dm=typeof tk?.deltaMS==='number'?tk.deltaMS:16.7; tH+=dm; const k=Math.max(0,1-tH/lifeH); try{ (motion as any).velocity=[(actorSide==='L'?80:-80)*k,0]; }catch{} if(tH>=lifeH){ app.ticker.remove(tickH); safeSetFilters(node, baseF);} };
+                addTick(tickH);
+              }
             } catch {}
 
             // Speed lines near actor to emphasize haste
