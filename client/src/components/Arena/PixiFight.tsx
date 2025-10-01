@@ -67,6 +67,12 @@ type Props = {
 
 const W = 500; const H = 300;
 
+// Step timing constants
+// Official renderer uses clamped dt values for consistent timing
+// Min: 60ms (visual clarity), Max: 260ms (matches CompareFight reference)
+const STEP_DT_MIN = 60;
+const STEP_DT_MAX = 260;
+
 const PixiFight: React.FC<Props> = ({
   fight,
   
@@ -4950,13 +4956,15 @@ const PixiFight: React.FC<Props> = ({
             return; }
         }
         {
-          // Respect step dt timing from official renderer
-          // Use actual dt value from step, with minimum 60ms for visual clarity
-          const base = Math.max(60, s.dt ?? 120);
+          // Ensure step completes in exactly its dt duration
+          // Use clamped dt to match CompareFight reference (see CompareFight.tsx:17)
+          const base = Math.max(STEP_DT_MIN, Math.min(STEP_DT_MAX, s.dt ?? 120));
           const ideal = base / Math.max(0.001, speed);
           const elapsed = performance.now() - stepT0;
+          // Wait remaining time to reach ideal duration
+          // If animations took longer than ideal, skip wait (don't accumulate delay)
           const wait = Math.max(0, ideal - elapsed);
-          await delay(wait);
+          if (wait > 0) await delay(wait);
         }
         // Log HP changes after each action
         if (prevHpL !== hpL || prevHpR !== hpR) {

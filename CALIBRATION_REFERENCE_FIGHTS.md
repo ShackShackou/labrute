@@ -182,11 +182,17 @@ approachOffset: 1
 | Fight 1 (HerveVenere) | 88 | **8683.2** | **9167.2** | **12765** | 🟡 97% better, still ~9s ahead |
 | Fight 2 (DFF) | 190 | **-532** | **9167.2** | **12765** | 🟡 Negative = Pixi too fast |
 
-**Analysis after fix**:
+**Analysis after removing clamp**:
 - ✅ **MASSIVE improvement**: Mean went from 259593ms → 8683ms (97% reduction!)
 - ⚠️ **New problem**: Pixi now runs TOO FAST (negative delta = ahead of schedule)
 - **Root cause**: Removing the dt clamp fixed desync, but step animations complete faster than their dt duration
-- **Next**: Need to ensure each step waits for its full dt duration, not just (dt - elapsed)
+
+**Analysis after restoring clamp**:
+- ❌ **Back to original problem**: Mean 113956ms (Fight 1), 15468ms (Fight 2)
+- **Root cause identified**: The clamp 260ms is correct, BUT animations (tweens) take longer than dt
+- **Fundamental issue**: `await tweenTo()` blocks for animation duration (e.g., 500ms), THEN waits for remaining dt
+- If tween takes 500ms but dt is 260ms, we get 500ms delay per step
+- **Real solution needed**: Animations must respect dt, OR run in parallel with fixed dt timing
 
 ---
 
