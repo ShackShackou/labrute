@@ -4950,11 +4950,9 @@ const PixiFight: React.FC<Props> = ({
             return; }
         }
         {
-          // Slightly slow down healing steps to avoid too-fast chaining
-          let base = Math.max(60, Math.min(260, s.dt ?? 120));
-          if (a === StepType.Heal || a === StepType.Treat || a === StepType.Regeneration) {
-            base = Math.max(base, 200);
-          }
+          // Respect step dt timing from official renderer
+          // Use actual dt value from step, with minimum 60ms for visual clarity
+          const base = Math.max(60, s.dt ?? 120);
           const ideal = base / Math.max(0.001, speed);
           const elapsed = performance.now() - stepT0;
           const wait = Math.max(0, ideal - elapsed);

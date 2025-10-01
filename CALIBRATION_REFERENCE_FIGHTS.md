@@ -176,10 +176,17 @@ approachOffset: 1
 
 **Root Cause Hypothesis**: Pixi renderer is likely NOT respecting the `dt` values from steps, or is running animations in series instead of parallel, causing massive accumulation of delays.
 
-### Metrics After Calibration
-| Fight | Mean (ms) | RMSE (ms) | p95 (ms) | Pass? |
-|-------|-----------|-----------|----------|-------|
-| ... | ... | ... | ... | ⏳ |
+### Metrics After dt Fix (removing 260ms clamp)
+| Fight | Steps | Mean (ms) | RMSE (ms) | p95 (ms) | Status |
+|-------|-------|-----------|-----------|----------|--------|
+| Fight 1 (HerveVenere) | 88 | **8683.2** | **9167.2** | **12765** | 🟡 97% better, still ~9s ahead |
+| Fight 2 (DFF) | 190 | **-532** | **9167.2** | **12765** | 🟡 Negative = Pixi too fast |
+
+**Analysis after fix**:
+- ✅ **MASSIVE improvement**: Mean went from 259593ms → 8683ms (97% reduction!)
+- ⚠️ **New problem**: Pixi now runs TOO FAST (negative delta = ahead of schedule)
+- **Root cause**: Removing the dt clamp fixed desync, but step animations complete faster than their dt duration
+- **Next**: Need to ensure each step waits for its full dt duration, not just (dt - elapsed)
 
 ---
 
