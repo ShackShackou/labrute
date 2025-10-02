@@ -8,7 +8,6 @@ import React, { useCallback, useEffect, useMemo } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useNavigate, useParams } from 'react-router';
 import { Link as RouterLink } from 'react-router-dom';
-import BoxBg from '../components/BoxBg';
 import CellClan from '../components/Cell/CellClan';
 import CellLog from '../components/Cell/CellLog';
 import CellMain from '../components/Cell/CellMain';
@@ -16,7 +15,6 @@ import CellPets from '../components/Cell/CellPets';
 import CellSkills from '../components/Cell/CellSkills';
 import CellSocials from '../components/Cell/CellSocials';
 import CellWeapons from '../components/Cell/CellWeapons';
-import FantasyButton from '../components/FantasyButton';
 import { ShackersButton, ShackersCard } from '../components/Shackers';
 import { shackersTheme } from '../theme/shackers';
 import Link from '../components/Link';
@@ -26,10 +24,8 @@ import { useAlert } from '../hooks/useAlert';
 import { useAuth } from '../hooks/useAuth';
 import { useBrute } from '../hooks/useBrute';
 import { useConfirm } from '../hooks/useConfirm';
-import { useLanguage } from '../hooks/useLanguage';
 import useStateAsync from '../hooks/useStateAsync';
 import Server from '../utils/Server';
-import { getRandomAd } from '../utils/ads';
 import catchError from '../utils/catchError';
 import CellMobileView from './mobile/CellMobileView';
 import { getBruteWinrate } from '../utils/getBruteWinrate';
@@ -41,13 +37,11 @@ const CellView = () => {
   const { t } = useTranslation();
   const { bruteName } = useParams();
   const smallScreen = useMediaQuery('(max-width: 938px)');
-  const { language } = useLanguage();
   const navigate = useNavigate();
   const { brute, updateBrute, owner } = useBrute();
   const Confirm = useConfirm();
   const Alert = useAlert();
   const { user, updateData } = useAuth();
-  const { palette: { mode } } = useTheme();
   const { data: logs } = useStateAsync([], Server.Log.list, bruteName || '');
 
   // Sacrifice brute
@@ -106,9 +100,6 @@ const CellView = () => {
       }).catch(catchError(Alert));
     });
   }, [Alert, Confirm, brute, t, updateBrute, updateData]);
-
-  // Randomized advertising
-  const ad = useMemo(() => getRandomAd(language), [language]);
 
   // Report brute
   const confirmReport = useCallback(() => {
@@ -220,9 +211,7 @@ const CellView = () => {
       <>
         {previousBruteArrow}
         <CellMobileView
-          ad={ad}
           logs={logs}
-          language={language}
           confirmReport={confirmReport}
           confirmSacrifice={confirmSacrifice}
           confirmReset={confirmReset}
@@ -349,31 +338,6 @@ const CellView = () => {
               {(owner || !!brute.clanId) && !brute.eventId && (
                 <CellClan brute={brute} sx={{ ml: 4 }} />
               )}
-              {/* ADVERT */}
-              <ShackersCard glow bordered sx={{
-                width: 300,
-                height: 205,
-                ml: 0.5,
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                transition: 'all 0.3s',
-                '&:hover': {
-                  boxShadow: shackersTheme.shadows.glowStrong,
-                  transform: 'translateY(-4px)',
-                },
-              }}
-              >
-                <Tooltip title={t(`${ad.name}.desc`)}>
-                  <Link to={ad.url} target="_blank" sx={{ width: 200, display: 'inline-block' }}>
-                    <Box
-                      component="img"
-                      src={`/images/redirects/${ad.illustration}`}
-                      sx={{ width: '100%' }}
-                    />
-                  </Link>
-                </Tooltip>
-              </ShackersCard>
               {/* LOGS */}
               <Box sx={{ ml: 2, mt: 1 }}>
                 {logs.map((log) => <CellLog key={log.id} log={log} />)}

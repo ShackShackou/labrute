@@ -20,22 +20,17 @@ import Page from '../../components/Page';
 import Text from '../../components/Text';
 import { useAuth } from '../../hooks/useAuth';
 import { useBrute } from '../../hooks/useBrute';
-import { AdResult } from '../../utils/ads';
 import { getBruteWinrate } from '../../utils/getBruteWinrate';
 
 export interface CellMobileViewProps {
-  ad: AdResult;
   logs: (Log & { currentBrute: { name: string } })[];
-  language: Lang;
   confirmReport: () => void;
   confirmSacrifice: () => void;
   confirmReset: () => void;
 }
 
 const CellMobileView = ({
-  ad,
   logs,
-  language,
   confirmReport,
   confirmSacrifice,
   confirmReset,
@@ -141,20 +136,8 @@ const CellMobileView = ({
           )}
         </Grid>
         <Grid item xs={12} sm={6} sx={{ textAlign: 'center' }} order={isXs ? 4 : 0}>
-          {/* PETS OR ADVERT */}
-          {brute.pets.length > 0 ? (
-            <CellPets />
-          ) : (
-            <Tooltip title={t(`${ad.name}.desc`)}>
-              <Link to={ad.url} target="_blank" sx={{ width: 200, mx: 'auto' }}>
-                <Box
-                  component="img"
-                  src={`/images/redirects/${ad.illustration}`}
-                  sx={{ border: 2 }}
-                />
-              </Link>
-            </Tooltip>
-          )}
+          {/* PETS */}
+          {brute.pets.length > 0 && <CellPets />}
         </Grid>
         <Grid item xs={12} sm={6} sx={{ textAlign: 'center' }} order={isXs ? 5 : 0}>
           {/* TOURNAMENT */}

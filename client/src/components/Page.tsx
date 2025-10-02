@@ -1,9 +1,8 @@
 import { Version } from '@labrute/core';
-import { AlertTitle, Box, BoxProps, Alert as MuiAlert, Tooltip } from '@mui/material';
-import React, { Fragment, useEffect } from 'react';
+import { AlertTitle, Box, BoxProps, Alert as MuiAlert } from '@mui/material';
+import React, { useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useAuth } from '../hooks/useAuth';
-import ads, { AdName } from '../utils/ads';
 import Header from './Header';
 import Link from './Link';
 import { SEO } from './SEO';
@@ -52,17 +51,6 @@ const Page = ({
       {children}
       {/* FOOTER */}
       <Box sx={{ textAlign: 'center', mt: 2 }}>
-        <Text color="secondary" sx={{ fontWeight: 'bold' }}>
-          {t('moreGames')} :{' '}
-          {Object.entries(ads).map(([name, ad]) => (
-            <Fragment key={name}>
-              <Tooltip title={t(`${name as AdName}.desc`)}>
-                <Link href={ad.url} target="_blank">{t(name as AdName)}</Link>
-              </Tooltip>
-              {' '}
-            </Fragment>
-          ))}
-        </Text>
         <Text color="secondary" bold>
           &copy; 2008{' '}
           <Link href="http://www.motion-twin.com/">

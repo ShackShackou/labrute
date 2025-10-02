@@ -1161,9 +1161,9 @@ const PixiFight: React.FC<Props> = ({
         const isL = side === 'L';
         
         // EXACT SIZES FROM ORIGINAL LABRUTE
-        const portraitSize = 48;  // Match original size
-        const barHeight = 14;     // Thinner bar
-        const barWidth = 230;     // Slightly shorter to create gap in middle
+        const portraitSize = 44;  // Match Official size
+        const barHeight = 16;     // Match Official bar height
+        const barWidth = 230;     // Slightly shorter to match Official
         
         // Portrait EXACTLY like original - simple brown square
         const portraitBg = new Graphics();
@@ -1467,14 +1467,14 @@ const PixiFight: React.FC<Props> = ({
           statusContainer.position.set(2 + portraitSize, 32 + 22);
           
           fullBar.addChild(nameText, barContainer, portraitContainer, weaponContainer, statusContainer);
-          fullBar.position.set(5, 2);  // Back to edge, gap is in the middle now
+          fullBar.position.set(5, -1);  // Adjusted vertical position
         } else {
           // RIGHT SIDE - ORDER: Name at top, bar below, portrait below bar
           nameText.anchor.set(1, 0);
           nameText.position.set(barW, 0);
-          
+
           barContainer.position.set(0, 18);
-          
+
           // Portrait just below bar
           portraitContainer.position.set(barW - portraitSize - 2, 32);
 
@@ -1482,9 +1482,9 @@ const PixiFight: React.FC<Props> = ({
           weaponContainer.position.set(0, 32);  // Container starts at left edge of HUD
           // Status icons under weapons
           statusContainer.position.set(0, 32 + 22);
-          
+
           fullBar.addChild(nameText, barContainer, portraitContainer, weaponContainer, statusContainer);
-          fullBar.position.set(W - 5 - barW, 2);  // Back to edge, gap is in the middle now
+          fullBar.position.set(W - 5 - barW, -1);  // Adjusted vertical position
         }
         
         ui.addChild(fullBar);
@@ -5143,7 +5143,7 @@ const PixiFight: React.FC<Props> = ({
                   fontWeight: '900'
                 } as any);
                 t.anchor.set(0.5, 1);
-                t.position.set(W / 2, H - 28);
+                t.position.set(W / 2, H - 40);
                 ui.addChild(t);
                 // Do not auto-remove the victory banner; keep it visible until view unmounts
               }

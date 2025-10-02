@@ -336,18 +336,19 @@ const CompareFight: React.FC<Props> = ({ fight }) => {
           )}
         </Box>
       </Box>
-      <Box sx={{ display: 'flex', gap: 2, overflowX: 'auto' }}>
-        <Box sx={{ width: 500, height: 300, position: 'relative', flexShrink: 0, overflow: 'hidden' }}>
+      <Box sx={{ display: 'flex', gap: 0.5, justifyContent: 'center', width: '100%' }}>
+        <Box sx={{ position: 'relative', flexShrink: 0, width: 400, height: 280, overflow: 'hidden' }}>
           <Text color="text.primary" center typo="GameFont" upperCase sx={{ fontSize: 10, mb: 0.5 }}>Official</Text>
           <FightComponent fight={fight} />
         </Box>
-        <Box sx={{ width: 500, height: 300, position: 'relative', flexShrink: 0, overflow: 'hidden' }}>
+        <Box sx={{ position: 'relative', flexShrink: 0, width: 400, height: 280, overflow: 'hidden' }}>
           <Text color="text.primary" center typo="GameFont" upperCase sx={{ fontSize: 10, mb: 0.5 }}>Pixi</Text>
-          <PixiFight
+          <Box sx={{ transform: 'scale(0.8)', transformOrigin: 'top left', width: 500, height: 350 }}>
+            <PixiFight
             fight={fight}
             speed={speed}
             onStep={onPixiStep}
-            scale={pixiScale}
+            scale={0.03}
             speedBoost={pixiBoost}
             stageOffsetX={stageX}
             stageOffsetY={stageY}
@@ -363,11 +364,12 @@ const CompareFight: React.FC<Props> = ({ fight }) => {
             customBgIndex={customBgIndex}
             bgStretch={bgStretch}
             bgScale={bgScale}
-            charPx={charPx}
+            charPx={49}
             drift={drift}
             contactBias={contactBias}
             returnFactor={returnFactor}
           />
+          </Box>
         </Box>
       </Box>
     </Box>
