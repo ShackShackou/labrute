@@ -7,6 +7,7 @@ import { useTranslation } from 'react-i18next';
 import { Link as RouterLink } from 'react-router-dom';
 import { useAuth } from '../hooks/useAuth';
 import { useLanguage } from '../hooks/useLanguage';
+import { shackersTheme } from '../theme/shackers';
 import Text from './Text';
 
 export interface HeaderProps extends BoxProps {
@@ -61,41 +62,42 @@ const Header = ({
       sx={{
         position: 'relative',
         zIndex: 2,
+        mb: 2,
       }}
       {...rest}
     >
-      <Box
-        component="img"
-        src={`/images/header/left/${pad(leftArt, 2)}.png`}
-        sx={{
-          position: 'absolute',
-          top: 0,
-          left: 0,
-          zIndex: 1,
-          width: '23.118279569%',
-        }}
-      />
-      <Link component={RouterLink} to={url || '/'}>
+      {/* SHACKERS BANNER */}
+      <Link component={RouterLink} to={url || '/'} sx={{ display: 'block', textDecoration: 'none' }}>
         <Box
-          component="img"
-          src={`/images${theme.palette.mode === 'dark' ? '/dark' : ''}/${language}/header/head.webp`}
           sx={{
+            position: 'relative',
             width: 1,
-            filter: `drop-shadow(3px 3px ${theme.palette.border.shadow})`,
+            height: 200,
+            background: `linear-gradient(135deg, ${shackersTheme.colors.background.default} 0%, ${shackersTheme.colors.background.paper} 100%)`,
+            border: `2px solid ${shackersTheme.colors.primary.main}`,
+            borderRadius: shackersTheme.borderRadius.lg,
+            boxShadow: shackersTheme.shadows.glow,
+            overflow: 'hidden',
+            transition: 'all 0.3s',
+            '&:hover': {
+              boxShadow: shackersTheme.shadows.glowStrong,
+              transform: 'translateY(-2px)',
+            },
           }}
-        />
+        >
+          <Box
+            component="img"
+            src="/images/shackers-banner.jpg"
+            alt="SHACKERS"
+            sx={{
+              width: 1,
+              height: 1,
+              objectFit: 'cover',
+              objectPosition: 'center',
+            }}
+          />
+        </Box>
       </Link>
-      <Box
-        component="img"
-        src={`/images/header/right/1${pad(rightArt, 2)}.png`}
-        sx={{
-          position: 'absolute',
-          top: 0,
-          right: 0,
-          zIndex: 1,
-          width: '23.118279569%',
-        }}
-      />
       <Tooltip title={t('serverTime')}>
         <Text center bold color="secondary">
           <Box component="img" src="/images/time.webp" sx={{ width: 11, mr: 0.5 }} />

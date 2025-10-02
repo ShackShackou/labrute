@@ -2149,18 +2149,39 @@ const PixiFight: React.FC<Props> = ({
         try {
           if (!node || shields.has(fighterIdx)) return;
           const g = new Graphics();
-          // Rounded rectangular shield with subtle highlight
-          g.lineStyle(2, 0x9ac7ff, 0.9);
-          g.beginFill(0x3a78b3, 0.25);
-          g.drawRoundedRect(-16, -26, 32, 44, 10);
-          g.endFill();
+
+          // SHACKERS-style shield with cyan neon glow
+          // Outer glow
+          g.setStrokeStyle({ width: 4, color: 0x00E5FF, alpha: 0.4 });
+          g.roundRect(-18, -28, 36, 48, 12);
+          g.stroke();
+
+          // Main shield border (bright cyan)
+          g.setStrokeStyle({ width: 3, color: 0x00E5FF, alpha: 0.95 });
+          g.setFillStyle({ color: 0x0A3A50, alpha: 0.4 });
+          g.roundRect(-16, -26, 32, 44, 10);
+          g.fill();
+          g.stroke();
+
+          // Inner highlights (white/cyan)
           const edge = new Graphics();
-          edge.lineStyle(2, 0xffffff, 0.3);
+          edge.setStrokeStyle({ width: 2, color: 0x62EFFF, alpha: 0.6 });
           edge.moveTo(-14, -20); edge.lineTo(14, -20);
+          edge.stroke();
+          edge.setStrokeStyle({ width: 2, color: 0x62EFFF, alpha: 0.5 });
           edge.moveTo(-12, -8); edge.lineTo(12, -8);
-          g.addChild(edge);
+          edge.stroke();
+
+          // Center emblem (glowing dot)
+          const emblem = new Graphics();
+          emblem.setFillStyle({ color: 0x00E5FF, alpha: 0.8 });
+          emblem.circle(0, 0, 3);
+          emblem.fill();
+
+          g.addChild(edge, emblem);
+
           // Slightly in front of the fighter depending on side
-          g.position.set(side === 'L' ? 18 : -18, -5);
+          g.position.set(side === 'L' ? 20 : -20, -8);
           try { (g as any).zIndex = 5; } catch {}
           node.addChild(g);
           shields.set(fighterIdx, g);
@@ -2806,6 +2827,59 @@ const PixiFight: React.FC<Props> = ({
             try { eventTrace.push({ t: performance.now()/1000 - traceT0, i: steps.indexOf(s), a, f: actorIdx, tId: targetIdx }); } catch {}
           }
 
+          // Helper function to break net with pieces explosion
+          const breakNetWithExplosion = (netContainer: any, position: {x: number, y: number}) => {
+            // INSTANT explosion - BIGGER pieces
+            const numPieces = 15;
+            for (let i = 0; i < numPieces; i++) {
+              const angle = (i / numPieces) * Math.PI * 2;
+              const speed = 4 + Math.random() * 5;
+              const vx = Math.cos(angle) * speed;
+              const vy = Math.sin(angle) * speed - 3;
+              
+              // BIGGER piece
+              const piece = new Graphics();
+              piece.setStrokeStyle({ width: 3, color: 0x8B4513, alpha: 0.95 });
+              
+              // Draw a bigger piece (random lines)
+              const size = 15 + Math.random() * 10;
+              piece.moveTo(0, 0);
+              piece.lineTo(Math.random() * size - size/2, Math.random() * size - size/2);
+              piece.lineTo(Math.random() * size - size/2, Math.random() * size - size/2);
+              piece.stroke();
+              
+              piece.position.set(position.x, position.y);
+              scene.addChild(piece);
+              
+              let pieceVX = vx;
+              let pieceVY = vy;
+              let alpha = 1;
+              
+              const pieceTick = (tk: any) => {
+                const dm = typeof tk?.deltaMS === 'number' ? tk.deltaMS : 16.7;
+                
+                pieceVY += 0.4;  // Gravity
+                piece.x += pieceVX;
+                piece.y += pieceVY;
+                piece.rotation += 0.15;
+                
+                alpha -= dm / 400;  // Slower fade for visibility
+                piece.alpha = Math.max(0, alpha);
+                
+                if (alpha <= 0) {
+                  app.ticker.remove(pieceTick);
+                  try { scene.removeChild(piece); } catch {}
+                  try { piece.destroy(); } catch {}
+                }
+              };
+              addTick(pieceTick);
+            }
+            
+            // Destroy net immediately
+            try { scene.removeChild(netContainer); } catch {}
+            try { netContainer.destroy(true); } catch {}
+          };
+
           switch (a) {
           // SkillExpire: clear relevant HUD statuses
           case StepType.SkillExpire: {
@@ -3069,6 +3143,20 @@ const PixiFight: React.FC<Props> = ({
             break; }
           // Move
           case StepType.Move: {
+            // Break net if actor is trapped and moves - EXPLOSION!
+            if (actorIdx !== null && activeNets.has(actorIdx)) {
+              const net = activeNets.get(actorIdx)!;
+              activeNets.delete(actorIdx);
+              const follow = (net as any).__followTick;
+              const netTick = (net as any).__netTick;
+              if (follow) { try { app.ticker.remove(follow); } catch {} }
+              if (netTick) { try { app.ticker.remove(netTick); } catch {} }
+              
+              const pos = getPos(src.node);
+              breakNetWithExplosion(net, pos);
+              floatText(pos.x, pos.y - 30, 'NET BROKEN!', 0xFF6B35);
+            }
+
             // Set pet moving state if it's a pet
             const petSpine = petSpines.get(actorIdx ?? -1);
             if (petSpine && (petSpine as any).setMoving) {
@@ -3105,6 +3193,20 @@ const PixiFight: React.FC<Props> = ({
             break; }
           // AttemptHit
           case StepType.AttemptHit: {
+            // Break net if actor is trapped and attempts to hit - EXPLOSION!
+            if (actorIdx !== null && activeNets.has(actorIdx)) {
+              const net = activeNets.get(actorIdx)!;
+              activeNets.delete(actorIdx);
+              const follow = (net as any).__followTick;
+              const netTick = (net as any).__netTick;
+              if (follow) { try { app.ticker.remove(follow); } catch {} }
+              if (netTick) { try { app.ticker.remove(netTick); } catch {} }
+              
+              const pos = getPos(src.node);
+              breakNetWithExplosion(net, pos);
+              floatText(pos.x, pos.y - 30, 'NET BROKEN!', 0xFF6B35);
+            }
+
             if (traceEnabled && !traceOnRef.current) { traceOnRef.current = true; traceT0Ref.current = performance.now()/1000; }
             try {
               const tpos = getPos(tgt.node);
@@ -3143,7 +3245,6 @@ const PixiFight: React.FC<Props> = ({
             const isCritical = (s?.c === 1); // Rouge uniquement si critique (logique officielle)
             const isFlash = false; // réservé à d'autres cas, non utilisé pour la couleur
             const isVersatile = false;
-            // Do NOT auto-break net on Hit; released only by dedicated steps
 
             // WEAPON ANIMATION AND DAMAGE IN PARALLEL
             // Start animation immediately and apply damage at the right moment
@@ -3336,6 +3437,19 @@ const PixiFight: React.FC<Props> = ({
                 try { (hudR as any)?.hitShake?.(); } catch {}
               }
               // If it's a pet, also track its HP separately (but pets don't have HUD bars)
+            
+            // Break net IMMEDIATELY when victim gets hit - EXPLOSION!
+            if (targetIdx !== null && activeNets.has(targetIdx)) {
+              const net = activeNets.get(targetIdx)!;
+              activeNets.delete(targetIdx);
+              const follow = (net as any).__followTick;
+              const netTick = (net as any).__netTick;
+              if (follow) { try { app.ticker.remove(follow); } catch {} }
+              if (netTick) { try { app.ticker.remove(netTick); } catch {} }
+              
+              const pos = getPos(tgt.node);
+              breakNetWithExplosion(net, pos);
+            }
               const isPetTarget = (targetIdx !== null) && petSpines.has(targetIdx);
               if (isPetTarget && targetIdx !== null) {
                 const hp = hpByIndex.get(targetIdx) || { cur: (target?.hp ?? 1), max: (target?.maxHp ?? 1) };
@@ -3931,19 +4045,30 @@ const PixiFight: React.FC<Props> = ({
                 const net = activeNets.get(targetIdx)!;
                 activeNets.delete(targetIdx);
                 const follow = (net as any).__followTick;
+                const netTick = (net as any).__netTick;
                 if (follow) { try { app.ticker.remove(follow); } catch {} }
-                let apha = 1;
-                const fade = (tk:any) => {
+                if (netTick) { try { app.ticker.remove(netTick); } catch {} }
+                // Net falls to ground then fades
+                let fallTime = 0;
+                let fadeStarted = false;
+                let alpha = 1;
+                const fallAndFade = (tk:any) => {
                   const dm = typeof tk?.deltaMS === 'number' ? tk.deltaMS : 16.7;
-                  apha -= dm / (240 / Math.max(0.001, speed));
-                  try { net.alpha = Math.max(0, apha); } catch {}
-                  if (apha <= 0) {
-                    app.ticker.remove(fade);
-                    try { scene.removeChild(net); } catch {}
-                    try { net.destroy(); } catch {}
+                  fallTime += dm;
+                  if (fallTime > 150 && !fadeStarted) {
+                    fadeStarted = true;
+                  }
+                  if (fadeStarted) {
+                    alpha -= dm / (200 / Math.max(0.001, speed));
+                    try { net.alpha = Math.max(0, alpha); } catch {}
+                    if (alpha <= 0) {
+                      app.ticker.remove(fallAndFade);
+                      try { scene.removeChild(net); } catch {}
+                      try { net.destroy(true); } catch {}
+                    }
                   }
                 };
-                addTick(fade);
+                addTick(fallAndFade);
               }
             } catch {}
             break; }
@@ -3977,79 +4102,139 @@ const PixiFight: React.FC<Props> = ({
           // Net (trap)
           case StepType.Trap: {
             const tpos = getPos(tgt.node);
+            const spos = getPos(src.node);
             floatText(tpos.x, tpos.y, 'TRAPPED!', 0x8B4513);
             
-            // Create animated net with physics simulation
+            // Create net container and nodes - BIGGER GRID for better coverage
             const netContainer = new Container();
+            const gridSize = 8;  // More nodes for better rounded shape
+            const spacing = 10;
             const netNodes: {x: number, y: number, vx: number, vy: number}[] = [];
             
-            // Create net grid nodes
-            const gridSize = 6;
-            const spacing = 8;
+            // Initialize net in compact bundle at thrower position
             for (let i = 0; i < gridSize; i++) {
               for (let j = 0; j < gridSize; j++) {
                 netNodes.push({
-                  x: (i - gridSize/2) * spacing,
-                  y: (j - gridSize/2) * spacing - 30,
-                  vx: (Math.random() - 0.5) * 2,
-                  vy: -5 - Math.random() * 3
+                  x: (i - gridSize/2) * 4,  // Compact at start
+                  y: (j - gridSize/2) * 4,
+                  vx: 0,
+                  vy: 0
                 });
               }
             }
             
-            netContainer.position.set(tpos.x, tpos.y);
+            // Start at thrower position
+            netContainer.position.set(spos.x, spos.y - 20);
             scene.addChild(netContainer);
-            // Attach to target and follow its node position every tick
-            const follow = (tk:any) => {
-              try {
-                const p = getPos(tgt.node);
-                netContainer.position.set(p.x, p.y);
-              } catch {}
-            };
-            addTick(follow);
-            if (targetIdx !== null) {
-              try { (netContainer as any).__followTick = follow; } catch {}
-              try { activeNets.set(targetIdx, netContainer); } catch {}
-            }
             
-            // Animate net falling and settling briefly, then keep attached
+            // Phase 1: Throw net across screen (FAST - 100ms)
             let netTime = 0;
+            let phase = 'throw';  // throw -> wrap -> stuck
+            
             const netTick = (tk: any) => {
               netTime += tk.deltaMS || 16.7;
               
-              // Clear and redraw net - SAFE CLEAR
               try {
                 netContainer.removeChildren();
               } catch {}
               const netGraphics = new Graphics();
-              netGraphics.stroke({ width: 2, color: 0x8B4513, alpha: 0.7 });
               
-              // Update physics
-              netNodes.forEach(node => {
-                // Gravity
-                node.vy += 0.5;
-                // Air resistance
-                node.vx *= 0.98;
-                node.vy *= 0.98;
-                // Update position
-                node.x += node.vx * 0.5;
-                node.y += node.vy * 0.5;
+              if (phase === 'throw' && netTime < 100) {
+                // PHASE 1: Net flies in PARABOLIC ARC
+                const progress = netTime / 100;
                 
-                // Constrain to target area
-                if (node.y > 10) {
-                  node.y = 10;
-                  node.vy *= -0.3;
-                }
-              });
+                // Parabolic trajectory (arc through the air)
+                const currentX = spos.x + (tpos.x - spos.x) * progress;
+                const arcHeight = 80;  // Peak of the arc
+                const currentY = (spos.y - 20) + (tpos.y - (spos.y - 20)) * progress - Math.sin(progress * Math.PI) * arcHeight;
+                netContainer.position.set(currentX, currentY);
+                
+                // Net rotates and expands as it flies
+                const rotation = progress * Math.PI * 0.5;  // Slight rotation
+                netContainer.rotation = rotation;
+                
+                // Net starts compact, expands during flight
+                netNodes.forEach((node, idx) => {
+                  const i = Math.floor(idx / gridSize);
+                  const j = idx % gridSize;
+                  const expandFactor = 0.3 + progress * 0.7;
+                  node.x = (i - gridSize/2) * spacing * expandFactor;
+                  node.y = (j - gridSize/2) * spacing * expandFactor;
+                });
+                
+              } else if (phase === 'throw') {
+                // Switch to wrap phase
+                phase = 'wrap';
+                netTime = 0;
+                netContainer.position.set(tpos.x, tpos.y);
+              }
               
-              // Draw net lines
+              if (phase === 'wrap' && netTime < 20) {
+                // PHASE 2: Net INSTANTLY wraps as BIG rounded cage
+                netContainer.rotation = 0;
+                
+                netNodes.forEach((node, idx) => {
+                  const i = Math.floor(idx / gridSize);
+                  const j = idx % gridSize;
+                  
+                  // WRAPPING shape - hugs the character body
+                  const angle = (i / gridSize) * Math.PI * 2;
+                  const yPos = (j / (gridSize - 1));
+                  
+                  // Size that wraps tightly - EVEN SMALLER
+                  const baseRadius = 30;
+                  const height = 55;
+                  
+                  // Narrower at top (head) and bottom (feet), wider in middle (torso)
+                  const verticalBulge = Math.sin(yPos * Math.PI);
+                  const radius = baseRadius * (0.6 + verticalBulge * 0.4);
+                  
+                  // Organic wrap position
+                  node.x = Math.cos(angle) * radius;
+                  node.y = (yPos - 0.5) * height - 25;  // VERY HIGH - full coverage
+                });
+                
+              } else if (phase === 'wrap') {
+                // Switch to stuck immediately
+                phase = 'stuck';
+                netTime = 0;
+                netContainer.rotation = 0;
+                
+                // Lock HUGE cage position
+                netNodes.forEach((node, idx) => {
+                  const i = Math.floor(idx / gridSize);
+                  const j = idx % gridSize;
+                  const angle = (i / gridSize) * Math.PI * 2;
+                  const yPos = (j / (gridSize - 1));
+                  const baseRadius = 30;
+                  const height = 55;
+                  const verticalBulge = Math.sin(yPos * Math.PI);
+                  const radius = baseRadius * (0.6 + verticalBulge * 0.4);
+                  node.x = Math.cos(angle) * radius;
+                  node.y = (yPos - 0.5) * height - 25;  // VERY HIGH - full coverage
+                  node.vx = 0;
+                  node.vy = 0;
+                });
+              }
+              
+              if (phase === 'stuck') {
+                // PHASE 3: Net stays on victim - follow their position
+                try {
+                  const p = getPos(tgt.node);
+                  netContainer.position.set(p.x, p.y);
+                } catch {}
+              }
+              
+              // Draw net with rounded style
+              netGraphics.setStrokeStyle({ width: 3, color: 0x8B4513, alpha: 0.9 });
+              
               for (let i = 0; i < gridSize; i++) {
                 for (let j = 0; j < gridSize; j++) {
                   const idx = i * gridSize + j;
                   const node = netNodes[idx];
                   if (!node) continue;
                   
-                  // Draw horizontal lines
+                  // Horizontal lines
                   if (j < gridSize - 1) {
                     const next = netNodes[idx + 1];
                     if (next) {
@@ -4058,7 +4243,7 @@ const PixiFight: React.FC<Props> = ({
                     }
                   }
                   
-                  // Draw vertical lines
+                  // Vertical lines
                   if (i < gridSize - 1) {
                     const next = netNodes[idx + gridSize];
                     if (next) {
@@ -4069,14 +4254,44 @@ const PixiFight: React.FC<Props> = ({
                 }
               }
               
+              // Draw knots
+              netGraphics.setFillStyle({ color: 0x654321, alpha: 0.8 });
+              netNodes.forEach(node => {
+                netGraphics.circle(node.x, node.y, 2);
+              });
+              netGraphics.fill();
+              netGraphics.stroke();
+              
               netContainer.addChild(netGraphics);
               
-              // Stop physics after a short settle period; keep the net attached
-              if (netTime > 700) {
+              // Stop ticker after stuck phase is established
+              if (phase === 'stuck' && netTime > 100) {
                 app.ticker.remove(netTick);
               }
             };
+            
             addTick(netTick);
+            
+            // Follow function for stuck phase
+            const follow = (tk:any) => {
+              if (phase === 'stuck') {
+                try {
+                  const p = getPos(tgt.node);
+                  netContainer.position.set(p.x, p.y);
+                } catch {}
+              }
+            };
+            addTick(follow);
+            
+            // Store references
+            if (targetIdx !== null) {
+              try { (netContainer as any).__followTick = follow; } catch {}
+              try { (netContainer as any).__netTick = netTick; } catch {}
+              try { activeNets.set(targetIdx, netContainer); } catch {}
+            }
+            
+            // Wait for net to arrive and wrap (100ms flight + 20ms wrap = 120ms total)
+            await delay(120);
             break; }
           
           // Bomb
@@ -4718,19 +4933,30 @@ const PixiFight: React.FC<Props> = ({
                 const net = activeNets.get(actorIdx)!;
                 activeNets.delete(actorIdx);
                 const follow = (net as any).__followTick;
+                const netTick = (net as any).__netTick;
                 if (follow) { try { app.ticker.remove(follow); } catch {} }
-                let apha = 1;
-                const fade = (tk:any) => {
+                if (netTick) { try { app.ticker.remove(netTick); } catch {} }
+                // Net falls to ground then fades
+                let fallTime = 0;
+                let fadeStarted = false;
+                let alpha = 1;
+                const fallAndFade = (tk:any) => {
                   const dm = typeof tk?.deltaMS === 'number' ? tk.deltaMS : 16.7;
-                  apha -= dm / (240 / Math.max(0.001, speed));
-                  try { net.alpha = Math.max(0, apha); } catch {}
-                  if (apha <= 0) {
-                    app.ticker.remove(fade);
-                    try { scene.removeChild(net); } catch {}
-                    try { net.destroy(); } catch {}
+                  fallTime += dm;
+                  if (fallTime > 150 && !fadeStarted) {
+                    fadeStarted = true;
+                  }
+                  if (fadeStarted) {
+                    alpha -= dm / (200 / Math.max(0.001, speed));
+                    try { net.alpha = Math.max(0, alpha); } catch {}
+                    if (alpha <= 0) {
+                      app.ticker.remove(fallAndFade);
+                      try { scene.removeChild(net); } catch {}
+                      try { net.destroy(true); } catch {}
+                    }
                   }
                 };
-                addTick(fade);
+                addTick(fallAndFade);
               }
             } catch {}
             break; }
@@ -4808,19 +5034,30 @@ const PixiFight: React.FC<Props> = ({
                 const net = activeNets.get(actorIdx)!;
                 activeNets.delete(actorIdx);
                 const follow = (net as any).__followTick;
+                const netTick = (net as any).__netTick;
                 if (follow) { try { app.ticker.remove(follow); } catch {} }
-                let a = 1;
-                const fade = (tk:any) => {
+                if (netTick) { try { app.ticker.remove(netTick); } catch {} }
+                // Net falls to ground then fades
+                let fallTime = 0;
+                let fadeStarted = false;
+                let alpha = 1;
+                const fallAndFade = (tk:any) => {
                   const dm = typeof tk?.deltaMS === 'number' ? tk.deltaMS : 16.7;
-                  a -= dm / (240 / Math.max(0.001, speed));
-                  try { net.alpha = Math.max(0, a); } catch {}
-                  if (a <= 0) {
-                    app.ticker.remove(fade);
-                    try { scene.removeChild(net); } catch {}
-                    try { net.destroy(); } catch {}
+                  fallTime += dm;
+                  if (fallTime > 150 && !fadeStarted) {
+                    fadeStarted = true;
+                  }
+                  if (fadeStarted) {
+                    alpha -= dm / (200 / Math.max(0.001, speed));
+                    try { net.alpha = Math.max(0, alpha); } catch {}
+                    if (alpha <= 0) {
+                      app.ticker.remove(fallAndFade);
+                      try { scene.removeChild(net); } catch {}
+                      try { net.destroy(true); } catch {}
+                    }
                   }
                 };
-                addTick(fade);
+                addTick(fallAndFade);
               }
             } catch {}
             break; }

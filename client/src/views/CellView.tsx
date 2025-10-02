@@ -17,6 +17,8 @@ import CellSkills from '../components/Cell/CellSkills';
 import CellSocials from '../components/Cell/CellSocials';
 import CellWeapons from '../components/Cell/CellWeapons';
 import FantasyButton from '../components/FantasyButton';
+import { ShackersButton, ShackersCard } from '../components/Shackers';
+import { shackersTheme } from '../theme/shackers';
 import Link from '../components/Link';
 import Page from '../components/Page';
 import Text from '../components/Text';
@@ -255,20 +257,18 @@ const CellView = () => {
               mb: '5px',
             }}
           />
-          <Paper sx={{
+          <ShackersCard sx={{
             borderTopLeftRadius: 0,
             borderBottomLeftRadius: 0,
             borderBottomRightRadius: 0,
             borderBottom: 'none',
             width: 270,
-            bgcolor: 'background.paperLight',
             mb: 0,
           }}
           />
         </Box>
-        <Paper sx={{
+        <ShackersCard glow bordered sx={{
           borderTopRightRadius: 0,
-          bgcolor: 'background.paperLight',
           zIndex: 2,
           position: 'relative',
           mt: 0,
@@ -279,7 +279,7 @@ const CellView = () => {
             right: 0,
             width: 270,
             height: '9px',
-            bgcolor: 'background.paperLight',
+            bgcolor: shackersTheme.colors.background.paperLight,
           },
         }}
         >
@@ -329,16 +329,20 @@ const CellView = () => {
             >
               {/* REF LINK */}
               <Tooltip title={t('refLink')}>
-                <Paper sx={{
+                <ShackersCard bordered sx={{
                   p: 1,
                   mr: 0,
                   ml: 4,
-                  bgcolor: 'background.paperAccent',
                   textAlign: 'center',
                 }}
                 >
-                  <Text bold sx={{ wordBreak: 'break-word' }}>{`${window.location.origin}?ref=${bruteName || ''}`}</Text>
-                </Paper>
+                  <Text bold sx={{
+                    wordBreak: 'break-word',
+                    color: shackersTheme.colors.primary.main,
+                    fontFamily: shackersTheme.typography.fontFamily.mono,
+                    fontSize: shackersTheme.typography.fontSize.xs,
+                  }}>{`${window.location.origin}?ref=${bruteName || ''}`}</Text>
+                </ShackersCard>
               </Tooltip>
 
               {/* CLAN */}
@@ -346,41 +350,47 @@ const CellView = () => {
                 <CellClan brute={brute} sx={{ ml: 4 }} />
               )}
               {/* ADVERT */}
-              <BoxBg
-                src={`/images${mode === 'dark' ? '/dark' : ''}/${language}/cell/a-bg.webp`}
-                sx={{
-                  width: 300,
-                  height: 205,
-                  ml: 0.5,
-                }}
+              <ShackersCard glow bordered sx={{
+                width: 300,
+                height: 205,
+                ml: 0.5,
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                transition: 'all 0.3s',
+                '&:hover': {
+                  boxShadow: shackersTheme.shadows.glowStrong,
+                  transform: 'translateY(-4px)',
+                },
+              }}
               >
                 <Tooltip title={t(`${ad.name}.desc`)}>
-                  <Link to={ad.url} target="_blank" sx={{ width: 200, mx: 4, display: 'inline-block' }}>
+                  <Link to={ad.url} target="_blank" sx={{ width: 200, display: 'inline-block' }}>
                     <Box
                       component="img"
                       src={`/images/redirects/${ad.illustration}`}
-                      sx={{ ml: 1, mt: 3.5 }}
+                      sx={{ width: '100%' }}
                     />
                   </Link>
                 </Tooltip>
-              </BoxBg>
+              </ShackersCard>
               {/* LOGS */}
               <Box sx={{ ml: 2, mt: 1 }}>
                 {logs.map((log) => <CellLog key={log.id} log={log} />)}
               </Box>
               {!brute.eventId && (
                 <Box sx={{ display: 'flex', ml: 2, justifyContent: 'center' }}>
-                  <FantasyButton color="secondary" to={`/${brute.name}/tournaments`} sx={{ m: 1 }}>
+                  <ShackersButton variant="secondary" to={`/${brute.name}/tournaments`} sx={{ m: 1 }}>
                     <History sx={{ verticalAlign: 'middle', mr: 1 }} />
                     {t('tournaments')}
-                  </FantasyButton>
+                  </ShackersButton>
                 </Box>
               )}
               <Box sx={{ display: 'flex', ml: 2, justifyContent: 'center' }}>
-                <FantasyButton color="primary" to={`/${brute.name}/event/history`} sx={{ m: 1 }}>
+                <ShackersButton variant="primary" glow to={`/${brute.name}/event/history`} sx={{ m: 1 }}>
                   <History sx={{ verticalAlign: 'middle', mr: 1 }} />
                   {t('eventHistory')}
-                </FantasyButton>
+                </ShackersButton>
               </Box>
               <Text
                 smallCaps
@@ -406,7 +416,7 @@ const CellView = () => {
               )}
             </Box>
           </Box>
-        </Paper>
+        </ShackersCard>
         {nextBruteArrow}
       </Page>
     ));

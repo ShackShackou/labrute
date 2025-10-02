@@ -62,7 +62,11 @@
       "Bash(psql:*)",
       "Bash(start http://localhost:3000/HerveVenere/fight/bd336b4a-fe6e-41bd-88ff-28e7c0bcb4c5?renderer=compare)",
       "Bash(start http://localhost:3000/DFF/fight/e1eebfeb-65ea-4870-9327-cd3ffa1fbc4a?renderer=compare)",
-      "Bash(start http://localhost:3000/BeigePopular/fight/670be95e5e65a2f6a17f5f9a?renderer=compare)"
+      "Bash(start http://localhost:3000/BeigePopular/fight/670be95e5e65a2f6a17f5f9a?renderer=compare)",
+      "WebSearch",
+      "WebFetch(domain:shackers.xyz)",
+      "Bash(timeout:*)",
+      "Bash(start:*)"
     ],
     "deny": [],
     "ask": []

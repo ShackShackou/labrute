@@ -10,12 +10,14 @@ import BruteRender from '../components/Brute/Body/BruteRender';
 import EmptyBrute from '../components/Brute/Body/EmptyBrute';
 import FantasyButton from '../components/FantasyButton';
 import Page from '../components/Page';
+import { ShackersButton, ShackersCard } from '../components/Shackers';
 import StyledButton from '../components/StyledButton';
 import StyledInput from '../components/StyledInput';
 import Text from '../components/Text';
 import { useAlert } from '../hooks/useAlert';
 import { useAuth } from '../hooks/useAuth';
 import { useLanguage } from '../hooks/useLanguage';
+import { shackersTheme } from '../theme/shackers';
 import { getRandomAd } from '../utils/ads';
 import catchError from '../utils/catchError';
 import { setCookie } from '../utils/cookies';
@@ -244,139 +246,300 @@ const HomeView = () => {
         title={t('MyBrute')}
         description={t('home.desc')}
       >
-        <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 1 }}>
-          {/* CHARACTER CREATION */}
-          <BoxBg
-            src={`/images${mode === 'dark' ? '/dark' : ''}/creation/bg.png`}
+        <Box sx={{
+          display: 'flex',
+          justifyContent: 'space-between',
+          mb: 1,
+          gap: 2,
+        }}>
+          {/* CHARACTER CREATION - SHACKERS STYLE */}
+          <ShackersCard
+            glow
+            bordered
             sx={{
-              width: 290,
-              height: 454,
-              backgroundSize: '270px 364px',
-              backgroundPosition: '20px -2px',
+              width: 340,
+              minHeight: 500,
+              background: `linear-gradient(135deg, ${shackersTheme.colors.background.paper} 0%, ${shackersTheme.colors.background.paperLight} 100%)`,
+              position: 'relative',
             }}
           >
-            {/* CREATION HEADER */}
+            {/* SHACKERS LOGO/HEADER */}
             <Box sx={{
-              display: 'flex',
-              justifyContent: 'center',
-              alignItems: 'center',
-              gap: 1,
-              mt: 1.5,
-            }}
-            >
-              <Text sx={{ typography: 'Pixelized', fontSize: 7 }} color="secondary">{t('chooseName')}</Text>
-              <Box
-                component="img"
-                src="/images/creation/arrow.png"
-                sx={{ width: 20 }}
-              />
+              textAlign: 'center',
+              mb: 3,
+            }}>
+              <Text
+                sx={{
+                  fontFamily: shackersTheme.typography.fontFamily.display,
+                  fontSize: shackersTheme.typography.fontSize['2xl'],
+                  fontWeight: shackersTheme.typography.fontWeight.black,
+                  letterSpacing: shackersTheme.typography.letterSpacing.widest,
+                  textTransform: 'uppercase',
+                  color: shackersTheme.colors.primary.main,
+                  textShadow: `0 0 10px ${shackersTheme.colors.primary.main}, 0 0 20px ${shackersTheme.colors.primary.main}`,
+                }}
+              >
+                SHACKERS
+              </Text>
+              <Text
+                sx={{
+                  fontFamily: shackersTheme.typography.fontFamily.primary,
+                  fontSize: shackersTheme.typography.fontSize.sm,
+                  color: shackersTheme.colors.text.secondary,
+                  letterSpacing: shackersTheme.typography.letterSpacing.wider,
+                  textTransform: 'uppercase',
+                  mt: 0.5,
+                }}
+              >
+                {t('chooseName')}
+              </Text>
             </Box>
+
             {/* NAME INPUT */}
-            <Box sx={{ pl: 6.5, pr: 4 }}>
+            <Box sx={{ px: 2, mb: 2 }}>
               <StyledInput
                 onChange={changeName}
                 value={name}
+                sx={{
+                  '& input': {
+                    fontFamily: shackersTheme.typography.fontFamily.primary,
+                    color: shackersTheme.colors.primary.main,
+                    textAlign: 'center',
+                    fontSize: shackersTheme.typography.fontSize.lg,
+                    fontWeight: shackersTheme.typography.fontWeight.bold,
+                    letterSpacing: shackersTheme.typography.letterSpacing.wide,
+                  }
+                }}
               />
               <Tooltip title={fixBruteAppearance ? t('unlockBruteAppearance') : t('lockBruteAppearance')}>
-                <IconButton onClick={() => setFixBruteAppearance((prev) => !prev)} size="small" sx={{ float: 'right', mt: 1 }}>
+                <IconButton
+                  onClick={() => setFixBruteAppearance((prev) => !prev)}
+                  size="small"
+                  sx={{
+                    float: 'right',
+                    mt: 1,
+                    color: shackersTheme.colors.primary.main,
+                    '&:hover': {
+                      color: shackersTheme.colors.primary.light,
+                      filter: `drop-shadow(0 0 8px ${shackersTheme.colors.primary.main})`,
+                    }
+                  }}
+                >
                   {fixBruteAppearance ? <Lock /> : <LockOpen />}
                 </IconButton>
               </Tooltip>
-              {/* CHARACTER */}
-              {character}
-              {/* CUSTOMIZATION BUTTONS */}
-              <Box sx={{
-                display: 'flex',
-                justifyContent: 'space-between',
-                mt: -11.25,
-              }}
-              >
-                <Tooltip title={t('changeAppearance')}>
-                  <StyledButton
-                    onClick={changeAppearance}
-                    image="/images/creation/bodyType.svg"
-                    swapImage={false}
-                    sx={{
-                      width: 89,
-                      height: 89,
-                      backgroundSize: '100%'
-                    }}
-                  />
-                </Tooltip>
-                <Tooltip title={t('changeColors')}>
-                  <StyledButton
-                    onClick={changeColors}
-                    image="/images/creation/color.svg"
-                    swapImage={false}
-                    sx={{
-                      width: 89,
-                      height: 89,
-                      backgroundSize: '100%'
-                    }}
-                  />
-                </Tooltip>
-              </Box>
-              {/* VISUAL NOISE */}
-              <Box
-                component="img"
-                src={`/images${mode === 'dark' ? '/dark' : ''}/creation/broken.png`}
-                alt="Crack"
-                sx={{ mt: -0.25, ml: 16 }}
-              />
-              {/* VALIDATION */}
-              <Box sx={{ textAlign: 'center' }}>
-                <StyledButton onClick={createBrute}>{t('validate')}</StyledButton>
-              </Box>
+            </Box>
 
-              {(user || authing) ? (
-                // Visual noise
-                <Box
-                  component="img"
-                  src="/images/creation/scratches.png"
-                  alt="Scratch"
-                  sx={{ ml: 6 }}
-                />
-              ) : (
-                <FantasyButton
-                  color="success"
+            {/* CHARACTER PREVIEW WITH GLOW */}
+            <Box sx={{
+              position: 'relative',
+              display: 'flex',
+              justifyContent: 'center',
+              mb: 2,
+              filter: creationStarted
+                ? `drop-shadow(0 0 20px ${shackersTheme.colors.primary.main})`
+                : 'none',
+            }}>
+              {character}
+            </Box>
+
+            {/* CUSTOMIZATION BUTTONS - SHACKERS STYLE */}
+            <Box sx={{
+              display: 'flex',
+              justifyContent: 'center',
+              gap: 2,
+              mb: 3,
+            }}>
+              <Tooltip title={t('changeAppearance')}>
+                <ShackersButton
+                  variant="ghost"
+                  onClick={changeAppearance}
+                  sx={{ minWidth: 120 }}
+                >
+                  BODY
+                </ShackersButton>
+              </Tooltip>
+              <Tooltip title={t('changeColors')}>
+                <ShackersButton
+                  variant="ghost"
+                  onClick={changeColors}
+                  sx={{ minWidth: 120 }}
+                >
+                  COLOR
+                </ShackersButton>
+              </Tooltip>
+            </Box>
+
+            {/* VALIDATION BUTTON */}
+            <Box sx={{ textAlign: 'center', mb: 2 }}>
+              <ShackersButton
+                variant="primary"
+                glow
+                onClick={createBrute}
+                fullWidth
+                sx={{ maxWidth: 280 }}
+              >
+                {t('validate')}
+              </ShackersButton>
+            </Box>
+
+            {/* LOGIN BUTTON */}
+            {!(user || authing) && (
+              <Box sx={{ textAlign: 'center' }}>
+                <ShackersButton
+                  variant="secondary"
                   onClick={login}
-                  sx={{ mt: 2 }}
+                  fullWidth
+                  sx={{ maxWidth: 280 }}
                 >
                   {t('connect')}
-                </FantasyButton>
-              )}
-            </Box>
-          </BoxBg>
-          {/* RIGHT SIDE */}
-          <BoxBg
-            src={`/images/${mode === 'dark' ? 'dark/' : ''}main-bg.gif`}
-            sx={{ width: 640, height: 454 }}
+                </ShackersButton>
+              </Box>
+            )}
+          </ShackersCard>
+          {/* RIGHT SIDE - SHACKERS INFO PANEL */}
+          <ShackersCard
+            glow
+            bordered
+            gradient
+            sx={{
+              flex: 1,
+              minHeight: 500,
+              display: 'flex',
+              flexDirection: 'column',
+              justifyContent: 'space-between',
+            }}
           >
-            {/* FIRST TEXT */}
-            <Box sx={{ width: 300, mt: 2 }}>
-              <Text h5 bold typo="handwritten" color="secondary">{t('toBeABrute')}</Text>
-              <Text bold color="text.primary">{t('createBrute')}</Text>
+            {/* WELCOME MESSAGE */}
+            <Box>
+              <Text
+                sx={{
+                  fontFamily: shackersTheme.typography.fontFamily.display,
+                  fontSize: shackersTheme.typography.fontSize.xl,
+                  fontWeight: shackersTheme.typography.fontWeight.bold,
+                  letterSpacing: shackersTheme.typography.letterSpacing.wide,
+                  textTransform: 'uppercase',
+                  color: shackersTheme.colors.secondary.main,
+                  mb: 2,
+                  textShadow: `0 0 10px ${shackersTheme.colors.secondary.main}`,
+                }}
+              >
+                {t('toBeABrute')}
+              </Text>
+              <Text
+                sx={{
+                  fontFamily: shackersTheme.typography.fontFamily.primary,
+                  fontSize: shackersTheme.typography.fontSize.md,
+                  color: shackersTheme.colors.text.primary,
+                  lineHeight: 1.6,
+                }}
+              >
+                {t('createBrute')}
+              </Text>
             </Box>
-            {/* SECOND TEXT */}
-            <Box sx={{ width: 300, mt: 4, ml: 2 }}>
-              <Text h5 bold typo="handwritten" color="secondary">{t('orNotToBe')}</Text>
-              <Text bold color="text.primary">{t('otherGames')}</Text>
+
+            {/* FEATURES SECTION */}
+            <Box sx={{ my: 3 }}>
+              <Text
+                sx={{
+                  fontFamily: shackersTheme.typography.fontFamily.display,
+                  fontSize: shackersTheme.typography.fontSize.lg,
+                  fontWeight: shackersTheme.typography.fontWeight.bold,
+                  letterSpacing: shackersTheme.typography.letterSpacing.wide,
+                  textTransform: 'uppercase',
+                  color: shackersTheme.colors.primary.main,
+                  mb: 2,
+                }}
+              >
+                FEATURES
+              </Text>
+              <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1.5 }}>
+                {[
+                  '⚔️ Combat System - Pixi v8 + Spine 2D',
+                  '🏆 Daily Tournaments',
+                  '🎯 Skill Trees & Destinies',
+                  '👥 Clans & Clan Wars',
+                  '📊 Global Rankings',
+                  '🎖️ Achievements System',
+                ].map((feature, idx) => (
+                  <Text
+                    key={idx}
+                    sx={{
+                      fontFamily: shackersTheme.typography.fontFamily.primary,
+                      fontSize: shackersTheme.typography.fontSize.sm,
+                      color: shackersTheme.colors.text.secondary,
+                      '&:hover': {
+                        color: shackersTheme.colors.primary.main,
+                        transform: 'translateX(4px)',
+                        transition: 'all 0.2s',
+                      },
+                    }}
+                  >
+                    {feature}
+                  </Text>
+                ))}
+              </Box>
             </Box>
-            {/* OTHER GAMES */}
-            <Box sx={{ mt: 1, ml: 2 }}>
-              {[leftAd, rightAd].map((ad) => (
-                <Tooltip title={t(`${ad.name}.desc`)} key={ad.name}>
-                  <Link href={ad.url} target="_blank" sx={{ width: 200, mx: 4, display: 'inline-block' }}>
-                    <Box
-                      component="img"
-                      src={`/images/redirects/${ad.illustration}`}
-                      sx={{ width: 1, border: 2 }}
-                    />
-                  </Link>
-                </Tooltip>
-              ))}
+
+            {/* OTHER GAMES SECTION */}
+            <Box>
+              <Text
+                sx={{
+                  fontFamily: shackersTheme.typography.fontFamily.display,
+                  fontSize: shackersTheme.typography.fontSize.lg,
+                  fontWeight: shackersTheme.typography.fontWeight.bold,
+                  letterSpacing: shackersTheme.typography.letterSpacing.wide,
+                  textTransform: 'uppercase',
+                  color: shackersTheme.colors.secondary.main,
+                  mb: 2,
+                }}
+              >
+                {t('orNotToBe')}
+              </Text>
+              <Text
+                sx={{
+                  fontFamily: shackersTheme.typography.fontFamily.primary,
+                  fontSize: shackersTheme.typography.fontSize.sm,
+                  color: shackersTheme.colors.text.secondary,
+                  mb: 2,
+                }}
+              >
+                {t('otherGames')}
+              </Text>
+              <Box sx={{ display: 'flex', gap: 2, justifyContent: 'center' }}>
+                {[leftAd, rightAd].map((ad) => (
+                  <Tooltip title={t(`${ad.name}.desc`)} key={ad.name}>
+                    <Link
+                      href={ad.url}
+                      target="_blank"
+                      sx={{
+                        display: 'block',
+                        border: `2px solid ${shackersTheme.colors.primary.dark}`,
+                        borderRadius: shackersTheme.borderRadius.md,
+                        overflow: 'hidden',
+                        transition: 'all 0.3s',
+                        '&:hover': {
+                          borderColor: shackersTheme.colors.primary.main,
+                          boxShadow: shackersTheme.shadows.glow,
+                          transform: 'translateY(-4px)',
+                        },
+                      }}
+                    >
+                      <Box
+                        component="img"
+                        src={`/images/redirects/${ad.illustration}`}
+                        sx={{
+                          width: 220,
+                          height: 'auto',
+                          display: 'block',
+                        }}
+                      />
+                    </Link>
+                  </Tooltip>
+                ))}
+              </Box>
             </Box>
-          </BoxBg>
+          </ShackersCard>
         </Box>
       </Page>
     );

@@ -14,6 +14,8 @@ import catchError from '../../utils/catchError';
 import BruteBodyAndStats from '../Brute/BruteBodyAndStats';
 import BruteLevelAndXP from '../Brute/BruteLevelAndXP';
 import FantasyButton from '../FantasyButton';
+import { ShackersButton } from '../Shackers';
+import { shackersTheme } from '../../theme/shackers';
 import Link from '../Link';
 import StyledButton from '../StyledButton';
 import Text from '../Text';
@@ -135,9 +137,9 @@ const CellMain = ({
 
       {/* Rank up */}
       {owner && brute.canRankUpSince && brute.ranking > 0 && (!dayjs.utc(brute.canRankUpSince).isSame(dayjs.utc(), 'day') || brute.currentTournamentStepWatched === 6) && (
-        <FantasyButton color="warning" onClick={rankUp} sx={{ mb: 1 }}>
+        <ShackersButton variant="secondary" glow onClick={rankUp} sx={{ mb: 1 }}>
           {t('rankUp')}
-        </FantasyButton>
+        </ShackersButton>
       )}
       {/* Ascend */}
       {owner && brute.canRankUpSince && brute.ranking === 0 && (!dayjs.utc(brute.canRankUpSince).isSame(dayjs.utc(), 'day') || brute.currentTournamentStepWatched === 6) && (
@@ -149,19 +151,20 @@ const CellMain = ({
             },
           }}
         >
-          <FantasyButton color="warning" sx={{ mb: 1 }}>
+          <ShackersButton variant="secondary" glow sx={{ mb: 1 }}>
             {t('ascend')}
-          </FantasyButton>
+          </ShackersButton>
         </Link>
       )}
       {!authing && !user && (
-        <FantasyButton
-          color="success"
+        <ShackersButton
+          variant="primary"
+          glow
           onClick={login}
           sx={{ mt: 2 }}
         >
           {t('connect')}
-        </FantasyButton>
+        </ShackersButton>
       )}
       {owner && ((brute.xp < xpNeededForNextLevel
         || (brute.eventId && brute.level >= (currentEvent?.maxLevel ?? 999)))
@@ -191,9 +194,9 @@ const CellMain = ({
             </Box>
           )
         : (!brute.eventId || brute.level < (currentEvent?.maxLevel ?? 999)) ? (
-          <FantasyButton color="success" to={`/${brute.name}/level-up`}>
+          <ShackersButton variant="primary" glow to={`/${brute.name}/level-up`}>
             {t('levelUp')}
-          </FantasyButton>
+          </ShackersButton>
         )
           : null)}
       {/* TOURNAMENT */}
@@ -211,27 +214,27 @@ const CellMain = ({
         && dayjs.utc().isAfter(dayjs.utc(brute.createdAt), 'day')
         && !!confirmSacrifice
         && (
-          <FantasyButton
-            color="error"
+          <ShackersButton
+            variant="danger"
             onClick={confirmSacrifice}
             sx={{
               mt: 1,
             }}
           >
             {t('sacrifice')}
-          </FantasyButton>
+          </ShackersButton>
         )}
       {/* BRUTE RESET */}
       {owner && !!confirmReset && (
-        <FantasyButton
-          color="warning"
+        <ShackersButton
+          variant="secondary"
           onClick={confirmReset}
           sx={{
             mt: 2,
           }}
         >
           {t('reset')}
-        </FantasyButton>
+        </ShackersButton>
       )}
     </Box>
   );
