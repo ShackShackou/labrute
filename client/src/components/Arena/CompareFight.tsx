@@ -1,6 +1,7 @@
 /* eslint-disable @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-member-access, @typescript-eslint/no-unsafe-argument, @typescript-eslint/no-unsafe-call, no-empty, max-len, react/jsx-no-useless-fragment, react/jsx-indent */
 import React, { useEffect, useMemo, useState } from 'react';
 import { Box, Button, Slider, Switch } from '@mui/material';
+import { Link } from 'react-router-dom';
 import Text from '../Text';
 import FightComponent from './FightComponent';
 import PixiFight from './PixiFight';
@@ -17,6 +18,17 @@ const writeNum = (k: string, v: number) => { try { localStorage.setItem(k, Strin
 const clampDt = (s: any) => Math.max(60, Math.min(260, s?.dt ?? 120));
 
 const CompareFight: React.FC<Props> = ({ fight }) => {
+  const fighters = useMemo(() => (fight
+    ? JSON.parse(fight.fighters) as any[]
+    : undefined), [fight]);
+
+  const brute1 = useMemo(() => fight && fighters && fighters
+    .find((fighter) => !fighter.master
+      && fighter.id === fight.brute1Id), [fight, fighters]);
+  const brute2 = useMemo(() => fight && fighters && fighters
+    .find((fighter) => !fighter.master
+      && fighter.id === fight.brute2Id), [fight, fighters]);
+
   const [speed, setSpeed] = useState(() => {
     const s = Number(localStorage.getItem('fightSpeed'));
     if (s === 1 || s === 2) return s;
@@ -341,34 +353,60 @@ const CompareFight: React.FC<Props> = ({ fight }) => {
           <Text color="text.primary" center typo="GameFont" upperCase sx={{ fontSize: 10, mb: 0.5 }}>Official</Text>
           <FightComponent fight={fight} />
         </Box>
-        <Box sx={{ position: 'relative', flexShrink: 0, width: 400, height: 280, overflow: 'hidden' }}>
+        <Box sx={{ position: 'relative', flexShrink: 0, width: 400 }}>
           <Text color="text.primary" center typo="GameFont" upperCase sx={{ fontSize: 10, mb: 0.5 }}>Pixi</Text>
-          <Box sx={{ transform: 'scale(0.8)', transformOrigin: 'top left', width: 500, height: 350 }}>
-            <PixiFight
-            fight={fight}
-            speed={speed}
-            onStep={onPixiStep}
-            scale={0.03}
-            speedBoost={pixiBoost}
-            stageOffsetX={stageX}
-            stageOffsetY={stageY}
-            clampYMinRatio={clampMin}
-            clampYMaxRatio={clampMax}
-            leftOffsetX={leftX}
-            leftOffsetY={leftY}
-            rightOffsetX={rightX}
-            rightOffsetY={rightY}
-            approachOffset={approachOffset}
-            preferVideoBackground={preferVideo}
-            useCustomBg={useCustomBg}
-            customBgIndex={customBgIndex}
-            bgStretch={bgStretch}
-            bgScale={bgScale}
-            charPx={49}
-            drift={drift}
-            contactBias={contactBias}
-            returnFactor={returnFactor}
-          />
+          <Box sx={{ position: 'relative', width: 400, height: 280, overflow: 'hidden' }}>
+            <Box sx={{ transform: 'scale(0.8)', transformOrigin: 'top left', width: 500, height: 350 }}>
+              <PixiFight
+              fight={fight}
+              speed={speed}
+              onStep={onPixiStep}
+              scale={0.03}
+              speedBoost={pixiBoost}
+              stageOffsetX={stageX}
+              stageOffsetY={stageY}
+              clampYMinRatio={clampMin}
+              clampYMaxRatio={clampMax}
+              leftOffsetX={leftX}
+              leftOffsetY={leftY}
+              rightOffsetX={rightX}
+              rightOffsetY={rightY}
+              approachOffset={approachOffset}
+              preferVideoBackground={preferVideo}
+              useCustomBg={useCustomBg}
+              customBgIndex={customBgIndex}
+              bgStretch={bgStretch}
+              bgScale={bgScale}
+              charPx={49}
+              drift={drift}
+              contactBias={contactBias}
+              returnFactor={returnFactor}
+            />
+            </Box>
+            {brute1 && brute2 && (
+              <Box sx={{
+                position: 'absolute',
+                bottom: 35,
+                left: 0,
+                right: 0,
+                height: 22,
+                backgroundColor: '#EDD8A3',
+                border: '2px solid #8B4513',
+                display: 'flex',
+                justifyContent: 'space-between',
+                alignItems: 'center',
+                px: 1,
+                boxSizing: 'border-box',
+                zIndex: 10
+              }}>
+                <Link to={`/${brute1.name}/cell`} style={{ textDecoration: 'none' }}>
+                  <Text component="span" bold color="secondary" sx={{ fontSize: 13 }}>{brute1.name}'s cell</Text>
+                </Link>
+                <Link to={`/${brute2.name}/cell`} style={{ textDecoration: 'none' }}>
+                  <Text component="span" bold color="secondary" sx={{ fontSize: 13 }}>{brute2.name}'s cell</Text>
+                </Link>
+              </Box>
+            )}
           </Box>
         </Box>
       </Box>

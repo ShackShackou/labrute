@@ -23,7 +23,7 @@ import CellGlobalTournament from './CellGlobalTournament';
 import CellTournament from './CellTournament';
 
 export interface CellMainProps extends BoxProps {
-  language: Lang;
+  language?: Lang;
   smallScreen?: boolean;
   confirmSacrifice?: () => void;
   confirmReset?: () => void;
@@ -36,11 +36,14 @@ const CellMain = ({
   confirmReset,
   ...rest
 }: CellMainProps) => {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
   const Confirm = useConfirm();
   const Alert = useAlert();
   const { brute, owner } = useBrute();
   const { user, authing, currentEvent, modifiers } = useAuth();
+
+  // Use provided language or fallback to current i18n language
+  const currentLanguage = language || i18n.language as Lang;
 
   const xpNeededForNextLevel = useMemo(
     () => (brute ? getXPNeeded(brute.level + 1) : 0),
@@ -178,8 +181,8 @@ const CellMain = ({
                     height: 72,
                     width: 218,
                   }}
-                  image={`/images/${language}/cell/arena.webp`}
-                  imageHover={`/images/${language}/cell/arena-hover.webp`}
+                  image={`/images/${currentLanguage}/cell/arena.webp`}
+                  imageHover={`/images/${currentLanguage}/cell/arena-hover.webp`}
                   shadow={false}
                   contrast={false}
                 />
@@ -202,7 +205,7 @@ const CellMain = ({
       {/* TOURNAMENT */}
       {!smallScreen && !brute.eventId && (
         <CellTournament
-          language={language}
+          language={currentLanguage}
         />
       )}
       {/* GLOBAL TOURNAMENT */}
