@@ -304,7 +304,6 @@ const CellView = () => {
               {/* MAIN */}
               <CellMain
                 sx={{ flexGrow: 1 }}
-                language={language}
                 confirmSacrifice={confirmSacrifice}
                 confirmReset={confirmReset}
               />

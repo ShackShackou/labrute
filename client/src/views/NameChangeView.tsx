@@ -1,7 +1,7 @@
 import { Box, Paper } from '@mui/material';
 import React, { useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import FantasyButton from '../components/FantasyButton';
+import { ShackersButton } from '../components/Shackers';
 import Page from '../components/Page';
 import StyledInput from '../components/StyledInput';
 import Text from '../components/Text';
@@ -60,7 +60,7 @@ const NameChangeView = () => {
             />
             {/* VALIDATION */}
             <Box sx={{ textAlign: 'center' }}>
-              <FantasyButton color="success" onClick={changeName}>{t('validate')}</FantasyButton>
+              <ShackersButton variant="primary" onClick={changeName}>{t('validate')}</ShackersButton>
             </Box>
           </Box>
         )}

@@ -7,7 +7,7 @@ import { useTranslation } from 'react-i18next';
 import BruteRender from '../components/Brute/Body/BruteRender';
 import SkillTooltip from '../components/Brute/SkillTooltip';
 import WeaponTooltip from '../components/Brute/WeaponTooltip';
-import FantasyButton from '../components/FantasyButton';
+import { ShackersButton } from '../components/Shackers';
 import Link from '../components/Link';
 import { LogImage } from '../components/LogImage';
 import Page from '../components/Page';
@@ -148,14 +148,14 @@ export const FollowingFeedView = () => {
           </Stack>
         )}
       </Paper>
-      <FantasyButton
-        color="success"
+      <ShackersButton
+        variant="primary"
         onClick={() => setPage((prev) => prev + 1)}
         disabled={lastPage}
         sx={{ mx: 'auto', mt: 3 }}
       >
         {t('showMore')}
-      </FantasyButton>
+      </ShackersButton>
     </Page>
   );
 };

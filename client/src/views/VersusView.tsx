@@ -3,9 +3,9 @@ import { Box, Grid, useMediaQuery, useTheme } from '@mui/material';
 import React, { useCallback, useEffect, useMemo } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useNavigate, useParams } from 'react-router';
-import BoxBg from '../components/BoxBg';
 import BruteRender from '../components/Brute/Body/BruteRender';
 import Page from '../components/Page';
+import { ShackersCard } from '../components/Shackers';
 import StyledButton from '../components/StyledButton';
 import Text from '../components/Text';
 import { useAlert } from '../hooks/useAlert';
@@ -109,8 +109,8 @@ const VersusView = () => {
 
   return brute && opponent && (
     <Page title={`${brute.name} ${t('vs')} ${opponent.name}`} headerUrl={`/${brute.name}/cell`}>
-      <BoxBg
-        src={`/images${mode === 'dark' ? '/dark' : ''}/versus/background.webp`}
+      <ShackersCard
+        bordered
         sx={{
           width: 881,
           maxWidth: 1,
@@ -146,7 +146,7 @@ const VersusView = () => {
         <StyledButton onClick={startFight} sx={{ ml: '39.8%' }}>
           <Text h5 typo="handwritten" upperCase bold color="secondary">{t('startFight')}</Text>
         </StyledButton>
-      </BoxBg>
+      </ShackersCard>
     </Page>
   );
 };

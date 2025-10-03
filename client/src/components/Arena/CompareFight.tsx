@@ -400,10 +400,10 @@ const CompareFight: React.FC<Props> = ({ fight }) => {
                 zIndex: 10
               }}>
                 <Link to={`/${brute1.name}/cell`} style={{ textDecoration: 'none' }}>
-                  <Text component="span" bold color="secondary" sx={{ fontSize: 13 }}>{brute1.name}'s cell</Text>
+                  <Text component="span" bold color="secondary" sx={{ fontSize: 13, textShadow: '0 0 1px rgba(0,0,0,0.3)', WebkitFontSmoothing: 'antialiased' }}>{brute1.name}'s cell</Text>
                 </Link>
                 <Link to={`/${brute2.name}/cell`} style={{ textDecoration: 'none' }}>
-                  <Text component="span" bold color="secondary" sx={{ fontSize: 13 }}>{brute2.name}'s cell</Text>
+                  <Text component="span" bold color="secondary" sx={{ fontSize: 13, textShadow: '0 0 1px rgba(0,0,0,0.3)', WebkitFontSmoothing: 'antialiased' }}>{brute2.name}'s cell</Text>
                 </Link>
               </Box>
             )}

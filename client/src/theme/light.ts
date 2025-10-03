@@ -36,7 +36,7 @@ export default createTheme({
     },
     divider: '#733d2c',
     background: {
-      default: 'rgb(235,173,112)',
+      default: '#000000',
       light: 'rgba(247,225,183,1)',
       paper: '#fbf2af',
       paperLight: '#fbf7c0',

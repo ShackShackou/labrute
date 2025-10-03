@@ -2,7 +2,7 @@ import { Home } from '@mui/icons-material';
 import { Box, Paper } from '@mui/material';
 import React from 'react';
 import { useTranslation } from 'react-i18next';
-import FantasyButton from '../components/FantasyButton';
+import { ShackersButton } from '../components/Shackers';
 import Page from '../components/Page';
 import Text from '../components/Text';
 
@@ -24,10 +24,10 @@ const NotFoundView = () => {
           <Text h4 color="secondary" bold sx={{ mb: 2 }}>
             {t('notFound.subtitle')}
           </Text>
-          <FantasyButton color="secondary" to="/">
+          <ShackersButton variant="secondary" to="/">
             <Home sx={{ verticalAlign: 'middle', mr: 1 }} />
             {t('home')}
-          </FantasyButton>
+          </ShackersButton>
         </Box>
       </Paper>
     </Page>

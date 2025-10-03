@@ -4,7 +4,7 @@ import React, { useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useNavigate } from 'react-router';
 import BruteRender from '../components/Brute/Body/BruteRender';
-import FantasyButton from '../components/FantasyButton';
+import { ShackersButton } from '../components/Shackers';
 import Page from '../components/Page';
 import StyledButton from '../components/StyledButton';
 import Text from '../components/Text';
@@ -156,7 +156,7 @@ const ResetVisualsView = () => {
             </Box>
             {/* VALIDATION */}
             <Box sx={{ textAlign: 'center' }}>
-              <FantasyButton color="success" onClick={resetVisuals}>{t('validate')}</FantasyButton>
+              <ShackersButton variant="primary" onClick={resetVisuals}>{t('validate')}</ShackersButton>
             </Box>
           </>
         )}

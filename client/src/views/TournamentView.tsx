@@ -8,8 +8,8 @@ import { useTranslation } from 'react-i18next';
 import { useNavigate, useParams } from 'react-router';
 import BruteRender from '../components/Brute/Body/BruteRender';
 import BruteTooltip from '../components/Brute/BruteTooltip';
-import FantasyButton from '../components/FantasyButton';
 import Page from '../components/Page';
+import { ShackersButton } from '../components/Shackers';
 import StyledButton, { StyledButtonHeight, StyledButtonWidth } from '../components/StyledButton';
 import Text from '../components/Text';
 import { useAuth } from '../hooks/useAuth';
@@ -197,9 +197,9 @@ const TournamentView = () => {
         </Paper>
         <Paper sx={{ position: 'relative', bgcolor: 'background.paperLight', mt: -2 }}>
           {ownsBrute && stepWatched < 6 && (
-            <FantasyButton onClick={setWatched} color="success">
+            <ShackersButton onClick={setWatched} variant="primary">
               {t('setAsWatched')}
-            </FantasyButton>
+            </ShackersButton>
           )}
           <Box sx={{ display: 'flex', justifyContent: 'space-between' }}>
             {display && (!authing && brute) && rounds.map((round, index) => {

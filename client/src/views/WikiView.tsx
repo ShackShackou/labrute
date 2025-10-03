@@ -2,7 +2,7 @@ import { BruteRankings, DailyTournamentGoldReward, DailyTournamentXpReward, getB
 import { Box, Grid, Paper } from '@mui/material';
 import React from 'react';
 import { useTranslation } from 'react-i18next';
-import FantasyButton from '../components/FantasyButton';
+import { ShackersButton } from '../components/Shackers';
 import Page from '../components/Page';
 import Text from '../components/Text';
 import { ChildCare, EmojiEvents, Groups, KeyboardDoubleArrowUp } from '@mui/icons-material';
@@ -51,10 +51,10 @@ export const WikiView = () => {
         <Grid container spacing={2}>
           <Grid item xs={12} sm={6}>
             {/* RANK UP */}
-            <FantasyButton color="success" sx={{ ml: 0 }}>
+            <ShackersButton variant="primary" sx={{ ml: 0 }}>
               <KeyboardDoubleArrowUp sx={{ verticalAlign: 'middle', mr: 1 }} />
               {t('rankUp')}
-            </FantasyButton>
+            </ShackersButton>
             <Text h5 bold upperCase typo="LaBrute" color="secondary" mt={1}>{t('wiki.howToRankup')}</Text>
             <Text h6 upperCase typo="LaBrute" color="secondary">• {t('wiki.winDaily')}</Text>
             {BruteRankings.slice(0, 3).map((rank) => (
@@ -76,10 +76,10 @@ export const WikiView = () => {
             <Text body2>{t('wiki.restartAfterRankup')}</Text>
             <Text body2>{t('wiki.previousDestiny')}</Text>
             {/* TOURNAMENTS */}
-            <FantasyButton color="warning" sx={{ ml: 0, mt: 3 }}>
+            <ShackersButton variant="secondary" sx={{ ml: 0, mt: 3 }}>
               <EmojiEvents sx={{ verticalAlign: 'middle', mr: 1 }} />
               {t('tournaments')}
-            </FantasyButton>
+            </ShackersButton>
             <Text h5 bold upperCase typo="LaBrute" color="secondary" mt={1}>{t('wiki.howWork')}</Text>
             <Text h6 upperCase typo="LaBrute" color="secondary">• {t('dailyTournament')}</Text>
             <Text body2>- {t('wiki.manualRegister')}</Text>
@@ -100,10 +100,10 @@ export const WikiView = () => {
             <Text body2>- {t('wiki.unregisteredOnly')}</Text>
             <Text body2>- {t('wiki.noRewards')}</Text>
             {/* CLANS */}
-            <FantasyButton color="warning" sx={{ ml: 0, mt: 3 }}>
+            <ShackersButton variant="secondary" sx={{ ml: 0, mt: 3 }}>
               <Groups sx={{ verticalAlign: 'middle', mr: 1 }} />
               {t('wiki.clans')}
-            </FantasyButton>
+            </ShackersButton>
             <Text h5 bold upperCase typo="LaBrute" color="secondary" mt={1}>{t('wiki.increaseClanCapacity')}</Text>
             <Text h6 upperCase typo="LaBrute" color="secondary">• {t('wiki.defeatBoss')}</Text>
             <Text body2>{t('wiki.bossExplanation')}</Text>
@@ -116,10 +116,10 @@ export const WikiView = () => {
           </Grid>
           <Grid item xs={12} sm={6}>
             {/* GOLD */}
-            <FantasyButton color="warning" sx={{ ml: 0 }}>
+            <ShackersButton variant="secondary" sx={{ ml: 0 }}>
               <Box component="img" src="/images/gold.png" sx={{ verticalAlign: 'middle', mr: 1 }} />
               {t('gold')}
-            </FantasyButton>
+            </ShackersButton>
             <Text h5 bold upperCase typo="LaBrute" color="secondary" mt={1}>{t('wiki.howToGetGold')}</Text>
             <Text h6 upperCase typo="LaBrute" color="secondary">• {t('wiki.sacrifice')}</Text>
             <Box sx={{ columns: 2 }}>
@@ -181,10 +181,10 @@ export const WikiView = () => {
             <Text body2>{t('wiki.resetExample')}</Text>
             <Text body2>{t('wiki.resetExample2')}</Text>
             {/* PUPILS */}
-            <FantasyButton color="success" sx={{ ml: 0, mt: 3 }}>
+            <ShackersButton variant="primary" sx={{ ml: 0, mt: 3 }}>
               <ChildCare sx={{ verticalAlign: 'middle', mr: 1 }} />
               {t('wiki.pupils')}
-            </FantasyButton>
+            </ShackersButton>
             <Text h5 bold upperCase typo="LaBrute" color="secondary" mt={1}>{t('wiki.whatPupilBenefits')}</Text>
             <Text h6 upperCase typo="LaBrute" color="secondary">• {t('wiki.pupilBenefits')}</Text>
             <Text body2>{t('wiki.pupilExplanation')}</Text>

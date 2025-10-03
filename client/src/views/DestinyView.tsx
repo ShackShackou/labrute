@@ -6,7 +6,7 @@ import React from 'react';
 import { useTranslation } from 'react-i18next';
 import { useParams } from 'react-router';
 import { TransformComponent, TransformWrapper } from 'react-zoom-pan-pinch';
-import BoxBg from '../components/BoxBg';
+import { ShackersCard } from '../components/Shackers';
 import SkillTooltip from '../components/Brute/SkillTooltip';
 import WeaponTooltip from '../components/Brute/WeaponTooltip';
 import Page from '../components/Page';
@@ -114,8 +114,8 @@ const DestinyView = () => {
       sx={styles.li}
     >
       <Box component="aside" sx={styles.aside}>
-        <BoxBg
-          src={`/images${mode === 'dark' ? '/dark' : ''}/level-up/box${branch?.current ? '-current' : ''}.png`}
+        <ShackersCard
+          bordered={branch?.current}
           sx={{
             pt: 3.5,
             height: 129,
@@ -169,7 +169,7 @@ const DestinyView = () => {
           ) : (
             <QuestionMark sx={{ pt: 2, fontSize: '50px' }} />
           )}
-        </BoxBg>
+        </ShackersCard>
       </Box>
       {branch && (
         <Box component="ul" sx={styles.ul}>

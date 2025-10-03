@@ -10,7 +10,7 @@ import { AchievementHeader } from '../components/AchievementHeader';
 import { AchievementTooltip } from '../components/AchievementTooltip';
 import { ActivityStatus } from '../components/ActivityStatus';
 import BruteButton from '../components/Brute/BruteButton';
-import FantasyButton from '../components/FantasyButton';
+import { ShackersButton } from '../components/Shackers';
 import Link from '../components/Link';
 import Page from '../components/Page';
 import Text from '../components/Text';
@@ -109,13 +109,13 @@ const UserView = () => {
                     <MenuItem key={reason} value={reason}>{t(`banReason.${reason}`)}</MenuItem>
                   ))}
                 </Select>
-                <FantasyButton
+                <ShackersButton
                   onClick={banUser}
-                  color="error"
+                  variant="danger"
                   sx={{ m: 1 }}
                 >
                   {t('ban')}
-                </FantasyButton>
+                </ShackersButton>
               </Box>
             )}
             {/* ACHIEVEMENTS */}
@@ -265,15 +265,15 @@ const UserView = () => {
                     })}
                   </Box>
                 </Paper>
-                <FantasyButton
-                  color="secondary"
+                <ShackersButton
+                  variant="secondary"
                   to="/achievements/rankings"
                   sx={{
                     mt: 3,
                   }}
                 >
                   {t('ranking')}
-                </FantasyButton>
+                </ShackersButton>
               </Grid>
             </Grid>
             {/* REWARDS */}
@@ -281,15 +281,15 @@ const UserView = () => {
               <>
                 <Text bold center smallCaps h4 sx={{ mt: 2, ml: 1 }}>{t('externalRewards')}</Text>
                 <Box sx={{ display: 'flex', justifyContent: 'center' }}>
-                  <FantasyButton
+                  <ShackersButton
                     onClick={getDinoRpgReward}
-                    color="success"
+                    variant="primary"
                     disabled={dayjs.utc(authedUser.dinorpgDone).isSame(dayjs.utc(), 'day')}
                     sx={{ m: 1 }}
                   >
                     <Check sx={{ verticalAlign: 'middle', mr: 1 }} />
                     {t('dinorpg')}
-                  </FantasyButton>
+                  </ShackersButton>
                 </Box>
               </>
             )}

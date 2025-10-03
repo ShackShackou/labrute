@@ -4,7 +4,7 @@ import { ImageList, ImageListItem, List, ListItem, ListItemIcon, ListItemText, P
 import dayjs from 'dayjs';
 import React, { useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import FantasyButton from '../components/FantasyButton';
+import { ShackersButton } from '../components/Shackers';
 import Page from '../components/Page';
 import Text from '../components/Text';
 
@@ -95,13 +95,13 @@ const PatchNotesView = () => {
         </Paper>
       ))}
       {displayedReleases.length < releases.length && (
-        <FantasyButton
-          color="success"
+        <ShackersButton
+          variant="primary"
           onClick={showMoreReleases}
           sx={{ mx: 'auto' }}
         >
           {t('showMore')}
-        </FantasyButton>
+        </ShackersButton>
       )}
     </Page>
   );

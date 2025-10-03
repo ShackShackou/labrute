@@ -4,7 +4,7 @@ import { Box, Grid, List, ListItem, ListItemText, ListSubheader, Paper, Tooltip,
 import React, { useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useParams } from 'react-router';
-import FantasyButton from '../components/FantasyButton';
+import { ShackersButton } from '../components/Shackers';
 import Page from '../components/Page';
 import Text from '../components/Text';
 import { useAlert } from '../hooks/useAlert';
@@ -46,15 +46,15 @@ const AchievementsView = () => {
         <Text h3 bold upperCase typo="handwritten" sx={{ mr: 2 }}>{t('achievements')}</Text>
       </Paper>
       <Paper sx={{ bgcolor: 'background.paperLight', mt: -2 }}>
-        <FantasyButton
-          color="secondary"
+        <ShackersButton
+          variant="secondary"
           to="/achievements/rankings"
           sx={{
             mb: 1,
           }}
         >
           {t('ranking')}
-        </FantasyButton>
+        </ShackersButton>
         <Grid container spacing={1}>
           <Grid item xs={12} md={6}>
             <Paper

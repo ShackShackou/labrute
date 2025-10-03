@@ -4,7 +4,7 @@ import { Box, Alert as MuiAlert, Paper, Stack, useMediaQuery, useTheme } from '@
 import React, { useCallback, useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useNavigate, useParams } from 'react-router';
-import BoxBg from '../components/BoxBg';
+import { ShackersCard } from '../components/Shackers';
 import BruteRender from '../components/Brute/Body/BruteRender';
 import BruteHP from '../components/Brute/BruteHP';
 import SkillTooltip from '../components/Brute/SkillTooltip';
@@ -177,8 +177,8 @@ const LevelUpView = () => {
               </Stack>
             )}
             {/* BRUTE */}
-            <BoxBg
-              src={`/images${theme.palette.mode === 'dark' ? '/dark' : ''}/level-up/brute-bg.webp`}
+            <ShackersCard
+              bordered
               sx={{
                 display: 'flex',
                 alignItems: 'center',
@@ -192,7 +192,7 @@ const LevelUpView = () => {
                   brute={brute}
                 />
               </Box>
-            </BoxBg>
+            </ShackersCard>
             {!smallScreen && (
               <Box sx={{ width: 153 }}>
                 {weaponsAndSkills}
@@ -221,14 +221,12 @@ const LevelUpView = () => {
                   mb: 2,
                 }}
               >
-                <BoxBg
-                  src={samePath
+                <ShackersCard
+                  bordered={samePath
                     && ((brute.previousDestinyPath[brute.level - 1] === DestinyChoiceSide.LEFT
                       && i === 0)
                       || (brute.previousDestinyPath[brute.level - 1] === DestinyChoiceSide.RIGHT
-                        && i === 1))
-                    ? `/images${theme.palette.mode === 'dark' ? '/dark' : ''}/level-up/box-current.png`
-                    : `/images${theme.palette.mode === 'dark' ? '/dark' : ''}/level-up/box.png`}
+                        && i === 1))}
                   sx={{
                     pt: 5,
                     height: 129,
@@ -273,7 +271,7 @@ const LevelUpView = () => {
                       {t(statName(destinyChoice.stat2))}
                     </Text>
                   ))}
-                </BoxBg>
+                </ShackersCard>
                 {/* VALIDATE */}
                 <StyledButton
                   sx={{
