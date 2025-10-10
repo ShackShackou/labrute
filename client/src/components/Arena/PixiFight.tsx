@@ -122,6 +122,7 @@ const PixiFight: React.FC<Props> = ({
   const overlayOnRef = useRef<boolean>(false);
   const overlayStartRef = useRef<number | null>(null);
   const overlayGraphicsRef = useRef<{ L: Graphics, R: Graphics, text: Text } | null>(null);
+  const hypnosisBaseFiltersRef = useRef<Map<number, any>>(new Map());
 
   type TooltipRowElements = { row: HTMLDivElement; label: HTMLSpanElement; value: HTMLSpanElement; };
   type TooltipElements = {
@@ -1153,6 +1154,8 @@ const PixiFight: React.FC<Props> = ({
         try { R.visible = false; } catch {}
         try { (shadowL as any).visible = false; } catch {}
         try { (shadowR as any).visible = false; } catch {}
+
+        // Shield initialization will be done after leftMain/rightMain are declared
       } catch {
         // keep circles fallback if assets/runtimes unavailable
       }
@@ -2029,6 +2032,24 @@ const PixiFight: React.FC<Props> = ({
         });
       }
 
+      // Attach initial shields for fighters with shield property
+      try {
+        console.log('🛡️ INITIALIZATION - leftMain:', leftMain, 'leftMain.shield:', leftMain?.shield);
+        console.log('🛡️ INITIALIZATION - rightMain:', rightMain, 'rightMain.shield:', rightMain?.shield);
+
+        if (leftMain?.shield === true) {
+          console.log('🛡️ LEFT fighter needs shield - setting flag on left object', leftMain);
+          // Will be attached when fighter arrives (visibility check)
+          (left as any).needsShield = true;
+        }
+        if (rightMain?.shield === true) {
+          console.log('🛡️ RIGHT fighter needs shield - setting flag on right object', rightMain);
+          (right as any).needsShield = true;
+        }
+      } catch (e) {
+        console.error('🛡️ Shield initialization error:', e);
+      }
+
       // Small helpers
       const playAnim = (obj:any, name:string, loop=true) => {
         if (obj?.type === 'spine') {
@@ -2145,47 +2166,48 @@ const PixiFight: React.FC<Props> = ({
       const petSpines = new Map<number, any>();
       // Scene shields (visual overlay) per fighter index
       const shields = new Map<number, Graphics>();
+      // Herculean Strength afterimage trackers per fighter index
+      const herculeanAfterimages = new Map<number, any>();
       const attachShield = (fighterIdx: number, node: any, side: 'L'|'R') => {
         try {
-          if (!node || shields.has(fighterIdx)) return;
+          console.log('🛡️ attachShield called for fighter', fighterIdx, 'side', side, 'node:', node);
+          if (!node || shields.has(fighterIdx)) {
+            console.log('🛡️ Shield already exists or no node, skipping');
+            return;
+          }
           const g = new Graphics();
 
-          // SHACKERS-style shield with cyan neon glow
-          // Outer glow
-          g.setStrokeStyle({ width: 4, color: 0x00E5FF, alpha: 0.4 });
-          g.roundRect(-18, -28, 36, 48, 12);
-          g.stroke();
+          // ROUND SHIELD - positioned high and to the left
+          const shieldRadius = 90;
 
-          // Main shield border (bright cyan)
-          g.setStrokeStyle({ width: 3, color: 0x00E5FF, alpha: 0.95 });
-          g.setFillStyle({ color: 0x0A3A50, alpha: 0.4 });
-          g.roundRect(-16, -26, 32, 44, 10);
-          g.fill();
-          g.stroke();
+          // Draw ROUND shield (circle)
+          g.circle(0, 0, shieldRadius)
+            .fill({ color: 0x4A90E2, alpha: 0.8 })
+            .stroke({ width: 10, color: 0xFFFFFF, alpha: 1.0 });
 
-          // Inner highlights (white/cyan)
-          const edge = new Graphics();
-          edge.setStrokeStyle({ width: 2, color: 0x62EFFF, alpha: 0.6 });
-          edge.moveTo(-14, -20); edge.lineTo(14, -20);
-          edge.stroke();
-          edge.setStrokeStyle({ width: 2, color: 0x62EFFF, alpha: 0.5 });
-          edge.moveTo(-12, -8); edge.lineTo(12, -8);
-          edge.stroke();
+          // Add center cross/emblem
+          const crossSize = 50;
+          const cross = new Graphics();
+          cross.rect(-4, -crossSize/2, 8, crossSize).fill({ color: 0xFFFFFF, alpha: 1.0 });
+          cross.rect(-crossSize/2, -4, crossSize, 8).fill({ color: 0xFFFFFF, alpha: 1.0 });
 
-          // Center emblem (glowing dot)
-          const emblem = new Graphics();
-          emblem.setFillStyle({ color: 0x00E5FF, alpha: 0.8 });
-          emblem.circle(0, 0, 3);
-          emblem.fill();
+          // Add inner circle border for metallic effect
+          const border = new Graphics();
+          border.circle(0, 0, shieldRadius - 10)
+            .stroke({ width: 4, color: 0xFFDDDD, alpha: 0.8 });
 
-          g.addChild(edge, emblem);
+          g.addChild(border, cross);
 
-          // Slightly in front of the fighter depending on side
-          g.position.set(side === 'L' ? 20 : -20, -8);
-          try { (g as any).zIndex = 5; } catch {}
+          // Position: To the RIGHT and high
+          g.position.set(side === 'L' ? 70 : 70, -270);
+          try { (g as any).zIndex = 999; } catch {}
+
           node.addChild(g);
           shields.set(fighterIdx, g);
-        } catch {}
+          console.log('🛡️ Shield graphics created and added to node at position:', g.position);
+        } catch (e) {
+          console.error('🛡️ Error in attachShield:', e);
+        }
       };
       const dropShield = (fighterIdx: number) => {
         try {
@@ -2731,6 +2753,7 @@ const PixiFight: React.FC<Props> = ({
 
       const play = async () => {
         const t0 = performance.now();
+
         for (const s of steps) {
           if (disposed) return;
           const a = s.a as number;
@@ -2912,6 +2935,20 @@ const PixiFight: React.FC<Props> = ({
                     if (node && base) { node.filters = base; hypnosisBaseFiltersRef.current.delete(idx); }
                   } catch {}
                 }
+                // Clear Herculean Strength afterimage trail
+                if (skillId === (SkillId as any).herculeanStrength) {
+                  try {
+                    const idx = actor as number;
+                    if (typeof idx === 'number' && herculeanAfterimages.has(idx)) {
+                      const trailTick = herculeanAfterimages.get(idx);
+                      if (trailTick) {
+                        app.ticker.remove(trailTick);
+                        herculeanAfterimages.delete(idx);
+                        console.log('🛑 Herculean trail effect STOPPED for fighter', idx);
+                      }
+                    }
+                  } catch {}
+                }
                 // TODO: ajouter cleanups spécifiques (fierceBrute ghosts) si utilisés
               }
               // Attach shield overlay for main fighters if they have one
@@ -2923,6 +2960,8 @@ const PixiFight: React.FC<Props> = ({
           case 28: {
             try {
               const skillId: number | undefined = (s as any)?.s;
+              console.log('⚡ SkillActivate case 28! skillId=', skillId, 'herculeanStrength=', (SkillId as any).herculeanStrength, 'step=', s);
+              console.log('⚡ actorIdx:', actorIdx, 'actorSide:', actorSide, 'src:', src);
               const pos = getPos(src.node);
               if (skillId === (SkillId as any).cryOfTheDamned) {
                 floatText(pos.x, pos.y - 30, 'CRY!', 0xFFD700);
@@ -2977,12 +3016,151 @@ const PixiFight: React.FC<Props> = ({
                   if (t>=700) { app.ticker.remove(tick); ghosts.forEach(g=>{ try { scene.removeChild(g); g.destroy(); } catch {} }); }
                 }; addTick(tick);
               } else if (skillId === (SkillId as any).flashFlood) {
-                // Déclencher l’effet flashFlood minimal (vague + shake)
+                // Déclencher l'effet flashFlood minimal (vague + shake)
                 const wave = new Graphics();
                 wave.rect(0, 0, W, 16).fill({ color: 0x1E90FF, alpha: 0.65 });
                 wave.position.set(0, pos.y - 40); scene.addChild(wave);
                 let t=0; const tick=(tk:any)=>{ const dm=typeof tk?.deltaMS==='number'?tk.deltaMS:16.7; t+=dm; wave.alpha=Math.max(0,0.65*(1-t/500)); if(t>=500){app.ticker.remove(tick); try{scene.removeChild(wave); wave.destroy();}catch{}}}; addTick(tick);
                 await shake(4, 150);
+              } else if (skillId === (SkillId as any).herculeanStrength) {
+                console.log('🔥 HERCULEAN STRENGTH ACTIVATED! skillId=', skillId, 'src=', src);
+                // Quick flash text
+                const heroText = new Text('HERCULEAN!', {
+                  fill: 0xFFFF00,
+                  fontSize: 18,
+                  fontWeight: 'bold',
+                  stroke: { color: 0x000000, width: 3 }
+                } as any);
+                heroText.anchor.set(0.5);
+                heroText.position.set(pos.x, pos.y - 50);
+                scene.addChild(heroText);
+                let textLife = 0;
+                const textTick = (tk:any) => {
+                  const dm = typeof tk?.deltaMS === 'number' ? tk.deltaMS : 16.7;
+                  textLife += dm;
+                  heroText.y -= dm * 0.04;
+                  heroText.alpha = Math.max(0, 1 - textLife / 1000);
+                  if (textLife >= 1000) {
+                    app.ticker.remove(textTick);
+                    try { scene.removeChild(heroText); heroText.destroy(); } catch {}
+                  }
+                };
+                addTick(textTick);
+
+                // Strong glow + saturation
+                try {
+                  const node = src.node as any;
+                  const baseFilters = Array.isArray(node.filters) ? node.filters.slice() : [];
+                  const glow = new GlowFilter({ distance: 20, outerStrength: 5, innerStrength: 2, color: 0xFFFF00, quality: 0.8 });
+                  const adjust = new AdjustmentFilter({ saturation: 1.8, brightness: 1.3 });
+                  node.filters = [...baseFilters, glow, adjust];
+                  let glowLife = 0;
+                  const glowTick = (tk:any) => {
+                    const dm = typeof tk?.deltaMS === 'number' ? tk.deltaMS : 16.7;
+                    glowLife += dm;
+                    if (glowLife >= 800) {
+                      app.ticker.remove(glowTick);
+                      try { node.filters = baseFilters; } catch {}
+                    }
+                  };
+                  addTick(glowTick);
+                } catch {}
+
+                // CONTINUOUS TRAIL EFFECT - creates afterimages behind character during movement
+                console.log('💪 HERCULE ACTIVATION - actorIdx:', actorIdx, 'has existing trail:', herculeanAfterimages.has(actorIdx), 'pos:', pos, 'actorSide:', actorSide);
+                if (actorIdx !== null && !herculeanAfterimages.has(actorIdx)) {
+                  console.log('💪 Creating Hercule trail effect for fighter', actorIdx);
+                  const trailColors = [0xFFFF00, 0xFFCC00, 0xFF9900, 0xFF6600, 0xFF3300, 0xFF0000];
+                  let trailTime = 0;
+                  let lastX = pos.x;
+                  let lastY = pos.y;
+
+                  // Create initial burst of afterimages for immediate visual feedback
+                  console.log('💪 Creating initial burst of 5 afterimages');
+                  for (let i = 0; i < 5; i++) {
+                    setTimeout(() => {
+                      console.log('💪 Creating afterimage', i, 'at position', pos.x, pos.y);
+                      const afterimage = new Graphics();
+                      const color = trailColors[i % trailColors.length];
+                      afterimage.rect(-10, -25, 20, 40).fill({ color, alpha: 0.6 });
+                      const offsetX = actorSide === 'L' ? -i * 8 : i * 8;
+                      afterimage.position.set(pos.x + offsetX, pos.y);
+                      (afterimage as any).zIndex = pos.y - 10;
+                      scene.addChild(afterimage);
+
+                      let imageLife = 0;
+                      const imageTick = (itk: any) => {
+                        const idm = typeof itk?.deltaMS === 'number' ? itk.deltaMS : 16.7;
+                        imageLife += idm;
+                        afterimage.alpha = Math.max(0, 0.6 * (1 - imageLife / 400));
+                        if (imageLife >= 400) {
+                          app.ticker.remove(imageTick);
+                          try { scene.removeChild(afterimage); afterimage.destroy(); } catch {}
+                        }
+                      };
+                      addTick(imageTick);
+                    }, i * 40);
+                  }
+
+                  let effectDuration = 0;
+                  const MAX_DURATION = 3000; // 3 seconds
+
+                  const trailTick = (tk: any) => {
+                    try {
+                      const dm = typeof tk?.deltaMS === 'number' ? tk.deltaMS : 16.7;
+                      trailTime += dm;
+                      effectDuration += dm;
+
+                      // Stop after 3 seconds
+                      if (effectDuration >= MAX_DURATION) {
+                        app.ticker.remove(trailTick);
+                        herculeanAfterimages.delete(actorIdx);
+                        console.log('⏱️ Herculean trail effect ENDED after 3 seconds for fighter', actorIdx);
+                        return;
+                      }
+
+                      // Create afterimage every 50ms
+                      if (trailTime >= 50) {
+                        trailTime = 0;
+                        const currentPos = getPos(src.node);
+
+                        // Only create afterimage if character moved significantly
+                        const moved = Math.abs(currentPos.x - lastX) > 2 || Math.abs(currentPos.y - lastY) > 2;
+                        if (moved) {
+                          const afterimage = new Graphics();
+                          const colorIdx = Math.floor(Math.random() * trailColors.length);
+                          const color = trailColors[colorIdx];
+
+                          // Create a semi-transparent silhouette
+                          afterimage.rect(-10, -25, 20, 40).fill({ color, alpha: 0.5 });
+                          afterimage.position.set(lastX, lastY);
+                          (afterimage as any).zIndex = lastY - 10;
+                          scene.addChild(afterimage);
+
+                          // Fade out the afterimage
+                          let imageLife = 0;
+                          const imageTick = (itk: any) => {
+                            const idm = typeof itk?.deltaMS === 'number' ? itk.deltaMS : 16.7;
+                            imageLife += idm;
+                            afterimage.alpha = Math.max(0, 0.5 * (1 - imageLife / 300));
+                            if (imageLife >= 300) {
+                              app.ticker.remove(imageTick);
+                              try { scene.removeChild(afterimage); afterimage.destroy(); } catch {}
+                            }
+                          };
+                          addTick(imageTick);
+                        }
+
+                        lastX = currentPos.x;
+                        lastY = currentPos.y;
+                      }
+                    } catch {}
+                  };
+
+                  addTick(trailTick);
+                  herculeanAfterimages.set(actorIdx, trailTick);
+                  console.log('✨ Herculean trail effect STARTED for fighter', actorIdx, '(will last 3 seconds)');
+                }
               }
             } catch {}
             break; }
@@ -3138,6 +3316,26 @@ const PixiFight: React.FC<Props> = ({
                     await tweenTo(src.node, x, y, Math.max(80, arriveMs*0.22));
                   }
                 }
+
+                // Attach shield if fighter has shield property
+                try {
+                  if (actorIdx !== null && actorSide) {
+                    const fighter = byIndex.get(actorIdx);
+                    console.log('🛡️ ARRIVE step - actorIdx:', actorIdx, 'fighter:', fighter, 'shield:', fighter?.shield);
+
+                    if (fighter?.shield === true) {
+                      console.log('🛡️ ATTACHING SHIELD to fighter', actorIdx, 'at node:', src.node);
+                      attachShield(actorIdx, src.node, actorSide);
+                      console.log('🛡️ Shield attachment completed for fighter', actorIdx);
+                    } else {
+                      console.log('🛡️ Fighter', actorIdx, 'does not have shield property');
+                    }
+                  }
+                } catch (e) {
+                  console.error('🛡️ Shield attachment error:', e);
+                }
+
+                // Don't activate trail on Arrive - wait for SkillActivate
               }
             } catch {}
             break; }
