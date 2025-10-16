@@ -35,11 +35,12 @@ const CellMobileView = ({
   confirmSacrifice,
   confirmReset,
 }: CellMobileViewProps) => {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
   const { brute, owner } = useBrute();
   const { user } = useAuth();
   const theme = useTheme();
   const isXs = useMediaQuery(theme.breakpoints.only('xs'));
+  const language = i18n.language as Lang;
 
   return brute && (
     <Page

@@ -1996,6 +1996,25 @@ const PixiFight: React.FC<Props> = ({
       const rightMain = fighters.find((f:any) => !f?.master && f?.id === fight.brute2Id);
       const leftMainIdx = leftMain?.index ?? 1;
       const rightMainIdx = rightMain?.index ?? 2;
+
+      // DEBUG: Log ALL fighters with their shield status
+      console.log('🛡️🛡️🛡️ ALL FIGHTERS:', fighters.map((f: any) => ({
+        name: f.name,
+        index: f.index,
+        team: f.team,
+        master: f.master,
+        shield: f.shield,
+        skills: f.skills,
+        hasHerculeanStrength: f.skills?.includes(0)
+      })));
+
+      // Find fighters with herculean strength
+      const herculeanFighters = fighters.filter((f: any) => f.skills?.includes(0));
+      if (herculeanFighters.length > 0) {
+        console.log('💪💪💪 FIGHTERS WITH HERCULEAN STRENGTH:', herculeanFighters.map((f: any) => f.name));
+      } else {
+        console.log('⚠️ NO FIGHTERS WITH HERCULEAN STRENGTH (skill 0) IN THIS COMBAT');
+      }
       const maxL = leftMain?.maxHp ?? leftMain?.hp ?? 100;
       const maxR = rightMain?.maxHp ?? rightMain?.hp ?? 100;
       let hpL = maxL, hpR = maxR;
@@ -2994,7 +3013,7 @@ const PixiFight: React.FC<Props> = ({
                     const dm = typeof tk?.deltaMS === 'number' ? tk.deltaMS : 16.7;
                     elapsed += dm;
                     const k = Math.max(0, 1 - (elapsed / life));
-                    try { (motion as any).velocity = [velocity[0] * k, 0]; } catch {}
+                    try { (motion as any).velocity = [(velocity?.[0] ?? 0) * k, 0]; } catch {}
                     if (elapsed >= life) {
                       app.ticker.remove(tick);
                       try { node.filters = baseFilters; } catch {}
@@ -3023,7 +3042,7 @@ const PixiFight: React.FC<Props> = ({
                 let t=0; const tick=(tk:any)=>{ const dm=typeof tk?.deltaMS==='number'?tk.deltaMS:16.7; t+=dm; wave.alpha=Math.max(0,0.65*(1-t/500)); if(t>=500){app.ticker.remove(tick); try{scene.removeChild(wave); wave.destroy();}catch{}}}; addTick(tick);
                 await shake(4, 150);
               } else if (skillId === (SkillId as any).herculeanStrength) {
-                console.log('🔥 HERCULEAN STRENGTH ACTIVATED! skillId=', skillId, 'src=', src);
+                console.log('🔥🔥🔥 HERCULEAN STRENGTH ACTIVATED! skillId=', skillId, 'actorIdx=', actorIdx, 'src=', src, 'herculeanAfterimages.has:', actorIdx !== null && herculeanAfterimages.has(actorIdx));
                 // Quick flash text
                 const heroText = new Text('HERCULEAN!', {
                   fill: 0xFFFF00,
@@ -3066,100 +3085,45 @@ const PixiFight: React.FC<Props> = ({
                   addTick(glowTick);
                 } catch {}
 
-                // CONTINUOUS TRAIL EFFECT - creates afterimages behind character during movement
-                console.log('💪 HERCULE ACTIVATION - actorIdx:', actorIdx, 'has existing trail:', herculeanAfterimages.has(actorIdx), 'pos:', pos, 'actorSide:', actorSide);
+                // HERCULEAN STRENGTH TRAIL EFFECT - lasts until end of combat (permanent after activation)
+                console.log('💪 Starting Hercule trail for actorIdx:', actorIdx);
                 if (actorIdx !== null && !herculeanAfterimages.has(actorIdx)) {
-                  console.log('💪 Creating Hercule trail effect for fighter', actorIdx);
-                  const trailColors = [0xFFFF00, 0xFFCC00, 0xFF9900, 0xFF6600, 0xFF3300, 0xFF0000];
-                  let trailTime = 0;
-                  let lastX = pos.x;
-                  let lastY = pos.y;
-
-                  // Create initial burst of afterimages for immediate visual feedback
-                  console.log('💪 Creating initial burst of 5 afterimages');
-                  for (let i = 0; i < 5; i++) {
-                    setTimeout(() => {
-                      console.log('💪 Creating afterimage', i, 'at position', pos.x, pos.y);
-                      const afterimage = new Graphics();
-                      const color = trailColors[i % trailColors.length];
-                      afterimage.rect(-10, -25, 20, 40).fill({ color, alpha: 0.6 });
-                      const offsetX = actorSide === 'L' ? -i * 8 : i * 8;
-                      afterimage.position.set(pos.x + offsetX, pos.y);
-                      (afterimage as any).zIndex = pos.y - 10;
-                      scene.addChild(afterimage);
-
-                      let imageLife = 0;
-                      const imageTick = (itk: any) => {
-                        const idm = typeof itk?.deltaMS === 'number' ? itk.deltaMS : 16.7;
-                        imageLife += idm;
-                        afterimage.alpha = Math.max(0, 0.6 * (1 - imageLife / 400));
-                        if (imageLife >= 400) {
-                          app.ticker.remove(imageTick);
-                          try { scene.removeChild(afterimage); afterimage.destroy(); } catch {}
-                        }
-                      };
-                      addTick(imageTick);
-                    }, i * 40);
-                  }
-
-                  let effectDuration = 0;
-                  const MAX_DURATION = 3000; // 3 seconds
+                  const trailColors = [0xFFFF00, 0xFFAA00, 0xFF6600, 0xDD44DD, 0x8844FF];
+                  let colorIdx = 0;
 
                   const trailTick = (tk: any) => {
                     try {
-                      const dm = typeof tk?.deltaMS === 'number' ? tk.deltaMS : 16.7;
-                      trailTime += dm;
-                      effectDuration += dm;
-
-                      // Stop after 3 seconds
-                      if (effectDuration >= MAX_DURATION) {
-                        app.ticker.remove(trailTick);
-                        herculeanAfterimages.delete(actorIdx);
-                        console.log('⏱️ Herculean trail effect ENDED after 3 seconds for fighter', actorIdx);
-                        return;
-                      }
-
-                      // Create afterimage every 50ms
-                      if (trailTime >= 50) {
-                        trailTime = 0;
+                      // Trail continues indefinitely (until combat ends or fighter dies)
+                      if (Math.random() < 0.3) {
                         const currentPos = getPos(src.node);
+                        const color = trailColors[colorIdx % trailColors.length];
+                        colorIdx++;
 
-                        // Only create afterimage if character moved significantly
-                        const moved = Math.abs(currentPos.x - lastX) > 2 || Math.abs(currentPos.y - lastY) > 2;
-                        if (moved) {
-                          const afterimage = new Graphics();
-                          const colorIdx = Math.floor(Math.random() * trailColors.length);
-                          const color = trailColors[colorIdx];
+                        // Create character silhouette
+                        const clone = new Graphics();
+                        clone.ellipse(0, -20, 18, 30).fill({ color, alpha: 0.5 });
+                        clone.circle(0, -48, 14).fill({ color, alpha: 0.45 });
+                        clone.position.set(currentPos.x, currentPos.y);
+                        (clone as any).zIndex = currentPos.y - 5;
+                        scene.addChild(clone);
 
-                          // Create a semi-transparent silhouette
-                          afterimage.rect(-10, -25, 20, 40).fill({ color, alpha: 0.5 });
-                          afterimage.position.set(lastX, lastY);
-                          (afterimage as any).zIndex = lastY - 10;
-                          scene.addChild(afterimage);
-
-                          // Fade out the afterimage
-                          let imageLife = 0;
-                          const imageTick = (itk: any) => {
-                            const idm = typeof itk?.deltaMS === 'number' ? itk.deltaMS : 16.7;
-                            imageLife += idm;
-                            afterimage.alpha = Math.max(0, 0.5 * (1 - imageLife / 300));
-                            if (imageLife >= 300) {
-                              app.ticker.remove(imageTick);
-                              try { scene.removeChild(afterimage); afterimage.destroy(); } catch {}
-                            }
-                          };
-                          addTick(imageTick);
-                        }
-
-                        lastX = currentPos.x;
-                        lastY = currentPos.y;
+                        let life = 0;
+                        const fadeTick = (ftk: any) => {
+                          life += (typeof ftk?.deltaMS === 'number' ? ftk.deltaMS : 16.7);
+                          clone.alpha = Math.max(0, 0.5 * (1 - life / 350));
+                          if (life >= 350) {
+                            app.ticker.remove(fadeTick);
+                            try { scene.removeChild(clone); clone.destroy(); } catch {}
+                          }
+                        };
+                        addTick(fadeTick);
                       }
                     } catch {}
                   };
 
                   addTick(trailTick);
                   herculeanAfterimages.set(actorIdx, trailTick);
-                  console.log('✨ Herculean trail effect STARTED for fighter', actorIdx, '(will last 3 seconds)');
+                  console.log('✨ Herculean trail STARTED for', actorIdx, '(permanent until end of combat)');
                 }
               }
             } catch {}
@@ -3213,6 +3177,7 @@ const PixiFight: React.FC<Props> = ({
 
           // Arrive: pick lane using largest-gap strategy (official-like)
           case StepType.Arrive: {
+            console.log('🛡️ ARRIVE STEP - actorIdx:', actorIdx, 'actor:', actor, 'fighter from byIndex:', actorIdx !== null ? byIndex.get(actorIdx) : null, 'shield:', actorIdx !== null ? byIndex.get(actorIdx)?.shield : null);
             try {
               // Check if this is a pet arrival
               if (actor?.type === 'pet' && actor?.master && actorIdx !== null) {
@@ -3288,6 +3253,22 @@ const PixiFight: React.FC<Props> = ({
                   };
                   addTick(fade);
                 } catch {}
+
+                // Attach shield if ally has shield property
+                try {
+                  if (actorIdx !== null && actorSide) {
+                    const fighter = byIndex.get(actorIdx);
+                    console.log('🛡️ ALLY ARRIVE - actorIdx:', actorIdx, 'fighter:', fighter, 'shield:', fighter?.shield);
+
+                    if (fighter?.shield === true) {
+                      console.log('🛡️ ATTACHING SHIELD to ALLY', actorIdx, 'at node:', ally);
+                      attachShield(actorIdx, ally, actorSide);
+                      console.log('🛡️ Shield attachment completed for ALLY', actorIdx);
+                    }
+                  }
+                } catch (e) {
+                  console.error('🛡️ Shield attachment error for ally:', e);
+                }
               } else {
                 // Main fighter arrival
                 if (actorSide === 'L') {
@@ -3334,8 +3315,6 @@ const PixiFight: React.FC<Props> = ({
                 } catch (e) {
                   console.error('🛡️ Shield attachment error:', e);
                 }
-
-                // Don't activate trail on Arrive - wait for SkillActivate
               }
             } catch {}
             break; }
@@ -3443,6 +3422,22 @@ const PixiFight: React.FC<Props> = ({
             const isCritical = (s?.c === 1); // Rouge uniquement si critique (logique officielle)
             const isFlash = false; // réservé à d'autres cas, non utilisé pour la couleur
             const isVersatile = false;
+
+            // STOP HERCULEAN TRAIL EFFECT when attacking
+            try {
+              const attackerIdx = s.b ?? s.f; // Attacker index
+              if (attackerIdx !== undefined && attackerIdx !== null && herculeanAfterimages.has(attackerIdx)) {
+                console.log('🛑 STOPPING Hercule trail for attacker', attackerIdx, 'on first attack');
+                const trailTick = herculeanAfterimages.get(attackerIdx);
+                if (trailTick) {
+                  app.ticker.remove(trailTick);
+                  herculeanAfterimages.delete(attackerIdx);
+                  console.log('✅ Herculean trail STOPPED for', attackerIdx);
+                }
+              }
+            } catch (e) {
+              console.error('Error stopping herculean trail:', e);
+            }
 
             // WEAPON ANIMATION AND DAMAGE IN PARALLEL
             // Start animation immediately and apply damage at the right moment

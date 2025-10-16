@@ -317,20 +317,33 @@ const CellView = () => {
             >
               {/* REF LINK */}
               <Tooltip title={t('refLink')}>
-                <ShackersCard bordered sx={{
-                  p: 1,
+                <Box sx={{
+                  position: 'relative',
+                  py: 2,
+                  px: 1,
                   mr: 0,
                   ml: 4,
                   textAlign: 'center',
+                  border: '2px solid',
+                  borderColor: shackersTheme.colors.border.main,
+                  borderRadius: shackersTheme.borderRadius.lg,
+                  backgroundColor: shackersTheme.colors.background.paper,
+                  zIndex: 9999,
                 }}
                 >
                   <Text bold sx={{
+                    position: 'relative',
+                    zIndex: 10000,
                     wordBreak: 'break-word',
                     color: shackersTheme.colors.primary.main,
                     fontFamily: shackersTheme.typography.fontFamily.mono,
-                    fontSize: shackersTheme.typography.fontSize.xs,
+                    fontSize: '13px',
+                    lineHeight: 1.4,
+                    WebkitFontSmoothing: 'antialiased',
+                    MozOsxFontSmoothing: 'grayscale',
+                    textRendering: 'optimizeLegibility',
                   }}>{`${window.location.origin}?ref=${bruteName || ''}`}</Text>
-                </ShackersCard>
+                </Box>
               </Tooltip>
 
               {/* CLAN */}

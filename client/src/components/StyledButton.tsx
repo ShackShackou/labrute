@@ -81,6 +81,9 @@ const StyledButton = React.forwardRef<HTMLDivElement, StyledButtonProps>(({
         fontVariant: 'small-caps',
         fontWeight: 'bold',
         color: 'secondary.main',
+        WebkitFontSmoothing: 'antialiased',
+        MozOsxFontSmoothing: 'grayscale',
+        textRendering: 'optimizeLegibility',
         ...sx,
         mb: (hover && shiftMargin) ? 1 : undefined,
       }}
