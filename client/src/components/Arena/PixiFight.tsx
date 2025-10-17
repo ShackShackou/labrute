@@ -1992,6 +1992,8 @@ const PixiFight: React.FC<Props> = ({
       const lastWeaponByActor = new Map<number, string>();
       // Track which weapons are currently drawn (in hand) vs sheathed
       const drawnWeapons = new Set<string>(); // format: "actorIdx:weaponName"
+      // Track herculean strength afterimages (moved here before use)
+      const herculeanAfterimages = new Map<number, any>();
       const leftMain = fighters.find((f:any) => !f?.master && f?.id === fight.brute1Id);
       const rightMain = fighters.find((f:any) => !f?.master && f?.id === fight.brute2Id);
       const leftMainIdx = leftMain?.index ?? 1;
@@ -2008,12 +2010,10 @@ const PixiFight: React.FC<Props> = ({
         hasHerculeanStrength: f.skills?.includes(0)
       })));
 
-      // Find fighters with herculean strength
-      const herculeanFighters = fighters.filter((f: any) => f.skills?.includes(0));
-      if (herculeanFighters.length > 0) {
-        console.log('💪💪💪 FIGHTERS WITH HERCULEAN STRENGTH:', herculeanFighters.map((f: any) => f.name));
-      } else {
-        console.log('⚠️ NO FIGHTERS WITH HERCULEAN STRENGTH (skill 0) IN THIS COMBAT');
+      // Find fighters with herculean strength or fierce brute
+      const boosterFighters = fighters.filter((f: any) => f.skills?.includes(0) || f.skills?.includes(28));
+      if (boosterFighters.length > 0) {
+        console.log('💪 FIGHTERS WITH BOOSTER SKILLS (Herculean/Fierce):', boosterFighters.map((f: any) => f.name));
       }
       const maxL = leftMain?.maxHp ?? leftMain?.hp ?? 100;
       const maxR = rightMain?.maxHp ?? rightMain?.hp ?? 100;
@@ -2185,8 +2185,7 @@ const PixiFight: React.FC<Props> = ({
       const petSpines = new Map<number, any>();
       // Scene shields (visual overlay) per fighter index
       const shields = new Map<number, Graphics>();
-      // Herculean Strength afterimage trackers per fighter index
-      const herculeanAfterimages = new Map<number, any>();
+      // Herculean Strength afterimage trackers per fighter index (already declared above)
       const attachShield = (fighterIdx: number, node: any, side: 'L'|'R') => {
         try {
           console.log('🛡️ attachShield called for fighter', fighterIdx, 'side', side, 'node:', node);
@@ -2933,16 +2932,16 @@ const PixiFight: React.FC<Props> = ({
                 if (actor === rightMainIdx) { (hudR as any)?.clearStatusFlag?.(kind); }
               };
               if (typeof skillId === 'number') {
-                if (skillId === (SkillId as any).haste) clear('haste');
-                if (skillId === (SkillId as any).hypnosis) clear('hypnosis');
+                if (skillId === 50) clear('haste'); // haste
+                if (skillId === 38) clear('hypnosis'); // hypnosis
                 // Optional: clear vampirism if modeled as status
-                if (skillId === (SkillId as any).vampirism) clear('vampirism');
+                if (skillId === 48) clear('vampirism'); // vampirism
                 // Clear aura/freeze visuals
-                if (skillId === (SkillId as any).haste) {
+                if (skillId === 50) { // haste
                   if (actor === leftMainIdx) { (hudL as any)?.setHasteAura?.(false); }
                   if (actor === rightMainIdx) { (hudR as any)?.setHasteAura?.(false); }
                 }
-                if (skillId === (SkillId as any).hypnosis) {
+                if (skillId === 38) { // hypnosis
                   if (actor === leftMainIdx) { (hudL as any)?.setHypnosisFreeze?.(false); }
                   if (actor === rightMainIdx) { (hudR as any)?.setHypnosisFreeze?.(false); }
                   // Remove hypnosis filters
@@ -2954,8 +2953,8 @@ const PixiFight: React.FC<Props> = ({
                     if (node && base) { node.filters = base; hypnosisBaseFiltersRef.current.delete(idx); }
                   } catch {}
                 }
-                // Clear Herculean Strength afterimage trail
-                if (skillId === (SkillId as any).herculeanStrength) {
+                // Clear Herculean Strength OR Fierce Brute trail on expire
+                if (skillId === 0 || skillId === 28) { // herculeanStrength(0) OR fierceBrute(28)
                   try {
                     const idx = actor as number;
                     if (typeof idx === 'number' && herculeanAfterimages.has(idx)) {
@@ -2963,7 +2962,8 @@ const PixiFight: React.FC<Props> = ({
                       if (trailTick) {
                         app.ticker.remove(trailTick);
                         herculeanAfterimages.delete(idx);
-                        console.log('🛑 Herculean trail effect STOPPED for fighter', idx);
+                        const skillName = skillId === 0 ? 'Herculean' : 'Fierce';
+                        console.log('🛑', skillName, 'trail effect STOPPED on SkillExpire for fighter', idx);
                       }
                     }
                   } catch {}
@@ -2978,11 +2978,13 @@ const PixiFight: React.FC<Props> = ({
           // SkillActivate: déclenche FX pour certains supers
           case 28: {
             try {
+              // In steps, s contains SkillName enum value (same as SkillId enum value)
               const skillId: number | undefined = (s as any)?.s;
-              console.log('⚡ SkillActivate case 28! skillId=', skillId, 'herculeanStrength=', (SkillId as any).herculeanStrength, 'step=', s);
+              console.log('⚡ SkillActivate! skillId=', skillId, 'step=', s);
               console.log('⚡ actorIdx:', actorIdx, 'actorSide:', actorSide, 'src:', src);
+              console.log('⚡ Checking skills - herculeanStrength(0)?', skillId === 0, 'fierceBrute(32)?', skillId === 32);
               const pos = getPos(src.node);
-              if (skillId === (SkillId as any).cryOfTheDamned) {
+              if (skillId === 37) { // cryOfTheDamned
                 floatText(pos.x, pos.y - 30, 'CRY!', 0xFFD700);
                 // Trois ondes simples
                 for (let i = 0; i < 3; i++) {
@@ -2996,7 +2998,7 @@ const PixiFight: React.FC<Props> = ({
                     if (t >= 300) { app.ticker.remove(tick); try { scene.removeChild(ring); ring.destroy(); } catch {} }
                   }; addTick(tick);
                 }
-              } else if (skillId === (SkillId as any).fierceBrute) {
+              } else if (skillId === 32) { // fierceBrute
                 floatText(pos.x, pos.y - 30, 'FIERCE!', 0xFF4500);
                 // Motion blur + glow trail using Pixi filters
                 try {
@@ -3034,66 +3036,35 @@ const PixiFight: React.FC<Props> = ({
                   ghosts.forEach((g)=>{ try { g.alpha = Math.max(0, g.alpha - dm/600); } catch {} });
                   if (t>=700) { app.ticker.remove(tick); ghosts.forEach(g=>{ try { scene.removeChild(g); g.destroy(); } catch {} }); }
                 }; addTick(tick);
-              } else if (skillId === (SkillId as any).flashFlood) {
+              } else if (skillId === 39) { // flashFlood
                 // Déclencher l'effet flashFlood minimal (vague + shake)
                 const wave = new Graphics();
                 wave.rect(0, 0, W, 16).fill({ color: 0x1E90FF, alpha: 0.65 });
                 wave.position.set(0, pos.y - 40); scene.addChild(wave);
                 let t=0; const tick=(tk:any)=>{ const dm=typeof tk?.deltaMS==='number'?tk.deltaMS:16.7; t+=dm; wave.alpha=Math.max(0,0.65*(1-t/500)); if(t>=500){app.ticker.remove(tick); try{scene.removeChild(wave); wave.destroy();}catch{}}}; addTick(tick);
                 await shake(4, 150);
-              } else if (skillId === (SkillId as any).herculeanStrength) {
-                console.log('🔥🔥🔥 HERCULEAN STRENGTH ACTIVATED! skillId=', skillId, 'actorIdx=', actorIdx, 'src=', src, 'herculeanAfterimages.has:', actorIdx !== null && herculeanAfterimages.has(actorIdx));
-                // Quick flash text
-                const heroText = new Text('HERCULEAN!', {
-                  fill: 0xFFFF00,
-                  fontSize: 18,
-                  fontWeight: 'bold',
-                  stroke: { color: 0x000000, width: 3 }
-                } as any);
-                heroText.anchor.set(0.5);
-                heroText.position.set(pos.x, pos.y - 50);
-                scene.addChild(heroText);
-                let textLife = 0;
-                const textTick = (tk:any) => {
-                  const dm = typeof tk?.deltaMS === 'number' ? tk.deltaMS : 16.7;
-                  textLife += dm;
-                  heroText.y -= dm * 0.04;
-                  heroText.alpha = Math.max(0, 1 - textLife / 1000);
-                  if (textLife >= 1000) {
-                    app.ticker.remove(textTick);
-                    try { scene.removeChild(heroText); heroText.destroy(); } catch {}
+              } else if (skillId === 0 || skillId === 28) { // herculeanStrength(0) OR fierceBrute(28) - both use trail effect
+                const skillName = skillId === 0 ? 'HERCULEAN' : 'FIERCE';
+                console.log('🔥🔥🔥', skillName, 'ACTIVATED! skillId=', skillId, 'actorIdx=', actorIdx);
+
+                // TRAIL EFFECT - active until SkillExpire
+                console.log('💪 Starting', skillName, 'trail for actorIdx:', actorIdx);
+                if (actorIdx !== null) {
+                  // Stop previous trail if exists
+                  if (herculeanAfterimages.has(actorIdx)) {
+                    const oldTick = herculeanAfterimages.get(actorIdx);
+                    if (oldTick) app.ticker.remove(oldTick);
+                    herculeanAfterimages.delete(actorIdx);
+                    console.log('🛑 Stopped previous trail for', actorIdx);
                   }
-                };
-                addTick(textTick);
 
-                // Strong glow + saturation
-                try {
-                  const node = src.node as any;
-                  const baseFilters = Array.isArray(node.filters) ? node.filters.slice() : [];
-                  const glow = new GlowFilter({ distance: 20, outerStrength: 5, innerStrength: 2, color: 0xFFFF00, quality: 0.8 });
-                  const adjust = new AdjustmentFilter({ saturation: 1.8, brightness: 1.3 });
-                  node.filters = [...baseFilters, glow, adjust];
-                  let glowLife = 0;
-                  const glowTick = (tk:any) => {
-                    const dm = typeof tk?.deltaMS === 'number' ? tk.deltaMS : 16.7;
-                    glowLife += dm;
-                    if (glowLife >= 800) {
-                      app.ticker.remove(glowTick);
-                      try { node.filters = baseFilters; } catch {}
-                    }
-                  };
-                  addTick(glowTick);
-                } catch {}
-
-                // HERCULEAN STRENGTH TRAIL EFFECT - lasts until end of combat (permanent after activation)
-                console.log('💪 Starting Hercule trail for actorIdx:', actorIdx);
-                if (actorIdx !== null && !herculeanAfterimages.has(actorIdx)) {
+                  console.log('✅ Creating NEW trail for', actorIdx);
                   const trailColors = [0xFFFF00, 0xFFAA00, 0xFF6600, 0xDD44DD, 0x8844FF];
                   let colorIdx = 0;
 
                   const trailTick = (tk: any) => {
                     try {
-                      // Trail continues indefinitely (until combat ends or fighter dies)
+                      // Trail continues until stopped by SkillExpire
                       if (Math.random() < 0.3) {
                         const currentPos = getPos(src.node);
                         const color = trailColors[colorIdx % trailColors.length];
@@ -3123,7 +3094,7 @@ const PixiFight: React.FC<Props> = ({
 
                   addTick(trailTick);
                   herculeanAfterimages.set(actorIdx, trailTick);
-                  console.log('✨ Herculean trail STARTED for', actorIdx, '(permanent until end of combat)');
+                  console.log('✨', skillName, 'trail STARTED for', actorIdx, '(will stop on SkillExpire)');
                 }
               }
             } catch {}
@@ -3422,22 +3393,6 @@ const PixiFight: React.FC<Props> = ({
             const isCritical = (s?.c === 1); // Rouge uniquement si critique (logique officielle)
             const isFlash = false; // réservé à d'autres cas, non utilisé pour la couleur
             const isVersatile = false;
-
-            // STOP HERCULEAN TRAIL EFFECT when attacking
-            try {
-              const attackerIdx = s.b ?? s.f; // Attacker index
-              if (attackerIdx !== undefined && attackerIdx !== null && herculeanAfterimages.has(attackerIdx)) {
-                console.log('🛑 STOPPING Hercule trail for attacker', attackerIdx, 'on first attack');
-                const trailTick = herculeanAfterimages.get(attackerIdx);
-                if (trailTick) {
-                  app.ticker.remove(trailTick);
-                  herculeanAfterimages.delete(attackerIdx);
-                  console.log('✅ Herculean trail STOPPED for', attackerIdx);
-                }
-              }
-            } catch (e) {
-              console.error('Error stopping herculean trail:', e);
-            }
 
             // WEAPON ANIMATION AND DAMAGE IN PARALLEL
             // Start animation immediately and apply damage at the right moment

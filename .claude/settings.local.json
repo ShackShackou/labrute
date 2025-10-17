@@ -68,7 +68,8 @@
       "Bash(timeout:*)",
       "Bash(start:*)",
       "Bash(cmd /c:*)",
-      "WebFetch(domain:localhost)"
+      "WebFetch(domain:localhost)",
+      "Bash(node:*)"
     ],
     "deny": [],
     "ask": []
