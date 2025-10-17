@@ -4597,11 +4597,11 @@ const PixiFight: React.FC<Props> = ({
           case StepType.Haste: {
             const apos = getPos(src.node);
             floatText(apos.x, apos.y, 'HASTE!', 0xFFD700);
-            // HUD status icon for haste on actor side + aura
-            try {
-              if (actorSide === 'L') { (hudL as any)?.setStatusFlag?.('haste'); (hudL as any)?.setHasteAura?.(true); }
-              else { (hudR as any)?.setStatusFlag?.('haste'); (hudR as any)?.setHasteAura?.(true); }
-            } catch {}
+            // HUD status icon for haste on actor side + aura - DISABLED (user request)
+            // try {
+            //   if (actorSide === 'L') { (hudL as any)?.setStatusFlag?.('haste'); (hudL as any)?.setHasteAura?.(true); }
+            //   else { (hudR as any)?.setStatusFlag?.('haste'); (hudR as any)?.setHasteAura?.(true); }
+            // } catch {}
 
             // Speed lines near actor to emphasize haste
             const actorObj = (actorSide === 'L') ? left : right;
@@ -5013,8 +5013,8 @@ const PixiFight: React.FC<Props> = ({
             // HUD: set hypnosis status on targets if they are main fighters + freeze portrait
             try {
               const targets: number[] = Array.isArray((s as any).t) ? (s as any).t : (typeof (s as any).t === 'number' ? [(s as any).t] : []);
-              if (targets.includes(leftMainIdx)) { (hudL as any)?.setStatusFlag?.('hypnosis'); (hudL as any)?.setHypnosisFreeze?.(true); (hudL as any)?.pulseHypnosis?.(); }
-              if (targets.includes(rightMainIdx)) { (hudR as any)?.setStatusFlag?.('hypnosis'); (hudR as any)?.setHypnosisFreeze?.(true); (hudR as any)?.pulseHypnosis?.(); }
+              // DISABLED (user request) - if (targets.includes(leftMainIdx)) { (hudL as any)?.setStatusFlag?.('hypnosis'); (hudL as any)?.setHypnosisFreeze?.(true); (hudL as any)?.pulseHypnosis?.(); }
+              // DISABLED (user request) - if (targets.includes(rightMainIdx)) { (hudR as any)?.setStatusFlag?.('hypnosis'); (hudR as any)?.setHypnosisFreeze?.(true); (hudR as any)?.pulseHypnosis?.(); }
             } catch {}
             break; }
           
@@ -5175,11 +5175,11 @@ const PixiFight: React.FC<Props> = ({
             // Visual cue
             const tpos = getPos(tgt.node);
             floatText(tpos.x, tpos.y, 'SHIELD BROKEN', 0x1E90FF);
-            // HUD status icon
-            try {
-              if (actorSide === 'L') (hudL as any)?.setStatusFlag?.('dropshield');
-              else (hudR as any)?.setStatusFlag?.('dropshield');
-            } catch {}
+            // HUD status icon - DISABLED (user request)
+            // try {
+            //   if (actorSide === 'L') (hudL as any)?.setStatusFlag?.('dropshield');
+            //   else (hudR as any)?.setStatusFlag?.('dropshield');
+            // } catch {}
             // Remove scene shield if present
             try { if (actorIdx !== null) dropShield(actorIdx); } catch {}
             // Release any active trap attached to actor

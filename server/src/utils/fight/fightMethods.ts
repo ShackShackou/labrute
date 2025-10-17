@@ -528,6 +528,13 @@ const registerHit = ({
       if (opponent.type === 'brute') {
         opponent.stunned = true;
       }
+
+      // Add SkillExpire step to show the net breaking visually
+      fightData.steps.push({
+        a: StepType.SkillExpire,
+        b: opponent.index,
+        s: SkillByName[SkillName.net],
+      });
     }
 
     // Max damage to 20% of opponent's health if `resistant`
