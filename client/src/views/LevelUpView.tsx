@@ -67,7 +67,7 @@ const LevelUpView = () => {
       });
     }
     return () => { isSubscribed = false; };
-  }, [Alert, brute, bruteName, navigate, user]);
+  }, [bruteName, brute?.id, navigate]); // Only re-run when bruteName or brute ID changes
 
   // Trigger level up
   const levelUp = useCallback((choice: DestinyChoiceSide) => async () => {

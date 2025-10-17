@@ -1,5 +1,6 @@
 import { Button, ButtonProps, styled } from '@mui/material';
 import React from 'react';
+import { Link as RouterLink } from 'react-router-dom';
 import { shackersTheme } from '../../theme/shackers';
 
 export type ShackersButtonVariant = 'primary' | 'secondary' | 'ghost' | 'danger';
@@ -8,6 +9,7 @@ export interface ShackersButtonProps extends Omit<ButtonProps, 'variant'> {
   variant?: ShackersButtonVariant;
   glow?: boolean;
   fullWidth?: boolean;
+  to?: string;
 }
 
 const StyledButton = styled(Button, {
@@ -132,13 +134,15 @@ const StyledButton = styled(Button, {
  * </ShackersButton>
  */
 export const ShackersButton = React.forwardRef<HTMLButtonElement, ShackersButtonProps>(
-  ({ variant = 'primary', glow = false, fullWidth, children, ...props }, ref) => {
+  ({ variant = 'primary', glow = false, fullWidth, to, children, ...props }, ref) => {
     return (
       <StyledButton
         ref={ref}
         variant={variant}
         glow={glow}
         fullWidth={fullWidth}
+        component={to ? RouterLink : undefined}
+        to={to}
         {...props}
       >
         {children}

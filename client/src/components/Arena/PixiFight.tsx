@@ -4115,21 +4115,27 @@ const PixiFight: React.FC<Props> = ({
             weaponFly.position.set(tpos.x, tpos.y - 30);
             scene.addChild(weaponFly);
             
-            // Animate weapon flying and spinning away
+            // Animate weapon flying and spinning away, then land horizontally on ground
             const flyDir = Math.random() > 0.5 ? 1 : -1;
+            const groundY = H - 20; // Ground level
             let flyTime = 0;
             const flyTick = (delta: any) => {
               flyTime += delta.deltaMS ?? 16.7;
               const progress = Math.min(flyTime / 500, 1);
               weaponFly.x = tpos.x + flyDir * progress * 60;
               weaponFly.y = tpos.y - 30 - Math.sin(progress * Math.PI) * 40 + progress * 50;
-              weaponFly.rotation = progress * Math.PI * 4;
-              weaponFly.alpha = 1 - progress * 0.5;
-              
+
               if (progress >= 1) {
+                // Weapon landed - set horizontal and stop animation
                 app.ticker.remove(flyTick);
-                scene.removeChild(weaponFly);
-                weaponFly.destroy();
+                weaponFly.rotation = Math.PI / 2; // Horizontal (90 degrees)
+                weaponFly.y = groundY;
+                weaponFly.alpha = 0.8; // Slightly faded
+                // Leave weapon on ground (don't destroy)
+              } else {
+                // While flying, spin the weapon
+                weaponFly.rotation = progress * Math.PI * 4;
+                weaponFly.alpha = 1 - progress * 0.2;
               }
             };
             app.ticker.add(flyTick);
@@ -4923,11 +4929,11 @@ const PixiFight: React.FC<Props> = ({
               }
             }, 300); // Wait for vampire to reach victim
 
-            // HUD status icon for vampirism on actor side
-            try {
-              if (vampireSide === 'L') (hudL as any)?.setStatusFlag?.('vampirism');
-              else (hudR as any)?.setStatusFlag?.('vampirism');
-            } catch {}
+            // HUD status icon for vampirism on actor side - DISABLED (user request)
+            // try {
+            //   if (vampireSide === 'L') (hudL as any)?.setStatusFlag?.('vampirism');
+            //   else (hudR as any)?.setStatusFlag?.('vampirism');
+            // } catch {}
 
             console.log(`AFTER VAMPIRISM: Left HP = ${hpL}/${maxL}, Right HP = ${hpR}/${maxR}`);
             break; }
