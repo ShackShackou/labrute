@@ -71,8 +71,13 @@ const LevelUpView = () => {
 
   // Trigger level up
   const levelUp = useCallback((choice: DestinyChoiceSide) => async () => {
-    if (!brute || !choices) return;
+    console.log('🔥 LEVEL UP CLICKED!', choice, 'brute:', brute, 'choices:', choices);
+    if (!brute || !choices) {
+      console.log('⚠️ LEVEL UP ABORTED - missing brute or choices');
+      return;
+    }
 
+    console.log('📡 Sending level up request to server...');
     const newBrute = await Server.Brute.levelUp(
       brute.name,
       choice,
@@ -273,22 +278,30 @@ const LevelUpView = () => {
                   ))}
                 </ShackersCard>
                 {/* VALIDATE */}
-                <StyledButton
+                <Box
+                  component="button"
+                  onClick={levelUp(i === 0 ? DestinyChoiceSide.LEFT : DestinyChoiceSide.RIGHT)}
                   sx={{
                     height: 42,
                     width: 135,
                     position: 'absolute',
                     bottom: -8,
                     right: -8,
+                    zIndex: 10,
+                    cursor: 'pointer',
+                    border: 'none',
+                    background: 'url(/images/level-up/button.png) no-repeat center/contain',
+                    fontWeight: 'bold',
+                    textTransform: 'uppercase',
+                    color: 'success.main',
+                    fontSize: '14px',
+                    '&:hover': {
+                      background: 'url(/images/level-up/button-hover.png) no-repeat center/contain',
+                    },
                   }}
-                  image="/images/level-up/button.png"
-                  imageHover="/images/level-up/button-hover.png"
-                  shadow={false}
-                  contrast={false}
-                  onClick={levelUp(i === 0 ? DestinyChoiceSide.LEFT : DestinyChoiceSide.RIGHT)}
                 >
-                  <Text bold smallCaps color="success">{t('validate')}</Text>
-                </StyledButton>
+                  {t('validate')}
+                </Box>
               </Box>
             ))}
           </Box>

@@ -2,7 +2,7 @@ import { Box, BoxProps, useTheme } from '@mui/material';
 import React, { useCallback } from 'react';
 import { useNavigate } from 'react-router';
 
-export interface StyledButtonProps extends Omit<BoxProps, 'translate'> {
+export interface StyledButtonProps extends Omit<BoxProps, 'translate' | 'onClick'> {
   image?: string;
   imageHover?: string;
   swapImage?: boolean;
@@ -12,6 +12,7 @@ export interface StyledButtonProps extends Omit<BoxProps, 'translate'> {
   shiftMargin?: boolean;
   shadowColor?: string;
   to?: string;
+  onClick?: (event: React.MouseEvent<HTMLDivElement>) => void;
 }
 
 export const StyledButtonWidth = 207;
@@ -31,6 +32,7 @@ const StyledButton = React.forwardRef<HTMLDivElement, StyledButtonProps>(({
   shiftMargin = false,
   shadowColor = 'rgba(0, 0, 0, 0.2)',
   to,
+  onClick,
   sx,
   ...rest
 }: StyledButtonProps, ref) => {
@@ -50,17 +52,28 @@ const StyledButton = React.forwardRef<HTMLDivElement, StyledButtonProps>(({
     setHover(false);
   }, []);
 
-  const handleClick = () => {
+  const handleClick = useCallback((event: React.MouseEvent<HTMLDivElement>) => {
+    console.log('🖱️ StyledButton clicked!', 'has onClick:', !!onClick, 'has to:', !!to);
+    // Call the original onClick handler if it exists
+    if (onClick) {
+      console.log('✅ Calling onClick handler');
+      onClick(event);
+    }
+    // Then handle navigation if 'to' is provided
     if (to) {
+      console.log('🧭 Navigating to:', to);
       navigate(to);
     }
-  };
+  }, [onClick, to, navigate]);
 
   return (
     <Box
       onMouseEnter={handleMouseEnter}
       onMouseLeave={handleMouseLeave}
-      onClick={handleClick}
+      onClick={(e) => {
+        console.log('📍 Box onClick fired!');
+        handleClick(e);
+      }}
       ref={ref}
       sx={{
         display: 'flex',
