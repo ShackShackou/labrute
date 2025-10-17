@@ -69,7 +69,8 @@
       "Bash(start:*)",
       "Bash(cmd /c:*)",
       "WebFetch(domain:localhost)",
-      "Bash(node:*)"
+      "Bash(node:*)",
+      "Bash(git rm:*)"
     ],
     "deny": [],
     "ask": []
